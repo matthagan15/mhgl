@@ -1,10 +1,10 @@
 [package]
-name = "mhl"
+name = "mhgl"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = "Matts Hypergraph Library. A straightforward library for hypergraph datastructures. Not a database."
-repository = "https://github.com/matthagan15/mhl"
+description = "Matts HyperGraph Library (MHGL). A straightforward library for hypergraph datastructures. Not a database."
+repository = "https://github.com/matthagan15/mhgl"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
