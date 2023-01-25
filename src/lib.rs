@@ -1,9 +1,12 @@
 //!# Matt's Hypergraph Library (MHL)
-//! I initially called this project "graphene" before I found out that name was taken. Both "hyperion" and "graphite", my two backup names, were
-//! also taken. So instead of wasting time trying to think of a cool name (hypergraphene seemed too verbose) I've decided to just put this out there.
+//! I initially called this project "graphene" before I found out that name was taken.
+//! Both "hyperion" and "graphite", my two backup names, were
+//! also taken. So instead of wasting time trying to think of a cool name (hypergraphene 
+//! seemed too verbose) I've decided to just put this out there.
 //! 
-//! This is a basic library intended to provide a few hypergraph datastructures and some algorithms for them.
-//! The datastructures I plan on initially supporting are 
+//! This is a basic library intended to provide a few hypergraph datastructures and 
+//! some algorithms for them.
+//!  The datastructures I plan on initially supporting are 
 //! - 1 A sparse implementation
 //! - 2 A bit-wise encoding, which would work well for more dense hypergraphs.
 //! - 3 A matrix encoding, in which the hypergraph is represented as a graph in a higher dimensional space. This is intended for "nearly full" hypergraphs.
@@ -21,18 +24,23 @@
 //! As hypergraphs are relatively understudied compared to their ancestors (graphs), the algorithms will be a bit underexplored and will be filled out as
 //! the field progresses. I currently plan on adding basic stuff like traversal, cut computations, and random walks first. Another first task is simple constructors,
 //! such as erdos-renyi, complete, or k-uniform hypergraphs.
+//!
+//! One guideline I'd like to try and follow with this crate is to avoid premature generalization!
+//! I see all too often crates that define a lot of weird traits that allow for very generic
+//! behavior, but in practice when actually using the crate you typically only use the structures
+//! in certain predictable ways.
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+#![forbid(unsafe_code)]
+
+pub mod structs;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::structs::*;
 
     #[test]
     fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+        let hg = HyperGraph::new();
+        println!("it works?");
     }
 }
