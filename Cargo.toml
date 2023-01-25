@@ -1,7 +1,11 @@
 [package]
-name = "mhl"
+name = "Matts Hypergraph Library (MHL)"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "A straightforward library for hypergraph datastructures. Not a database."
+repository = "https://github.com/matthagan15/mhl"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
