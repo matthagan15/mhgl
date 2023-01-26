@@ -13,6 +13,7 @@ mod hyperedge;
 pub mod bit_edge;
 mod hypergraph;
 mod node_vec;
+pub mod nodes;
 
 pub use hyperedge::HyperEdge;
 pub use hypergraph::HyperGraph;

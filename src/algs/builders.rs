@@ -4,7 +4,7 @@ use rand::Rng;
 use uuid::Uuid;
 
 use crate::structs::{HyperGraph, HyperEdge, EdgeDirection};
-use crate::algs::utils::power_set;
+use crate::utils::power_set;
 
 /// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be 
 /// specified. For example, an erdos_renyi hypergraph with only the probability (1,1,p) specified is equivalent
