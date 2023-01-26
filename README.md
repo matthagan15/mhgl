@@ -1,34 +1,85 @@
 # mhgl
 
-## Matt's Hypergraph Library (MHGL)
-I initially called this project "graphene" before I found out that name was taken.
-Both "hyperion" and "graphite", my two backup names, were
-also taken. So instead of wasting time trying to think of a cool name (hypergraphene
-seemed too verbose) I've decided to just put this out there.
+## Matt's HyperGraph Library (mhgl)
+A straightforward library that provides hypergraph datastructures and some algorithms for working
+with them. We use the most general possible hypergraph, that is a directed, weighted hypergraph as
+oppossed to the standard undirected, unweighted hypergraph as the undirected and unweighted can
+be constructed from the directed and weighted variant. Sometimes the prefix "hyper" will be dropped from
+hypergraph and hyperedge, this is a (mostly harmless) bad habit. There are plans to support three types of
+storage, the first being a sparse representation, the second being a more dense version utilizing a binary
+encoding, the third being the most dense version in
+which a single matrix is used to store the hypergraph. This library uses ndarray for matrices, as
+it is currently the most mature and most general purpose matrix library in the ecosystem in my
+opinion.
 
-This is a basic library intended to provide a few hypergraph datastructures and
-some algorithms for them.
- The datastructures I plan on initially supporting are
-- 1 A sparse implementation
-- 2 A bit-wise encoding, which would work well for more dense hypergraphs.
-- 3 A matrix encoding, in which the hypergraph is represented as a graph in a higher dimensional space. This is intended for "nearly full" hypergraphs.
+## Nodes
+This library uses the notation "node" as opposed to vertex to align with my research. The
+rationale behind this is that "V" is preferred to represent a vector space as opposed to
+some other letter, which makes using "N" for the node set of a hypergraph a bit easier.
 
-Currently 1 is the most developed, 2 is underway, and 3 has not been started but I think should be the fastest to implement. I have yet to isolate "hypergraph"-ness
-into a trait to make interacting with these 2 (3) structures more coherent. Once these structures are more fleshed out and the API is more cohesive then a trait should
-be added.
+The fundamental concept of the nodes in the graph are objects that one is interested in
+modeling that are uniquely identifiable and one is interested in behavior of groups of
+these objects. To align with the 3 different hypergraph implementations there are currently
+3 ways nodes are represented (respectively) 1. 128 bit Uuids using the uuid crate 2. A single
+"1" in a binary number (if N nodes are being used in a graph we use N bits to represent the graph,
+so each node gets its own "spot") 3. As a specific index to the adjacency/walk matrix used for the densest hypergraphs
+(indices may also represent subsets of nodes, so all nodes are indices not all indices are nodes).
+There is currently no traits or other generalizations to make this easier to work with. We do
+not yet support adding labels to nodes either, and that must be done by hand by the end user.
 
-Note that none of these structures are intended to be used out-of-the-box as databases, so they do not support storing data in nodes or edges.
-This is typically done in some graph libraries through the use of generic types (for example a base `Node<N>` class allows you to put data of type in `N` in each node). I
-personally find this to be an instance of over-generalization on a library part and makes ergonomics of using the basic structures more annoying.
-I am also working on a basic hypergraph database system that would allow you to do this. I will open source that project if it seems appropriate.
+## Edges
+HyperEdges constitute the main objects of a HyperGraph. The fundamental type of edge is
+a directed, weighted edge which maps an input subset of nodes to an output subsets of nodes
+with an associated number. Again, there are 3 ways to represent a directed, weighted hyperedge:
+1. An input set, an output set, and a weight. This is preferred for sparse graphs.
+2. An input binary number, where each "1" indicates that node is present in the input, an output
+binary number (similar to input), and the weight.
+3. As an entry in the hypgraph adjacency matrix (input index represents a set, output index represents a
+set, and the value in the matrix the weight.)
 
-As hypergraphs are relatively understudied compared to their ancestors (graphs), the algorithms will be a bit underexplored and will be filled out as
-the field progresses. I currently plan on adding basic stuff like traversal, cut computations, and random walks first. Another first task is simple constructors,
-such as erdos-renyi, complete, or k-uniform hypergraphs.
+From these different representations of a directed, weighted hyperedge many other
+direction types can be constructed. For example, undirected hyperedges which maps a subset in both directions,
+oriented hyperedges in which the weight is negated going the "opposite" direction of the orientation, loops which
+map a subset back to itself, or "blob"
+types (which are the standard "undirected" hyperedge in the literature) which will map any subset to it's complement
+in the "blob".
 
-One guideline I'd like to try and follow with this crate is to avoid premature generalization!
-I see all too often crates that define a lot of weird traits that allow for very generic
-behavior, but in practice when actually using the crate you typically only use the structures
-in certain predictable ways. Another rough guideline is to write the code first and then clean it up after. Both parts are equally important. /soapbox
+## Graphs
+Essentially just an organizing feature for interacting with a fixed set of nodes and multiple hyperedges.
+There are some datastructures used to facilitate finding nodes or hyperedges easier, these are discussed
+more in the individual structs documentation.
+
+## Vectors
+Similarly to graphs "acting" on vectors, the best way to think of hypergraphs is as "acting" on vectors
+in a much larger vector space. The simplest way to view this vector space is to consider the set of
+all possible subsets of nodes (aka the power set of the node set N) and assign to each subset a unique
+basis vector. This vector space is clearly 2^|N| dimensional and is organized by the cardinality of the
+underlying node subset. For example, the vector for the empty subset {} has cardinality 0, each basis vector
+for each node {a}, {b}, ... has cardinality 1, {a,b} cardinality 2, and so on up to the full set N with
+cardinality |N|. Currently vectors are only supported for sparse hypergraphs, the plan is to have a generic
+vector trait or type that can work will all of them.
+
+## Algorithms
+Pretty underdeveloped at the moment. Currently only have basic builders (erdos-renyi) and traversal (random walks).
+Plan on developing more in the future.
+
+## Development Guidelines
+This crate currently forbids unsafe code, as it is designed to be used as a utility for other crates and I don't trust my own
+or other's unsafe coding abilities enough yet. This may change if significant performance improvements can be demonstrated using
+thoroughly vetted unsafe code. I am of the opinion that safety is a better guarantee than 2-5% speed improvements.
+
+Another guideline this crate tries to follow is to avoid premature generalization. I am of the opinion that code should
+be written first, used second, and generalized third. General code is a lot more flexible, and this tends to eat into
+ergonomics at some level. For example we do not allow nodes or edges or graphs to be generic over a "data" type. For example many
+existing graph crates allow you to create objects `Node<N>`, where the node is generic over a data type `N`. I find this to be slightly
+cumbersome when I don't want to store any data, and if I did it is not hard to simply add a hashmap between nodes and the data I want to store.
+Traits are another point of generalization, and I am of the opinion that fewer traits that capture behavior better are preferred to many
+traits that are hard to get a grasp of what they do. This crate should try to develop the objects first and then introduce traits that
+capture shared behavior.
+
+## Name
+I was initially using "graphene" for my personal project, turns out that was already used for a graph library.
+Hyperion my second choice was also taken, and so was graphite my third. Instead of trying to come up with a
+cool sounding name I went full 90's and just named it matts hypergraph library (mhgl).
 
 License: MIT
