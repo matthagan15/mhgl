@@ -151,36 +151,36 @@ impl<N: NodeID> SparseEdge<N> {
     }
 
     pub fn map_basis(&self, b: &HashSet<N>) -> HgVector<N> {
-        let mut ret = HgVector::new();
+        let mut ret: HgVector<N> = HgVector::new();
         match self.direction {
             EdgeDirection::Directed => {
                 if self.matches_input(b) {
                     let tmp = HgVector::from_basis(self.out_nodes.clone(), self.weight);
-                    ret.add(&tmp);
+                    ret += tmp;
                 }
             }
             EdgeDirection::Undirected => {
                 if self.matches_input(b) {
                     let tmp = HgVector::from_basis(self.out_nodes.clone(), self.weight);
-                    ret.add(&tmp);
+                    ret += tmp;
                 } else if self.matches_output(b) {
                     let tmp = HgVector::from_basis(self.in_nodes.clone(), self.weight);
-                    ret.add(&tmp);
+                    ret += tmp;
                 }
             }
             EdgeDirection::Oriented => {
                 if self.matches_input(b) {
                     let tmp = HgVector::from_basis(self.out_nodes.clone(), self.weight);
-                    ret.add(&tmp);
+                    ret += tmp;
                 } else if self.matches_output(b) {
                     let tmp = HgVector::from_basis(self.in_nodes.clone(), -1. * self.weight);
-                    ret.add(&tmp);
+                    ret += tmp;
                 }
             }
             EdgeDirection::Loop => {
                 if self.matches_input(b) {
                     let tmp = HgVector::from_basis(self.in_nodes.clone(), self.weight);
-                    ret.add(&tmp);
+                    ret += tmp;
                 }
             }
             EdgeDirection::Blob => {
@@ -192,7 +192,7 @@ impl<N: NodeID> SparseEdge<N> {
                         }
                     }
                     let tmp = HgVector::from_basis(destination, self.weight);
-                    ret.add(&tmp);
+                    ret += tmp;
                 }
             }
         }
@@ -205,7 +205,7 @@ impl<N: NodeID> SparseEdge<N> {
         for (basis, weight) in input_vec.basis() {
             let mut y = self.map_basis(&basis.into_iter().collect());
             y.multiply_scalar(weight);
-            ret.add(&y);
+            ret += y;
         }
         ret
     }

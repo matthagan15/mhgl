@@ -1,7 +1,8 @@
 use rand::{thread_rng, Rng};
+use serde::{Serialize, Deserialize};
 
 use crate::structs::{hyperedge::SparseEdge, EdgeWeight, NodeUUID};
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, ops::{Add, AddAssign}};
 
 use super::nodes::NodeID;
 
@@ -36,7 +37,7 @@ fn dot_conj(w: EdgeWeight) -> EdgeWeight {
 pub fn distance<N: NodeID>(x: &HgVector<N>, y: &HgVector<N>) -> f64 {
     let mut tmp = y.clone();
     tmp.multiply_scalar(-1.);
-    tmp.add(x);
+    tmp += x.clone();
     let mut tot = 0.0_f64;
     for (_, w) in tmp.nodes {
         tot += w.powi(2);
@@ -53,7 +54,7 @@ pub fn distance<N: NodeID>(x: &HgVector<N>, y: &HgVector<N>) -> f64 {
 /// Although a basis vector is a set, it's easiest to work with basis vectors when the
 /// data storage is a HashMap from basis to coefficient. Unfortunately you cannot hash
 /// a hashset due to the randomness, so we use SORTED vectors as the basis elements.
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize)]
 pub struct HgVector<N: NodeID> {
     pub nodes: HashMap<Vec<N>, EdgeWeight>,
 }
@@ -69,11 +70,9 @@ impl<N: NodeID> HgVector<N> {
         }
     }
 
-    /// Samples a random basis element of a given dimension in the vector.
-    /// 
-    pub fn sample_dim(&self, dim: usize) -> HashSet<N> {
-        let mut prob_vec: Vec<(Vec<N>, EdgeWeight)> = self.nodes.iter().map(|(x,y)| (x.clone(), y.clone())).collect();
-        let good_ones: Vec<(Vec<N>, f64)> = prob_vec.into_iter().filter(|(x,y)| x.len() == dim).collect();
+    /// Samples a random basis element of a given cardinality in the vector.
+    pub fn sample_dim(&self, cardinality: usize) -> HashSet<N> {
+        let good_ones: Vec<(Vec<N>, f64)> = self.nodes.iter().filter(|(x, _)| x.len() == cardinality).map(|(v, w)| (v.clone(), w.clone())).collect();
         let mut tot = 0.0_f64;
         for ix in 0..good_ones.len() {
             tot += good_ones[ix].1;
@@ -89,14 +88,7 @@ impl<N: NodeID> HgVector<N> {
         HashSet::new()
     }
 
-    pub fn add(&mut self, other: &Self) {
-        for (neighborhood, weight) in other.basis() {
-            let mut sorted_hood = neighborhood.clone();
-            sorted_hood.sort();
-            let hood_weight = self.nodes.entry(sorted_hood).or_insert(0.);
-            *hood_weight = *hood_weight + weight;
-        }
-    }
+
 
     pub fn multiply_scalar(&mut self, s: EdgeWeight) {
         for (_, weight) in self.nodes.iter_mut() {
@@ -162,5 +154,48 @@ impl<N: NodeID> HgVector<N> {
             .filter(|(node_vec, _)| node_vec.len() == dim)
             .collect();
         self.nodes = new_nodes;
+    }
+}
+
+impl<N: NodeID> Add for HgVector<N> {
+    type Output = HgVector<N>;
+
+    fn add(mut self, rhs: Self) -> Self::Output {
+        let mut ret = self.clone();
+        for (basis, weight) in rhs.basis() {
+            let new_weight = self.nodes.entry(basis).or_insert(0.);
+            *new_weight = *new_weight + weight;
+        }
+        ret
+    }
+}
+
+impl<N: NodeID> AddAssign for HgVector<N> {
+    fn add_assign(&mut self, rhs: Self) {
+        for (basis, weight) in rhs.nodes.iter() {
+            let old_weight = self.nodes.entry(basis.to_vec()).or_insert(0.);
+            *old_weight = *old_weight + weight;
+        }
+    }
+}
+
+mod test {
+    use std::collections::HashSet;
+
+    use uuid::Uuid;
+
+    use super::HgVector;
+
+    #[test]
+    fn test_add() {
+        let mut nodes: HashSet<u8> = {0..10}.collect();
+        let b1: HashSet<u8> = {0..2}.collect();
+        let b2: HashSet<u8> = {0..3}.collect();
+        let vec1 = HgVector::from_basis(b1.clone(), 1.);
+        let mut vec2 = HgVector::from_basis(b2, 2.);
+        println!("vec2 after creation: {:?}", vec2);
+        vec2 += HgVector::from_basis(b1, 3.);
+        println!("vec2 after addition assign: {:?}", vec2);
+        println!("vec1 + vec2: {:?}", (vec1 + vec2));
     }
 }

@@ -372,7 +372,7 @@ impl HyperGraph {
         let mut ret = HgVector::new();
         for p in potential_edges {
             if let Some(e) = self.edges.get(p) {
-                ret.add(&e.map_basis(b));
+                ret += e.map_basis(b);
             }
         }
         ret
@@ -383,7 +383,7 @@ impl HyperGraph {
         for (basis, coeff) in x.basis() {
             let mut tmp = self.map_basis(&basis.into_iter().collect());
             tmp.multiply_scalar(coeff);
-            ret.add(&tmp);
+            ret += tmp;
         }
         ret
     }
