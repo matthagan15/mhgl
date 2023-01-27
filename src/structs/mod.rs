@@ -3,7 +3,7 @@
 
 use uuid::Uuid;
 
-pub type NodeID = Uuid;
+pub type NodeUUID = Uuid;
 pub type EdgeID = Uuid;
 pub type PathID = Uuid;
 pub type GraphID = Uuid;
@@ -15,7 +15,7 @@ mod hypergraph;
 mod node_vec;
 pub mod nodes;
 
-pub use hyperedge::HyperEdge;
+pub use hyperedge::SparseEdge;
 pub use hypergraph::HyperGraph;
 pub use hyperedge::EdgeDirection;
 pub use node_vec::HgVector;

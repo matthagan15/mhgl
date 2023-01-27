@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use rand::Rng;
 use uuid::Uuid;
 
-use crate::structs::{HyperGraph, HyperEdge, EdgeDirection};
+use crate::structs::{HyperGraph, SparseEdge, EdgeDirection};
 use crate::utils::power_set;
 
 /// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be 
@@ -32,7 +32,7 @@ fn erdos_renyi(num_nodes: usize, dimension_with_probability: Vec<(usize, usize, 
                 if rng.gen_bool(prob) {
                     let in_set = HashSet::new();
                     let out_set = out.into_iter().cloned().collect();
-                    let e = HyperEdge::from(in_set, out_set, EdgeDirection::Undirected);
+                    let e = SparseEdge::from(in_set, out_set, EdgeDirection::Undirected);
                     hg.add_edge(e);
                 }
             }
@@ -41,7 +41,7 @@ fn erdos_renyi(num_nodes: usize, dimension_with_probability: Vec<(usize, usize, 
                 if rng.gen_bool(prob) {
                     let in_set = inp.into_iter().cloned().collect();
                     let out_set = HashSet::new();
-                    let e = HyperEdge::from(in_set, out_set, EdgeDirection::Undirected);
+                    let e = SparseEdge::from(in_set, out_set, EdgeDirection::Undirected);
                     hg.add_edge(e);
                 }
             }
@@ -51,7 +51,7 @@ fn erdos_renyi(num_nodes: usize, dimension_with_probability: Vec<(usize, usize, 
                     if rng.gen_bool(prob) {
                         let in_set = inp.into_iter().cloned().collect();
                         let out_set = out.into_iter().cloned().collect();
-                        let e = HyperEdge::from(in_set, out_set, EdgeDirection::Undirected);
+                        let e = SparseEdge::from(in_set, out_set, EdgeDirection::Undirected);
                         hg.add_edge(e);
                     }
                 }

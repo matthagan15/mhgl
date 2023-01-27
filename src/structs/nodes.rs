@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul};
+use std::{ops::{Add, Mul}, hash::Hash};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -6,6 +6,13 @@ use uuid::Uuid;
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 struct SparseNode (Uuid);
 
+pub trait NodeID: Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize {}
+
+impl NodeID for Uuid {}
+impl NodeID for u64 {}
+impl NodeID for u32 {}
+impl NodeID for u16 {}
+impl NodeID for u8 {}
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct BitNode<const K: usize> {

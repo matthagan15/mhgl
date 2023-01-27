@@ -1,7 +1,8 @@
 use crate::structs::{
-    hyperedge::{EdgeDirection, HyperEdge},
+    hyperedge::{EdgeDirection, SparseEdge},
     node_vec::HgVector,
-    EdgeID, EdgeWeight, NodeID,
+    EdgeID, EdgeWeight, NodeUUID,
+    nodes::NodeID,
 };
 use core::num;
 use rand::{thread_rng, Rng};
@@ -20,10 +21,6 @@ use num_integer::binomial;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use super::GraphID;
-
-pub type Neighborhood = HashSet<NodeID>;
-
-type Basis = HashSet<NodeID>;
 
 /// Current question that needs to be figured out: what kind of quick lookups do we want to support?
 /// label to uuid seems obvious, currently also caching dimension to edges. Currently do not handle multiple nodes or even edges sharing the same label well.
@@ -52,12 +49,12 @@ type Basis = HashSet<NodeID>;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HyperGraph {
     id: Uuid,
-    pub nodes: HashSet<NodeID>,
-    pub edges: HashMap<EdgeID, HyperEdge>,
+    pub nodes: HashSet<NodeUUID>,
+    pub edges: HashMap<EdgeID, SparseEdge<Uuid>>,
     // TODO: This should be updated to a map from (input_dim, output_dim) -> EdgeID's.
     input_dim_to_edges: HashMap<usize, HashSet<EdgeID>>,
     output_dim_to_edges: HashMap<usize, HashSet<EdgeID>>,
-    node_to_containing_edges: HashMap<NodeID, HashSet<EdgeID>>,
+    node_to_containing_edges: HashMap<NodeUUID, HashSet<EdgeID>>,
 }
 
 impl HyperGraph {
@@ -84,7 +81,7 @@ impl HyperGraph {
     }
 
     /// adds the nodes to the internal set
-    pub fn add_nodes(&mut self, nodes: HashSet<NodeID>) {
+    pub fn add_nodes(&mut self, nodes: HashSet<NodeUUID>) {
         for node in nodes {
             self.nodes.insert(node);
         }
@@ -115,7 +112,7 @@ impl HyperGraph {
         None
     }
 
-    pub fn from_edges(edges: Vec<HyperEdge>) -> HyperGraph {
+    pub fn from_edges(edges: Vec<SparseEdge<Uuid>>) -> HyperGraph {
         let mut hg = HyperGraph::new();
         for edge in edges {
             hg.add_edge(edge);
@@ -123,7 +120,7 @@ impl HyperGraph {
         hg
     }
 
-    pub fn add_input_node_to_edge(&mut self, node: NodeID, edge_id: &EdgeID) -> bool {
+    pub fn add_input_node_to_edge(&mut self, node: NodeUUID, edge_id: &EdgeID) -> bool {
         if let Some(edge) = self.edges.get_mut(edge_id) {
             edge.add_input_node(node);
             true
@@ -132,7 +129,7 @@ impl HyperGraph {
         }
     }
 
-    pub fn add_output_node_to_edge(&mut self, node: NodeID, edge_id: &EdgeID) -> bool {
+    pub fn add_output_node_to_edge(&mut self, node: NodeUUID, edge_id: &EdgeID) -> bool {
         if let Some(edge) = self.edges.get_mut(edge_id) {
             edge.add_output_node(node);
             true
@@ -141,13 +138,13 @@ impl HyperGraph {
         }
     }
 
-    pub fn remove_input_node_from_edge(&mut self, node: &NodeID, edge: &EdgeID) {
+    pub fn remove_input_node_from_edge(&mut self, node: &NodeUUID, edge: &EdgeID) {
         if let Some(edge) = self.edges.get_mut(edge) {
             edge.remove_input_node(node);
         }
     }
 
-    pub fn remove_node(&mut self, node: &NodeID) {
+    pub fn remove_node(&mut self, node: &NodeUUID) {
         self.nodes.remove(node);
     }
 
@@ -206,7 +203,7 @@ impl HyperGraph {
         }
     }
 
-    pub fn remove_output_node_from_edge(&mut self, node: &NodeID, edge: &EdgeID) {
+    pub fn remove_output_node_from_edge(&mut self, node: &NodeUUID, edge: &EdgeID) {
         if let Some(edge) = self.edges.get_mut(edge) {
             edge.remove_output_node(node);
         }
@@ -217,7 +214,7 @@ impl HyperGraph {
     }
     /// Add an edge. There are no real failure modes with just HashMaps and HashSets.
     /// TODO: needs to be modified for different edge types.
-    pub fn add_edge(&mut self, edge: HyperEdge) {
+    pub fn add_edge(&mut self, edge: SparseEdge<Uuid>) {
         self.add_nodes(edge.total_nodes());
         let e_id = edge.clone_id();
         let in_dim = edge.in_nodes.len();
@@ -307,16 +304,16 @@ impl HyperGraph {
     }
 
     /// iterator over nodes present.
-    pub fn node_iter(&self) -> Iter<NodeID> {
+    pub fn node_iter(&self) -> Iter<NodeUUID> {
         self.nodes.iter()
     }
 
     /// Clone of the node set present
-    pub fn nodes(&self) -> HashSet<NodeID> {
+    pub fn nodes(&self) -> HashSet<NodeUUID> {
         self.nodes.clone()
     }
 
-    pub fn covers_nodes(&self, other_nodes: &HashSet<NodeID>) -> bool {
+    pub fn covers_nodes(&self, other_nodes: &HashSet<NodeUUID>) -> bool {
         self.nodes.is_superset(other_nodes)
     }
 
@@ -324,11 +321,11 @@ impl HyperGraph {
         self.edges.iter().map(|(id, _)| id.clone()).collect()
     }
 
-    pub fn get_edge_from_id(&self, id: &EdgeID) -> Option<&HyperEdge> {
+    pub fn get_edge_from_id(&self, id: &EdgeID) -> Option<&SparseEdge<Uuid>> {
         self.edges.get(id)
     }
 
-    pub fn get_edge_copy(&self, edge_id: &EdgeID) -> Option<HyperEdge> {
+    pub fn get_edge_copy(&self, edge_id: &EdgeID) -> Option<SparseEdge<Uuid>> {
         self.edges.get(edge_id).cloned()
     }
 
@@ -336,21 +333,21 @@ impl HyperGraph {
         self.edges.len()
     }
 
-    pub fn create_node(&mut self) -> NodeID {
-        let n = NodeID::new_v4();
+    pub fn create_node(&mut self) -> NodeUUID {
+        let n = NodeUUID::new_v4();
         self.nodes.insert(n.clone());
         n
     }
 
     /// Returns a list of EdgeIDs that have the provided node as a given input.
-    pub fn get_nodes_containing_edges(&self, node: &NodeID) -> HashSet<EdgeID> {
+    pub fn get_nodes_containing_edges(&self, node: &NodeUUID) -> HashSet<EdgeID> {
         if let Some(edges) = self.node_to_containing_edges.get(node) {
             edges.clone()
         } else {
             HashSet::new()
         }
     }
-    pub fn create_nodes(&mut self, num_nodes: usize) -> HashSet<NodeID> {
+    pub fn create_nodes(&mut self, num_nodes: usize) -> HashSet<NodeUUID> {
         let mut added_ids = HashSet::with_capacity(num_nodes);
         for _ in 0..num_nodes {
             added_ids.insert(self.create_node());
@@ -358,7 +355,7 @@ impl HyperGraph {
         added_ids
     }
 
-    fn map_basis(&self, b: &HashSet<NodeID>) -> HgVector {
+    fn map_basis(&self, b: &HashSet<NodeUUID>) -> HgVector<NodeUUID> {
         let mut potential_edges = HashSet::new();
         let input_dim = b.len();
         for node in b.iter() {
@@ -381,7 +378,7 @@ impl HyperGraph {
         ret
     }
 
-    pub fn map_vec(&self, x: HgVector) -> HgVector {
+    pub fn map_vec(&self, x: HgVector<NodeUUID>) -> HgVector<NodeUUID> {
         let mut ret = HgVector::new();
         for (basis, coeff) in x.basis() {
             let mut tmp = self.map_basis(&basis.into_iter().collect());
@@ -391,7 +388,7 @@ impl HyperGraph {
         ret
     }
 
-    pub fn project(&self, dim: usize, v: &mut HgVector) {
+    pub fn project(&self, dim: usize, v: &mut HgVector<NodeUUID>) {
         v.projector(dim);
     }
 }
@@ -401,7 +398,7 @@ impl Display for HyperGraph {
         let graph_string = self.id.clone().to_string();
 
         let mut node_string = String::new();
-        let nodes: Vec<&NodeID> = self.node_iter().collect();
+        let nodes: Vec<&NodeUUID> = self.node_iter().collect();
         for n_ix in 0..nodes.len() {
             node_string += &nodes[n_ix].to_string();
             if n_ix == nodes.len() - 1 {
@@ -412,7 +409,7 @@ impl Display for HyperGraph {
         }
 
         let mut edge_string = String::new();
-        let edges_vec: Vec<&HyperEdge> = self.edges.values().collect();
+        let edges_vec: Vec<&SparseEdge<NodeUUID>> = self.edges.values().collect();
         for e_ix in 0..self.edges.len() {
             edge_string += &edges_vec[e_ix].to_string();
             if e_ix == self.edges.len() - 1 {

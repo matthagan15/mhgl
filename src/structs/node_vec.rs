@@ -1,11 +1,13 @@
 use rand::{thread_rng, Rng};
 
-use crate::structs::{hyperedge::HyperEdge, EdgeWeight, NodeID};
+use crate::structs::{hyperedge::SparseEdge, EdgeWeight, NodeUUID};
 use std::collections::{HashMap, HashSet};
+
+use super::nodes::NodeID;
 
 /// This is basic dot product that tells us if two basis vectors are orthonormal. This is the
 /// most straightforward way, if they are the same. Fails if duplicates in either vector is detected.
-fn are_basis_elems_equal(a: &Vec<NodeID>, b: &Vec<NodeID>) -> bool {
+fn are_basis_elems_equal<N: NodeID>(a: &Vec<N>, b: &Vec<N>) -> bool {
     if a.len() != b.len() {
         return false;
     }
@@ -31,7 +33,7 @@ fn dot_conj(w: EdgeWeight) -> EdgeWeight {
 
 /// Defaults to euclidean distance, should probably add in a parameter to determine
 /// which metric to use.
-pub fn distance(x: &HgVector, y: &HgVector) -> f64 {
+pub fn distance<N: NodeID>(x: &HgVector<N>, y: &HgVector<N>) -> f64 {
     let mut tmp = y.clone();
     tmp.multiply_scalar(-1.);
     tmp.add(x);
@@ -52,17 +54,17 @@ pub fn distance(x: &HgVector, y: &HgVector) -> f64 {
 /// data storage is a HashMap from basis to coefficient. Unfortunately you cannot hash
 /// a hashset due to the randomness, so we use SORTED vectors as the basis elements.
 #[derive(Clone)]
-pub struct HgVector {
-    pub nodes: HashMap<Vec<NodeID>, EdgeWeight>,
+pub struct HgVector<N: NodeID> {
+    pub nodes: HashMap<Vec<N>, EdgeWeight>,
     // dim: usize, // Refers to number of nodes present aka {1} is dim 1, {1, 2, 3} is dim 3
 }
 
-impl HgVector {
-    pub fn basis(&self) -> Vec<(Vec<NodeID>, EdgeWeight)> {
+impl<N: NodeID> HgVector<N> {
+    pub fn basis(&self) -> Vec<(Vec<N>, EdgeWeight)> {
         self.nodes.clone().into_iter().collect()
     }
 
-    pub fn from_basis(b: HashSet<NodeID>, w: EdgeWeight) -> HgVector {
+    pub fn from_basis(b: HashSet<N>, w: EdgeWeight) -> HgVector<N> {
         HgVector {
             nodes: HashMap::from([(b.into_iter().collect(), w)]),
         }
@@ -70,9 +72,9 @@ impl HgVector {
 
     /// Samples a random basis element of a given dimension in the vector.
     /// 
-    pub fn sample_dim(&self, dim: usize) -> HashSet<NodeID> {
-        let mut prob_vec: Vec<(Vec<NodeID>, EdgeWeight)> = self.nodes.iter().map(|(x,y)| (x.clone(), y.clone())).collect();
-        let good_ones: Vec<(Vec<uuid::Uuid>, f64)> = prob_vec.into_iter().filter(|(x,y)| x.len() == dim).collect();
+    pub fn sample_dim(&self, dim: usize) -> HashSet<N> {
+        let mut prob_vec: Vec<(Vec<N>, EdgeWeight)> = self.nodes.iter().map(|(x,y)| (x.clone(), y.clone())).collect();
+        let good_ones: Vec<(Vec<N>, f64)> = prob_vec.into_iter().filter(|(x,y)| x.len() == dim).collect();
         let mut tot = 0.0_f64;
         for ix in 0..good_ones.len() {
             tot += good_ones[ix].1;
@@ -102,16 +104,16 @@ impl HgVector {
             *weight *= s;
         }
     }
-    pub fn new() -> HgVector {
+    pub fn new() -> HgVector<N> {
         HgVector {
             nodes: HashMap::new(),
         }
     }
 
-    pub fn new_from(input: Vec<(HashSet<NodeID>, EdgeWeight)>) -> HgVector {
+    pub fn new_from(input: Vec<(HashSet<N>, EdgeWeight)>) -> HgVector<N> {
         let mut map = HashMap::new();
         for (node_set, weight) in input.into_iter() {
-            let mut node_vec: Vec<NodeID> = node_set.into_iter().collect();
+            let mut node_vec: Vec<N> = node_set.into_iter().collect();
             node_vec.sort();
             let cur_weight = map.entry(node_vec).or_insert(0.);
             *cur_weight += weight;
@@ -154,7 +156,7 @@ impl HgVector {
         1.
     }
     pub fn projector(&mut self, dim: usize) {
-        let new_nodes: HashMap<Vec<NodeID>, EdgeWeight> = self
+        let new_nodes: HashMap<Vec<N>, EdgeWeight> = self
             .nodes
             .clone()
             .into_iter()

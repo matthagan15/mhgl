@@ -8,11 +8,9 @@ use std::{
 };
 use uuid::Uuid;
 
-use super::hypergraph::Neighborhood;
-use crate::structs::node_vec::HgVector;
+use crate::structs::{node_vec::HgVector, nodes::NodeID};
 
 pub type EdgeWeight = f64;
-type NodeID = Uuid;
 type EdgeID = Uuid;
 static EDGE_WEIGHT_DEFAULT: EdgeWeight = 1.0;
 
@@ -42,17 +40,17 @@ pub enum EdgeDirection {
 /// - SuperBlob: connects any two disjoint subsets of nodes within the blob. ex: SuperBlob ({a,b,c}) could map
 /// {a} -> {b} and {a} -> {b,c}. d
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct HyperEdge {
+pub struct SparseEdge<N: NodeID> {
     pub id: EdgeID,
     pub weight: EdgeWeight,
-    pub in_nodes: HashSet<NodeID>,
-    pub out_nodes: HashSet<NodeID>,
+    pub in_nodes: HashSet<N>,
+    pub out_nodes: HashSet<N>,
     pub direction: EdgeDirection,
 }
 
-impl HyperEdge {
-    pub fn new() -> HyperEdge {
-        HyperEdge {
+impl<N: NodeID> SparseEdge<N> {
+    pub fn new() -> SparseEdge<N> {
+        SparseEdge {
             id: Uuid::new_v4(),
             weight: EDGE_WEIGHT_DEFAULT,
             in_nodes: HashSet::new(),
@@ -70,26 +68,26 @@ impl HyperEdge {
     /// ### blob
     /// blobs probably shouldn't exist, can view a "traditional" blob as a map from empty set to the blob?
     pub fn from(
-        in_nodes: HashSet<NodeID>,
-        out_nodes: HashSet<NodeID>,
+        in_nodes: HashSet<N>,
+        out_nodes: HashSet<N>,
         edge_type: EdgeDirection,
-    ) -> HyperEdge {
+    ) -> SparseEdge<N> {
         match edge_type {
-            EdgeDirection::Directed => HyperEdge {
+            EdgeDirection::Directed => SparseEdge {
                 id: Uuid::new_v4(),
                 weight: EDGE_WEIGHT_DEFAULT,
                 in_nodes: in_nodes,
                 out_nodes: out_nodes,
                 direction: edge_type,
             },
-            EdgeDirection::Undirected => HyperEdge {
+            EdgeDirection::Undirected => SparseEdge {
                 id: Uuid::new_v4(),
                 weight: EDGE_WEIGHT_DEFAULT,
                 in_nodes: in_nodes.clone(),
                 out_nodes: out_nodes.clone(),
                 direction: edge_type,
             },
-            EdgeDirection::Oriented => HyperEdge {
+            EdgeDirection::Oriented => SparseEdge {
                 id: Uuid::new_v4(),
                 weight: EDGE_WEIGHT_DEFAULT,
                 in_nodes: in_nodes.clone(),
@@ -97,8 +95,8 @@ impl HyperEdge {
                 direction: edge_type,
             },
             EdgeDirection::Loop => {
-                let u: HashSet<NodeID> = in_nodes.union(&out_nodes).map(|x| x.clone()).collect();
-                HyperEdge {
+                let u: HashSet<N> = in_nodes.union(&out_nodes).map(|x| x.clone()).collect();
+                SparseEdge {
                     id: Uuid::new_v4(),
                     weight: EDGE_WEIGHT_DEFAULT,
                     in_nodes: u,
@@ -107,8 +105,8 @@ impl HyperEdge {
                 }
             }
             EdgeDirection::Blob => {
-                let u: HashSet<NodeID> = in_nodes.union(&out_nodes).map(|x| x.clone()).collect();
-                HyperEdge {
+                let u: HashSet<N> = in_nodes.union(&out_nodes).map(|x| x.clone()).collect();
+                SparseEdge {
                     id: Uuid::new_v4(),
                     weight: EDGE_WEIGHT_DEFAULT,
                     in_nodes: u,
@@ -119,7 +117,7 @@ impl HyperEdge {
         }
     }
 
-    pub fn add_input_node(&mut self, node: NodeID) {
+    pub fn add_input_node(&mut self, node: N) {
         self.in_nodes.insert(node);
     }
 
@@ -129,14 +127,14 @@ impl HyperEdge {
     pub fn output_dim(&self) -> usize {
         self.out_nodes.len()
     }
-    pub fn add_output_node(&mut self, node: NodeID) {
+    pub fn add_output_node(&mut self, node: N) {
         self.out_nodes.insert(node);
     }
 
-    pub fn remove_input_node(&mut self, node: &NodeID) {
+    pub fn remove_input_node(&mut self, node: &N) {
         self.in_nodes.remove(node);
     }
-    pub fn remove_output_node(&mut self, node: &NodeID) {
+    pub fn remove_output_node(&mut self, node: &N) {
         self.out_nodes.remove(node);
     }
 
@@ -145,14 +143,14 @@ impl HyperEdge {
         self.in_nodes = self.out_nodes.clone();
         self.out_nodes = tmp_from;
     }
-    pub fn clone_in_nodes(&self) -> HashSet<NodeID> {
+    pub fn clone_in_nodes(&self) -> HashSet<N> {
         self.in_nodes.clone()
     }
     pub fn clone_id(&self) -> EdgeID {
         self.id.clone()
     }
 
-    pub fn map_basis(&self, b: &HashSet<NodeID>) -> HgVector {
+    pub fn map_basis(&self, b: &HashSet<N>) -> HgVector<N> {
         let mut ret = HgVector::new();
         match self.direction {
             EdgeDirection::Directed => {
@@ -202,7 +200,7 @@ impl HyperEdge {
     }
 
     /// Map an input vector to an output vector.
-    pub fn map_vec(&self, input_vec: &HgVector) -> HgVector {
+    pub fn map_vec(&self, input_vec: &HgVector<N>) -> HgVector<N> {
         let mut ret = HgVector::new();
         for (basis, weight) in input_vec.basis() {
             let mut y = self.map_basis(&basis.into_iter().collect());
@@ -213,7 +211,7 @@ impl HyperEdge {
     }
 
     /// True if the union of in_nodes and out_nodes covers the provided set
-    pub fn covers_set(&self, node_set: &HashSet<NodeID>) -> bool {
+    pub fn covers_set(&self, node_set: &HashSet<N>) -> bool {
         let h: HashSet<_> = self
             .in_nodes
             .union(&self.out_nodes)
@@ -222,14 +220,14 @@ impl HyperEdge {
         h.is_superset(node_set)
     }
     /// Returns a set with all nodes present in the edge (the union of input and output)
-    pub fn total_nodes(&self) -> HashSet<NodeID> {
+    pub fn total_nodes(&self) -> HashSet<N> {
         self.in_nodes
             .union(&self.out_nodes)
             .map(|x| x.clone())
             .collect()
     }
     /// True if this hyperedge is contained in the provided set, False otherwise.
-    pub fn is_covered_by(&self, cover: &HashSet<NodeID>) -> bool {
+    pub fn is_covered_by(&self, cover: &HashSet<N>) -> bool {
         let h: HashSet<_> = self
             .in_nodes
             .union(&self.out_nodes)
@@ -238,23 +236,23 @@ impl HyperEdge {
         h.is_subset(cover)
     }
     /// True if provided set is same as the in_nodes of this edge.
-    pub fn matches_input(&self, node_set: &HashSet<NodeID>) -> bool {
+    pub fn matches_input(&self, node_set: &HashSet<N>) -> bool {
         self.in_nodes.is_subset(node_set) && self.in_nodes.is_superset(node_set)
     }
 
     /// True if provided set is same sa the out_nodes of this edge
-    pub fn matches_output(&self, node_set: &HashSet<NodeID>) -> bool {
+    pub fn matches_output(&self, node_set: &HashSet<N>) -> bool {
         self.out_nodes.is_subset(node_set) && self.out_nodes.is_superset(node_set)
     }
 }
 
-impl ToString for HyperEdge {
+impl<N: NodeID> ToString for SparseEdge<N> {
     fn to_string(&self) -> String {
         serde_json::to_string(self).unwrap()
     }
 }
 
-impl Hash for HyperEdge {
+impl<N: NodeID> Hash for SparseEdge<N> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }
