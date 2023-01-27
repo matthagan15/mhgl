@@ -56,7 +56,6 @@ pub fn distance<N: NodeID>(x: &HgVector<N>, y: &HgVector<N>) -> f64 {
 #[derive(Clone)]
 pub struct HgVector<N: NodeID> {
     pub nodes: HashMap<Vec<N>, EdgeWeight>,
-    // dim: usize, // Refers to number of nodes present aka {1} is dim 1, {1, 2, 3} is dim 3
 }
 
 impl<N: NodeID> HgVector<N> {

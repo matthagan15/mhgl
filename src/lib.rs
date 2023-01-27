@@ -1,7 +1,7 @@
 //!# Matt's HyperGraph Library (mhgl)
-//! A straightforward library that provides hypergraph datastructures and some algorithms for working
-//! with them. We use the most general possible hypergraph, that is a directed, weighted hypergraph as
-//! oppossed to the standard undirected, unweighted hypergraph as the undirected and unweighted can
+//! A straightforward library that aims to provide a small number of well crafted hypergraph datastructures and some algorithms for working
+//! with them. We base our datastructures on the most general possible hypergraph mathematically, that is a directed, weighted hypergraph as
+//! oppossed to the standard undirected, unweighted hypergraph as the un-directed and un-weighted can
 //! be constructed from the directed and weighted variant. Sometimes the prefix "hyper" will be dropped from
 //! hypergraph and hyperedge, this is a (mostly harmless) bad habit. There are plans to support three types of
 //! storage, the first being a sparse representation, the second being a more dense version utilizing a binary
