@@ -382,15 +382,12 @@ impl HyperGraph {
         let mut ret = HgVector::new();
         for (basis, coeff) in x.basis() {
             let mut tmp = self.map_basis(&basis.into_iter().collect());
-            tmp.multiply_scalar(coeff);
+            tmp *= coeff;
             ret += tmp;
         }
         ret
     }
 
-    pub fn project(&self, dim: usize, v: &mut HgVector<NodeUUID>) {
-        v.projector(dim);
-    }
 }
 
 impl Display for HyperGraph {

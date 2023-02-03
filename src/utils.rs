@@ -29,10 +29,6 @@ pub fn power_set(v: Vec<Uuid>, dims: usize) -> HashSet<Vec<Uuid>> {
     ret
 }
 
-pub fn configure_logger(hg: &mut Hypergraph) {
-    
-}
-
 mod test {
     use uuid::Uuid;
 

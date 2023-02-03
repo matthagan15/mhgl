@@ -204,7 +204,7 @@ impl<N: NodeID> SparseEdge<N> {
         let mut ret = HgVector::new();
         for (basis, weight) in input_vec.basis() {
             let mut y = self.map_basis(&basis.into_iter().collect());
-            y.multiply_scalar(weight);
+            y *= weight;
             ret += y;
         }
         ret
