@@ -1,4 +1,5 @@
-use crate::structs::HyperGraph;
+use crate::structs::{HyperGraph, nodes::NodeID};
 
-fn expected_cardinality(hg: HyperGraph) {}
-fn haar_integral(hg: HyperGraph, num_samples: usize) {}
+
+fn expected_cardinality<N: NodeID>(hg: HyperGraph<N>) {}
+fn haar_integral<N: NodeID>(hg: HyperGraph<N>, num_samples: usize) {}

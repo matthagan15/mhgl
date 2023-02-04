@@ -47,35 +47,35 @@ use super::GraphID;
 /// - how can you compute the most important node in a hypergraph?
 ///
 #[derive(Debug, Serialize, Deserialize)]
-pub struct HyperGraph {
+pub struct HyperGraph<N: NodeID> {
     id: Uuid,
-    pub nodes: HashSet<NodeUUID>,
-    pub edges: HashMap<EdgeID, SparseEdge<Uuid>>,
+    pub nodes: HashSet<N>,
+    pub edges: HashMap<EdgeID, SparseEdge<N>>,
     // TODO: This should be updated to a map from (input_dim, output_dim) -> EdgeID's.
-    input_dim_to_edges: HashMap<usize, HashSet<EdgeID>>,
-    output_dim_to_edges: HashMap<usize, HashSet<EdgeID>>,
+    input_cardinality_to_edges: HashMap<usize, HashSet<EdgeID>>,
+    output_cardinality_to_edges: HashMap<usize, HashSet<EdgeID>>,
     node_to_containing_edges: HashMap<NodeUUID, HashSet<EdgeID>>,
 }
 
-impl HyperGraph {
-    pub fn new() -> HyperGraph {
+impl HyperGraph<NodeUUID> {
+    pub fn new() -> HyperGraph<NodeUUID> {
         HyperGraph {
             id: Uuid::new_v4(),
             nodes: HashSet::new(),
             edges: HashMap::new(),
-            input_dim_to_edges: HashMap::new(),
-            output_dim_to_edges: HashMap::new(),
+            input_cardinality_to_edges: HashMap::new(),
+            output_cardinality_to_edges: HashMap::new(),
             node_to_containing_edges: HashMap::new(),
         }
     }
 
-    pub fn new_with_num_nodes(num_nodes: usize) -> HyperGraph {
+    pub fn new_with_num_nodes(num_nodes: usize) -> HyperGraph<NodeUUID> {
         HyperGraph {
             id: Uuid::new_v4(),
-            nodes: (0..num_nodes).map(|_| Uuid::new_v4()).collect(),
+            nodes: (0..num_nodes).map(|_| Uuid::new_v4().into()).collect(),
             edges: HashMap::new(),
-            input_dim_to_edges: HashMap::new(),
-            output_dim_to_edges: HashMap::new(),
+            input_cardinality_to_edges: HashMap::new(),
+            output_cardinality_to_edges: HashMap::new(),
             node_to_containing_edges: HashMap::new(),
         }
     }
@@ -96,7 +96,7 @@ impl HyperGraph {
     pub fn find_edge_from_nodes(&mut self, input_nodes: &HashSet<Uuid>, output_nodes: &HashSet<Uuid>) -> Option<&EdgeID> {
         let in_dim = input_nodes.len();
         let out_dim = output_nodes.len();
-        if let Some(possible_from_in) = self.input_dim_to_edges.get(&in_dim) {
+        if let Some(possible_from_in) = self.input_cardinality_to_edges.get(&in_dim) {
             for possible in possible_from_in {
                 if let Some(e) = self.edges.get(possible) {
                     if e.matches_input(input_nodes) {
@@ -112,7 +112,7 @@ impl HyperGraph {
         None
     }
 
-    pub fn from_edges(edges: Vec<SparseEdge<Uuid>>) -> HyperGraph {
+    pub fn from_edges(edges: Vec<SparseEdge<NodeUUID>>) -> HyperGraph<NodeUUID> {
         let mut hg = HyperGraph::new();
         for edge in edges {
             hg.add_edge(edge);
@@ -159,41 +159,41 @@ impl HyperGraph {
             }
             match edge.direction {
                 EdgeDirection::Directed => {
-                    if let Some(edge_set) = self.input_dim_to_edges.get_mut(&in_dim) {
+                    if let Some(edge_set) = self.input_cardinality_to_edges.get_mut(&in_dim) {
                         edge_set.remove(edge_id);
                     }
-                    if let Some(edge_set) = self.output_dim_to_edges.get_mut(&out_dim) {
+                    if let Some(edge_set) = self.output_cardinality_to_edges.get_mut(&out_dim) {
                         edge_set.remove(edge_id);
                     }
                 }
                 EdgeDirection::Oriented | EdgeDirection::Undirected => {
-                    if let Some(edge_set) = self.input_dim_to_edges.get_mut(&in_dim) {
+                    if let Some(edge_set) = self.input_cardinality_to_edges.get_mut(&in_dim) {
                         edge_set.remove(edge_id);
                     }
-                    if let Some(edge_set) = self.input_dim_to_edges.get_mut(&out_dim) {
+                    if let Some(edge_set) = self.input_cardinality_to_edges.get_mut(&out_dim) {
                         edge_set.remove(edge_id);
                     }
-                    if let Some(edge_set) = self.output_dim_to_edges.get_mut(&in_dim) {
+                    if let Some(edge_set) = self.output_cardinality_to_edges.get_mut(&in_dim) {
                         edge_set.remove(edge_id);
                     }
-                    if let Some(edge_set) = self.output_dim_to_edges.get_mut(&out_dim) {
+                    if let Some(edge_set) = self.output_cardinality_to_edges.get_mut(&out_dim) {
                         edge_set.remove(edge_id);
                     }
                 }
                 EdgeDirection::Loop => {
-                    if let Some(edge_set) = self.input_dim_to_edges.get_mut(&in_dim) {
+                    if let Some(edge_set) = self.input_cardinality_to_edges.get_mut(&in_dim) {
                         edge_set.remove(edge_id);
                     }
-                    if let Some(edge_set) = self.output_dim_to_edges.get_mut(&in_dim) {
+                    if let Some(edge_set) = self.output_cardinality_to_edges.get_mut(&in_dim) {
                         edge_set.remove(edge_id);
                     }
                 }
                 EdgeDirection::Blob => {
                     for dim in 0..in_dim {
-                        if let Some(edge_set) = self.input_dim_to_edges.get_mut(&dim) {
+                        if let Some(edge_set) = self.input_cardinality_to_edges.get_mut(&dim) {
                             edge_set.remove(edge_id);
                         }
-                        if let Some(edge_set) = self.output_dim_to_edges.get_mut(&dim) {
+                        if let Some(edge_set) = self.output_cardinality_to_edges.get_mut(&dim) {
                             edge_set.remove(edge_id);
                         }
                     }
@@ -224,11 +224,11 @@ impl HyperGraph {
             || edge.direction == EdgeDirection::Undirected
             || edge.direction == EdgeDirection::Oriented
         {
-            self.input_dim_to_edges
+            self.input_cardinality_to_edges
                 .entry(in_dim)
                 .or_default()
                 .insert(e_id.clone());
-            self.output_dim_to_edges
+            self.output_cardinality_to_edges
                 .entry(out_dim)
                 .or_default()
                 .insert(e_id.clone());
@@ -239,11 +239,11 @@ impl HyperGraph {
                     .insert(e_id.clone());
             }
             if edge.direction == EdgeDirection::Undirected || edge.direction == EdgeDirection::Oriented {
-                self.input_dim_to_edges
+                self.input_cardinality_to_edges
                     .entry(out_dim)
                     .or_default()
                     .insert(e_id.clone());
-                self.output_dim_to_edges
+                self.output_cardinality_to_edges
                     .entry(in_dim)
                     .or_default()
                     .insert(e_id.clone());
@@ -257,11 +257,11 @@ impl HyperGraph {
         }
 
         if edge.direction == EdgeDirection::Loop {
-            self.input_dim_to_edges
+            self.input_cardinality_to_edges
                 .entry(in_dim)
                 .or_default()
                 .insert(e_id.clone());
-            self.output_dim_to_edges
+            self.output_cardinality_to_edges
                 .entry(in_dim)
                 .or_default()
                 .insert(e_id.clone());
@@ -275,11 +275,11 @@ impl HyperGraph {
 
         if edge.direction == EdgeDirection::Blob {
             for dim in 0..edge.in_nodes.len() {
-                self.input_dim_to_edges
+                self.input_cardinality_to_edges
                     .entry(dim)
                     .or_default()
                     .insert(e_id.clone());
-                self.output_dim_to_edges
+                self.output_cardinality_to_edges
                     .entry(dim)
                     .or_default()
                     .insert(e_id.clone());
@@ -361,7 +361,7 @@ impl HyperGraph {
         for node in b.iter() {
             if let Some(edges) = self.node_to_containing_edges.get(node) {
                 for potential in edges {
-                    if let Some(edges_by_dim) = self.input_dim_to_edges.get(&input_dim) {
+                    if let Some(edges_by_dim) = self.input_cardinality_to_edges.get(&input_dim) {
                         if edges_by_dim.contains(potential) {
                             potential_edges.insert(potential);
                         }
@@ -390,12 +390,12 @@ impl HyperGraph {
 
 }
 
-impl Display for HyperGraph {
+impl Display for HyperGraph<NodeUUID> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let graph_string = self.id.clone().to_string();
 
         let mut node_string = String::new();
-        let nodes: Vec<&NodeUUID> = self.node_iter().collect();
+        let nodes: Vec<&NodeUUID> = self.nodes.iter().collect();
         for n_ix in 0..nodes.len() {
             node_string += &nodes[n_ix].to_string();
             if n_ix == nodes.len() - 1 {
