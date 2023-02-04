@@ -139,6 +139,20 @@ impl<N: NodeID> HgVector<N> {
         ret
     }
 
+    pub fn cardinality(&self) -> HashMap<usize, EdgeWeight> {
+        let mut ret = HashMap::new();
+        let mut tot = 0.0;
+        for (k, v) in self.basis_to_weight.iter() {
+            tot += v.abs();
+            let card_val = ret.entry(k.len()).or_insert(0.0);
+            *card_val = *card_val + v.abs();
+        }
+        for (k, v) in ret.iter_mut() {
+            *v = *v / tot;
+        }
+        ret
+    }
+
     /// Takes inner product, self is mapped to dual (aka weights of self get conjugated)
     pub fn dot(&self, other: &Self) -> EdgeWeight {
         let mut tot = 0.;

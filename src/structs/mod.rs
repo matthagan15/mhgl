@@ -14,6 +14,7 @@ pub mod bit_edge;
 mod hypergraph;
 mod node_vec;
 pub mod nodes;
+pub mod matrix_graph;
 
 pub use hyperedge::SparseEdge;
 pub use hypergraph::HyperGraph;

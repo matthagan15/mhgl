@@ -11,7 +11,7 @@ use crate::utils::power_set;
 /// specified. For example, an erdos_renyi hypergraph with only the probability (1,1,p) specified is equivalent
 /// to the standard erdos-renyi random graph. This means that our edges are undirected. 
 fn erdos_renyi(num_nodes: usize, dimension_with_probability: Vec<(usize, usize, f64)>) -> HyperGraph<NodeUUID> {
-    let mut hg = HyperGraph::new_with_num_nodes(num_nodes);
+    let mut hg = HyperGraph::<NodeUUID>::new_with_num_nodes(num_nodes);
     let mut rng = rand::thread_rng();
     let nodes = hg.nodes();
     let mut seen_dims: HashSet<usize> = HashSet::new();
@@ -62,6 +62,14 @@ fn erdos_renyi(num_nodes: usize, dimension_with_probability: Vec<(usize, usize, 
         seen_dims.insert(out_dim);
     }
     hg
+}
+
+pub fn uniform_undirected_erdos_renyi<N: NodeID>(num_nodes: usize, prob: f64) -> HyperGraph<N> {
+    if num_nodes < u8::MAX as usize {
+        HyperGraph::new()
+    } else {
+        HyperGraph::new()
+    }
 }
 
 mod test {

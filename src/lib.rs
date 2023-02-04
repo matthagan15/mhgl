@@ -92,7 +92,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let hg = HyperGraph::new();
+        let hg: HyperGraph<u8> = HyperGraph::new();
         println!("it works?");
     }
 }
