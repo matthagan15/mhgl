@@ -1,8 +1,8 @@
 use crate::structs::{
     hyperedge::{EdgeDirection, SparseEdge},
     node_vec::HgVector,
-    EdgeID, EdgeWeight, NodeUUID,
     nodes::NodeID,
+    EdgeID, EdgeWeight, NodeUUID,
 };
 use core::num;
 use rand::{thread_rng, Rng};
@@ -10,9 +10,10 @@ use serde::{Deserialize, Serialize};
 use std::{
     cmp::max,
     collections::{hash_set::Iter, HashMap, HashSet},
+    f32::consts::E,
     fmt::Display,
     fs,
-    ops::{Add, AddAssign, Index}, f32::consts::E,
+    ops::{Add, AddAssign, Index},
 };
 use uuid::Uuid;
 
@@ -56,8 +57,6 @@ pub struct HyperGraph<N: NodeID> {
     output_cardinality_to_edges: HashMap<usize, HashSet<EdgeID>>,
     node_to_containing_edges: HashMap<N, HashSet<EdgeID>>,
 }
-
-
 
 impl HyperGraph<u8> {
     /// If num_nodes is greater than the underlying storage method (aka u8) then it returns empty hypergraph.
@@ -168,7 +167,11 @@ impl<N: NodeID> HyperGraph<N> {
         }
     }
 
-    pub fn find_edge_from_nodes(&self, input_nodes: &HashSet<N>, output_nodes: &HashSet<N>) -> Option<&EdgeID> {
+    pub fn find_edge_from_nodes(
+        &self,
+        input_nodes: &HashSet<N>,
+        output_nodes: &HashSet<N>,
+    ) -> Option<&EdgeID> {
         let in_dim = input_nodes.len();
         let out_dim = output_nodes.len();
         if let Some(possible_from_in) = self.input_cardinality_to_edges.get(&in_dim) {
@@ -330,7 +333,9 @@ impl<N: NodeID> HyperGraph<N> {
                     .or_default()
                     .insert(e_id.clone());
             }
-            if edge.direction == EdgeDirection::Undirected || edge.direction == EdgeDirection::Oriented {
+            if edge.direction == EdgeDirection::Undirected
+                || edge.direction == EdgeDirection::Oriented
+            {
                 self.input_cardinality_to_edges
                     .entry(out_dim)
                     .or_default()
@@ -434,7 +439,6 @@ impl<N: NodeID> HyperGraph<N> {
         }
     }
 
-
     fn map_basis(&self, b: &HashSet<N>) -> HgVector<N> {
         let mut potential_edges = HashSet::new();
         let input_dim = b.len();
@@ -479,7 +483,6 @@ impl<N: NodeID> HyperGraph<N> {
         }
         HgVector::from_basis(base, 1.0)
     }
-
 }
 
 impl Display for HyperGraph<NodeUUID> {
@@ -514,15 +517,10 @@ impl Display for HyperGraph<NodeUUID> {
     }
 }
 
-
-
-
 mod tests {
     use std::collections::HashMap;
 
     use uuid::Uuid;
 
     use crate::structs::hypergraph::HyperGraph;
-
-
 }

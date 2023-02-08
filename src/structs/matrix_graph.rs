@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use super::{GraphID, EdgeWeight};
+use super::{EdgeWeight, GraphID};
 use ndarray::{Array2, ShapeBuilder};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 struct MatrixGraph {
@@ -12,7 +12,11 @@ struct MatrixGraph {
 
 impl MatrixGraph {
     pub fn new() -> MatrixGraph {
-        MatrixGraph { id: Uuid::new_v4(), matrix: Array2::<f64>::zeros((1,1).f()), num_nodes: 0, basis_to_index: HashMap::new() }
+        MatrixGraph {
+            id: Uuid::new_v4(),
+            matrix: Array2::<f64>::zeros((1, 1).f()),
+            num_nodes: 0,
+            basis_to_index: HashMap::new(),
+        }
     }
-    
 }

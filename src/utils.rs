@@ -1,8 +1,10 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, u8, ops::Add};
 use uuid::Uuid;
 
+use crate::structs::nodes::NodeID;
+
 /// Returns subset of power set of given id's with the condition that each set returned has dims number
-/// of elements. 
+/// of elements.
 pub fn power_set(v: Vec<Uuid>, dims: usize) -> HashSet<Vec<Uuid>> {
     if dims == 0 {
         return HashSet::new();
@@ -27,6 +29,38 @@ pub fn power_set(v: Vec<Uuid>, dims: usize) -> HashSet<Vec<Uuid>> {
         }
     }
     ret
+}
+struct PowerSetBits {
+    bits: Vec<u8>,
+    length_needed: usize,
+}
+impl PowerSetBits {
+    fn new() -> PowerSetBits {
+        PowerSetBits {
+            bits: Vec::new(),
+            length_needed: 0,
+        }
+    }
+    fn from_length(length: usize) -> PowerSetBits {
+        let mut v = Vec::with_capacity(length / 8 + 1);
+        v.fill(0 as u8);
+        PowerSetBits {
+            bits: v,
+            length_needed: length,
+        }
+    }
+}
+
+impl Add<usize> for PowerSetBits {
+    type Output = PowerSetBits;
+
+    fn add(self, rhs: usize) -> Self::Output {
+        todo!()
+    }
+}
+
+pub fn lazy_power_set<N: NodeID>(v: Vec<N>, prob_keep: f64) {
+    let mut bits = PowerSetBits::from_length(v.len());
 }
 
 mod test {

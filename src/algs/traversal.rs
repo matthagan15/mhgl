@@ -2,9 +2,13 @@ use std::collections::HashSet;
 
 use uuid::Uuid;
 
-use crate::structs::{*, nodes::NodeID};
+use crate::structs::{nodes::NodeID, *};
 
-pub fn walk<N: NodeID>(start: HgVector<N>, walk_operator: &HyperGraph<N>, num_steps: usize) -> HgVector<N> {
+pub fn walk<N: NodeID>(
+    start: HgVector<N>,
+    walk_operator: &HyperGraph<N>,
+    num_steps: usize,
+) -> HgVector<N> {
     let mut ret = start;
     for _ in 0..num_steps {
         ret = walk_operator.map_vec(ret);
@@ -24,5 +28,4 @@ pub fn compute_cut<N: NodeID>(selected_nodes: HashSet<N>, graph: &HyperGraph<N>)
             pot_edges.insert(e);
         }
     }
-    
 }

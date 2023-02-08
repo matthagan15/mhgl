@@ -1,8 +1,11 @@
 use rand::{thread_rng, Rng};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::structs::{hyperedge::SparseEdge, EdgeWeight, NodeUUID};
-use std::{collections::{HashMap, HashSet}, ops::{Add, AddAssign, Mul, MulAssign}};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::{Add, AddAssign, Mul, MulAssign},
+};
 
 use super::nodes::NodeID;
 
@@ -76,7 +79,10 @@ impl<N: NodeID> HgVector<N> {
             let cur_weight = map.entry(node_vec).or_insert(0.);
             *cur_weight += weight;
         }
-        HgVector { basis_to_weight: map , cardinality_to_basis_set: HashMap::new()}
+        HgVector {
+            basis_to_weight: map,
+            cardinality_to_basis_set: HashMap::new(),
+        }
     }
     pub fn basis(&self) -> Vec<(Vec<N>, EdgeWeight)> {
         self.basis_to_weight.clone().into_iter().collect()
@@ -85,7 +91,7 @@ impl<N: NodeID> HgVector<N> {
     pub fn from_basis(b: HashSet<N>, w: EdgeWeight) -> HgVector<N> {
         HgVector {
             basis_to_weight: HashMap::from([(b.into_iter().collect(), w)]),
-            cardinality_to_basis_set: HashMap::new()
+            cardinality_to_basis_set: HashMap::new(),
         }
     }
 
@@ -95,12 +101,17 @@ impl<N: NodeID> HgVector<N> {
             HashSet::new()
         } else {
             let mut rng = thread_rng();
-            let tot =  self.cardinality_to_basis_set.get(&card).unwrap().iter().fold(0.0, |acc, y|  {
-                acc + match self.basis_to_weight.get(y) {
-                    Some(w) => {*w},
-                    None => {0.0},
-                }
-            });
+            let tot = self
+                .cardinality_to_basis_set
+                .get(&card)
+                .unwrap()
+                .iter()
+                .fold(0.0, |acc, y| {
+                    acc + match self.basis_to_weight.get(y) {
+                        Some(w) => *w,
+                        None => 0.0,
+                    }
+                });
             for basis in self.cardinality_to_basis_set.get(&card).unwrap().iter() {
                 let p = match self.basis_to_weight.get(basis) {
                     Some(w) => *w,
@@ -114,8 +125,6 @@ impl<N: NodeID> HgVector<N> {
             HashSet::new()
         }
     }
-
-
 
     /// an empty EdgeVec is homogeneous vacuously
     /// Homogeneous in this setting means that it consists only of neighborhoods of the
@@ -226,9 +235,9 @@ mod test {
 
     #[test]
     fn test_add() {
-        let mut nodes: HashSet<u8> = {0..10}.collect();
-        let b1: HashSet<u8> = {0..2}.collect();
-        let b2: HashSet<u8> = {0..3}.collect();
+        let mut nodes: HashSet<u8> = { 0..10 }.collect();
+        let b1: HashSet<u8> = { 0..2 }.collect();
+        let b2: HashSet<u8> = { 0..3 }.collect();
         let vec1 = HgVector::from_basis(b1.clone(), 1.);
         let mut vec2 = HgVector::from_basis(b2, 2.);
         println!("vec2 after creation: {:?}", vec2);

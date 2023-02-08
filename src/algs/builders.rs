@@ -4,13 +4,16 @@ use rand::Rng;
 use uuid::Uuid;
 
 use crate::structs::nodes::NodeID;
-use crate::structs::{HyperGraph, SparseEdge, EdgeDirection, NodeUUID};
+use crate::structs::{EdgeDirection, HyperGraph, NodeUUID, SparseEdge};
 use crate::utils::power_set;
 
-/// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be 
+/// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be
 /// specified. For example, an erdos_renyi hypergraph with only the probability (1,1,p) specified is equivalent
-/// to the standard erdos-renyi random graph. This means that our edges are undirected. 
-fn erdos_renyi(num_nodes: usize, dimension_with_probability: Vec<(usize, usize, f64)>) -> HyperGraph<NodeUUID> {
+/// to the standard erdos-renyi random graph. This means that our edges are undirected.
+fn erdos_renyi(
+    num_nodes: usize,
+    dimension_with_probability: Vec<(usize, usize, f64)>,
+) -> HyperGraph<NodeUUID> {
     let mut hg = HyperGraph::<NodeUUID>::new_with_num_nodes(num_nodes);
     let mut rng = rand::thread_rng();
     let nodes = hg.nodes();
@@ -78,7 +81,13 @@ mod test {
     #[test]
     fn test_erdos_renyi() {
         let num_nodes = 4;
-        let dim_w_probs = vec![(1,1,0.5), (1,2, 0.5), (0,4, 1.), (4,3, 0.3), (3,2, 0.6)];
+        let dim_w_probs = vec![
+            (1, 1, 0.5),
+            (1, 2, 0.5),
+            (0, 4, 1.),
+            (4, 3, 0.3),
+            (3, 2, 0.6),
+        ];
         let h: crate::structs::HyperGraph<_> = erdos_renyi(num_nodes, dim_w_probs);
         println!("{:#?}", h);
     }

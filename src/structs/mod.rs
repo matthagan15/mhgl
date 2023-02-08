@@ -9,14 +9,14 @@ pub type PathID = Uuid;
 pub type GraphID = Uuid;
 pub type EdgeWeight = f64;
 
-mod hyperedge;
 pub mod bit_edge;
+mod hyperedge;
 mod hypergraph;
+pub mod matrix_graph;
 mod node_vec;
 pub mod nodes;
-pub mod matrix_graph;
 
+pub use hyperedge::EdgeDirection;
 pub use hyperedge::SparseEdge;
 pub use hypergraph::HyperGraph;
-pub use hyperedge::EdgeDirection;
 pub use node_vec::HgVector;

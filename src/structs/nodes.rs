@@ -1,10 +1,13 @@
-use std::{ops::{Add, Mul}, hash::Hash};
+use std::{
+    hash::Hash,
+    ops::{Add, Mul},
+};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
-struct SparseNode (Uuid);
+struct SparseNode(Uuid);
 
 pub trait NodeID: Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize {}
 
@@ -21,11 +24,11 @@ pub struct BitNode<const K: usize> {
 
 impl<const K: usize> BitNode<K> {
     pub fn new() -> BitNode<K> {
-        BitNode {bits: [0; K]}
+        BitNode { bits: [0; K] }
     }
 
     pub fn from(bits: [u8; K]) -> BitNode<K> {
-        BitNode {bits: bits}
+        BitNode { bits: bits }
     }
 
     pub fn is_node(&self) -> bool {
