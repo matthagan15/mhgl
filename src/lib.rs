@@ -92,7 +92,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let hg: HyperGraph<u8> = HyperGraph::new();
+        let hg: SparseGraph<u8> = SparseGraph::new();
         println!("it works?");
     }
 }

@@ -48,7 +48,7 @@ use super::GraphID;
 /// - how can you compute the most important node in a hypergraph?
 ///
 #[derive(Debug, Serialize, Deserialize)]
-pub struct HyperGraph<N: NodeID> {
+pub struct SparseGraph<N: NodeID> {
     id: Uuid,
     pub nodes: HashSet<N>,
     pub edges: HashMap<EdgeID, SparseEdge<N>>,
@@ -58,13 +58,13 @@ pub struct HyperGraph<N: NodeID> {
     node_to_containing_edges: HashMap<N, HashSet<EdgeID>>,
 }
 
-impl HyperGraph<u8> {
+impl SparseGraph<u8> {
     /// If num_nodes is greater than the underlying storage method (aka u8) then it returns empty hypergraph.
-    pub fn new_with_num_nodes(num_nodes: usize) -> HyperGraph<u8> {
+    pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<u8> {
         if num_nodes > u8::MAX.into() {
-            HyperGraph::new()
+            SparseGraph::new()
         } else {
-            HyperGraph {
+            SparseGraph {
                 id: Uuid::new_v4(),
                 nodes: (0..num_nodes as u8).collect(),
                 edges: HashMap::new(),
@@ -76,13 +76,13 @@ impl HyperGraph<u8> {
     }
 }
 
-impl HyperGraph<u16> {
+impl SparseGraph<u16> {
     /// If num_nodes is greater than the underlying storage method (aka u8) then it returns empty hypergraph.
-    pub fn new_with_num_nodes(num_nodes: usize) -> HyperGraph<u16> {
+    pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<u16> {
         if num_nodes > u16::MAX.into() {
-            HyperGraph::new()
+            SparseGraph::new()
         } else {
-            HyperGraph {
+            SparseGraph {
                 id: Uuid::new_v4(),
                 nodes: (0..num_nodes as u16).collect(),
                 edges: HashMap::new(),
@@ -94,13 +94,13 @@ impl HyperGraph<u16> {
     }
 }
 
-impl HyperGraph<u32> {
+impl SparseGraph<u32> {
     /// If num_nodes is greater than the underlying storage method (aka u8) then it returns empty hypergraph.
-    pub fn new_with_num_nodes(num_nodes: usize) -> HyperGraph<u32> {
+    pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<u32> {
         if num_nodes as u32 > u32::MAX {
-            HyperGraph::new()
+            SparseGraph::new()
         } else {
-            HyperGraph {
+            SparseGraph {
                 id: Uuid::new_v4(),
                 nodes: (0..num_nodes as u32).collect(),
                 edges: HashMap::new(),
@@ -112,13 +112,13 @@ impl HyperGraph<u32> {
     }
 }
 
-impl HyperGraph<u64> {
+impl SparseGraph<u64> {
     /// If num_nodes is greater than the underlying storage method (aka u8) then it returns empty hypergraph.
-    pub fn new_with_num_nodes(num_nodes: usize) -> HyperGraph<u64> {
+    pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<u64> {
         if num_nodes as u64 > u64::MAX {
-            HyperGraph::new()
+            SparseGraph::new()
         } else {
-            HyperGraph {
+            SparseGraph {
                 id: Uuid::new_v4(),
                 nodes: (0..num_nodes as u64).collect(),
                 edges: HashMap::new(),
@@ -130,9 +130,9 @@ impl HyperGraph<u64> {
     }
 }
 
-impl HyperGraph<NodeUUID> {
-    pub fn new_with_num_nodes(num_nodes: usize) -> HyperGraph<NodeUUID> {
-        HyperGraph {
+impl SparseGraph<NodeUUID> {
+    pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<NodeUUID> {
+        SparseGraph {
             id: Uuid::new_v4(),
             nodes: (0..num_nodes).map(|_| Uuid::new_v4().into()).collect(),
             edges: HashMap::new(),
@@ -143,9 +143,9 @@ impl HyperGraph<NodeUUID> {
     }
 }
 
-impl<N: NodeID> HyperGraph<N> {
-    pub fn new() -> HyperGraph<N> {
-        HyperGraph {
+impl<N: NodeID> SparseGraph<N> {
+    pub fn new() -> SparseGraph<N> {
+        SparseGraph {
             id: Uuid::new_v4(),
             nodes: HashSet::new(),
             edges: HashMap::new(),
@@ -208,8 +208,8 @@ impl<N: NodeID> HyperGraph<N> {
         ret
     }
 
-    pub fn from_edges(edges: Vec<SparseEdge<N>>) -> HyperGraph<N> {
-        let mut hg = HyperGraph::new();
+    pub fn from_edges(edges: Vec<SparseEdge<N>>) -> SparseGraph<N> {
+        let mut hg = SparseGraph::new();
         for edge in edges {
             hg.add_edge(edge);
         }
@@ -485,7 +485,7 @@ impl<N: NodeID> HyperGraph<N> {
     }
 }
 
-impl Display for HyperGraph<NodeUUID> {
+impl Display for SparseGraph<NodeUUID> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let graph_string = self.id.clone().to_string();
 
@@ -522,5 +522,5 @@ mod tests {
 
     use uuid::Uuid;
 
-    use crate::structs::hypergraph::HyperGraph;
+    use crate::structs::sparse_graph::SparseGraph;
 }

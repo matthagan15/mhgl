@@ -11,12 +11,12 @@ pub type EdgeWeight = f64;
 
 pub mod bit_edge;
 mod hyperedge;
-mod hypergraph;
+mod sparse_graph;
 pub mod matrix_graph;
 mod node_vec;
 pub mod nodes;
 
 pub use hyperedge::EdgeDirection;
 pub use hyperedge::SparseEdge;
-pub use hypergraph::HyperGraph;
+pub use sparse_graph::SparseGraph;
 pub use node_vec::HgVector;

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::structs::{nodes::NodeID, EdgeWeight, HyperGraph};
+use crate::structs::{nodes::NodeID, EdgeWeight, SparseGraph};
 
 fn average_cardinality<N: NodeID>(
-    hg: &HyperGraph<N>,
+    hg: &SparseGraph<N>,
     num_samples: usize,
 ) -> HashMap<usize, EdgeWeight> {
     let mut avg_card: HashMap<usize, EdgeWeight> = HashMap::new();

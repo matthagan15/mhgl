@@ -4,7 +4,7 @@ use rand::Rng;
 use uuid::Uuid;
 
 use crate::structs::nodes::NodeID;
-use crate::structs::{EdgeDirection, HyperGraph, NodeUUID, SparseEdge};
+use crate::structs::{EdgeDirection, SparseGraph, NodeUUID, SparseEdge};
 use crate::utils::power_set;
 
 /// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be
@@ -13,8 +13,8 @@ use crate::utils::power_set;
 fn erdos_renyi(
     num_nodes: usize,
     dimension_with_probability: Vec<(usize, usize, f64)>,
-) -> HyperGraph<NodeUUID> {
-    let mut hg = HyperGraph::<NodeUUID>::new_with_num_nodes(num_nodes);
+) -> SparseGraph<NodeUUID> {
+    let mut hg = SparseGraph::<NodeUUID>::new_with_num_nodes(num_nodes);
     let mut rng = rand::thread_rng();
     let nodes = hg.nodes();
     let mut seen_dims: HashSet<usize> = HashSet::new();
@@ -67,11 +67,11 @@ fn erdos_renyi(
     hg
 }
 
-pub fn uniform_undirected_erdos_renyi<N: NodeID>(num_nodes: usize, prob: f64) -> HyperGraph<N> {
+pub fn uniform_undirected_erdos_renyi<N: NodeID>(num_nodes: usize, prob: f64) -> SparseGraph<N> {
     if num_nodes < u8::MAX as usize {
-        HyperGraph::new()
+        SparseGraph::new()
     } else {
-        HyperGraph::new()
+        SparseGraph::new()
     }
 }
 
@@ -88,7 +88,7 @@ mod test {
             (4, 3, 0.3),
             (3, 2, 0.6),
         ];
-        let h: crate::structs::HyperGraph<_> = erdos_renyi(num_nodes, dim_w_probs);
+        let h: crate::structs::SparseGraph<_> = erdos_renyi(num_nodes, dim_w_probs);
         println!("{:#?}", h);
     }
 }

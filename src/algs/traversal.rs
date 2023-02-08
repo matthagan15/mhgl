@@ -6,7 +6,7 @@ use crate::structs::{nodes::NodeID, *};
 
 pub fn walk<N: NodeID>(
     start: HgVector<N>,
-    walk_operator: &HyperGraph<N>,
+    walk_operator: &SparseGraph<N>,
     num_steps: usize,
 ) -> HgVector<N> {
     let mut ret = start;
@@ -16,11 +16,11 @@ pub fn walk<N: NodeID>(
     ret
 }
 
-pub fn compute_probabilistic_walk_graph<N: NodeID>(graph: &HyperGraph<N>) -> HyperGraph<N> {
-    HyperGraph::new()
+pub fn compute_probabilistic_walk_graph<N: NodeID>(graph: &SparseGraph<N>) -> SparseGraph<N> {
+    SparseGraph::new()
 }
 
-pub fn compute_cut<N: NodeID>(selected_nodes: HashSet<N>, graph: &HyperGraph<N>) {
+pub fn compute_cut<N: NodeID>(selected_nodes: HashSet<N>, graph: &SparseGraph<N>) {
     let mut pot_edges = HashSet::new();
     for node in selected_nodes.iter() {
         let new_edges = graph.get_nodes_containing_edges(node);
