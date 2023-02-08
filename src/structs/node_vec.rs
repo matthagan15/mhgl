@@ -37,7 +37,7 @@ fn dot_conj(w: EdgeWeight) -> EdgeWeight {
 
 /// Defaults to euclidean distance, should probably add in a parameter to determine
 /// which metric to use.
-pub fn distance<N: NodeID>(x: &HgVector<N>, y: &HgVector<N>) -> f64 {
+pub fn distance<N: NodeID>(x: &SparseVector<N>, y: &SparseVector<N>) -> f64 {
     let mut tmp = y.clone();
     tmp *= -1.;
     tmp += x.clone();
@@ -46,6 +46,20 @@ pub fn distance<N: NodeID>(x: &HgVector<N>, y: &HgVector<N>) -> f64 {
         tot += w.powi(2);
     }
     tot.sqrt()
+}
+
+trait HgVector: PartialEq + Eq + Clone + Add + AddAssign + Mul<EdgeWeight> + MulAssign<EdgeWeight> {
+    fn zero() -> Self;
+}
+
+/// Addition on HgBasis elements returns the union of the underlying sets,
+/// Multiplication returns the intersection
+trait HgBasis: PartialEq + Eq + Clone + Add + Mul {
+
+}
+
+pub struct BitVec<const K: usize> {
+    
 }
 
 /// A representation of a vector living in the power set module. Aka something a
@@ -58,20 +72,20 @@ pub fn distance<N: NodeID>(x: &HgVector<N>, y: &HgVector<N>) -> f64 {
 /// data storage is a HashMap from basis to coefficient. Unfortunately you cannot hash
 /// a hashset due to the randomness, so we use SORTED vectors as the basis elements.
 #[derive(Clone, Debug, Serialize)]
-pub struct HgVector<N: NodeID> {
+pub struct SparseVector<N: NodeID> {
     pub basis_to_weight: HashMap<Vec<N>, EdgeWeight>,
     cardinality_to_basis_set: HashMap<usize, HashSet<Vec<N>>>,
 }
 
-impl<N: NodeID> HgVector<N> {
-    pub fn new() -> HgVector<N> {
-        HgVector {
+impl<N: NodeID> SparseVector<N> {
+    pub fn new() -> SparseVector<N> {
+        SparseVector {
             basis_to_weight: HashMap::new(),
             cardinality_to_basis_set: HashMap::new(),
         }
     }
 
-    pub fn new_from(input: Vec<(HashSet<N>, EdgeWeight)>) -> HgVector<N> {
+    pub fn new_from(input: Vec<(HashSet<N>, EdgeWeight)>) -> SparseVector<N> {
         let mut map = HashMap::new();
         for (node_set, weight) in input.into_iter() {
             let mut node_vec: Vec<N> = node_set.into_iter().collect();
@@ -79,7 +93,7 @@ impl<N: NodeID> HgVector<N> {
             let cur_weight = map.entry(node_vec).or_insert(0.);
             *cur_weight += weight;
         }
-        HgVector {
+        SparseVector {
             basis_to_weight: map,
             cardinality_to_basis_set: HashMap::new(),
         }
@@ -88,8 +102,8 @@ impl<N: NodeID> HgVector<N> {
         self.basis_to_weight.clone().into_iter().collect()
     }
 
-    pub fn from_basis(b: HashSet<N>, w: EdgeWeight) -> HgVector<N> {
-        HgVector {
+    pub fn from_basis(b: HashSet<N>, w: EdgeWeight) -> SparseVector<N> {
+        SparseVector {
             basis_to_weight: HashMap::from([(b.into_iter().collect(), w)]),
             cardinality_to_basis_set: HashMap::new(),
         }
@@ -185,8 +199,8 @@ impl<N: NodeID> HgVector<N> {
     }
 }
 
-impl<N: NodeID> Add for HgVector<N> {
-    type Output = HgVector<N>;
+impl<N: NodeID> Add for SparseVector<N> {
+    type Output = SparseVector<N>;
 
     fn add(mut self, rhs: Self) -> Self::Output {
         let mut ret = self.clone();
@@ -198,7 +212,7 @@ impl<N: NodeID> Add for HgVector<N> {
     }
 }
 
-impl<N: NodeID> AddAssign for HgVector<N> {
+impl<N: NodeID> AddAssign for SparseVector<N> {
     fn add_assign(&mut self, rhs: Self) {
         for (basis, weight) in rhs.basis_to_weight.iter() {
             let old_weight = self.basis_to_weight.entry(basis.to_vec()).or_insert(0.);
@@ -207,8 +221,8 @@ impl<N: NodeID> AddAssign for HgVector<N> {
     }
 }
 
-impl<N: NodeID> Mul<EdgeWeight> for HgVector<N> {
-    type Output = HgVector<N>;
+impl<N: NodeID> Mul<EdgeWeight> for SparseVector<N> {
+    type Output = SparseVector<N>;
 
     fn mul(mut self, rhs: EdgeWeight) -> Self::Output {
         for (_, w) in self.basis_to_weight.iter_mut() {
@@ -218,7 +232,7 @@ impl<N: NodeID> Mul<EdgeWeight> for HgVector<N> {
     }
 }
 
-impl<N: NodeID> MulAssign<EdgeWeight> for HgVector<N> {
+impl<N: NodeID> MulAssign<EdgeWeight> for SparseVector<N> {
     fn mul_assign(&mut self, rhs: EdgeWeight) {
         for (_, w) in self.basis_to_weight.iter_mut() {
             *w = *w * rhs;
@@ -231,17 +245,17 @@ mod test {
 
     use uuid::Uuid;
 
-    use super::HgVector;
+    use super::SparseVector;
 
     #[test]
     fn test_add() {
         let mut nodes: HashSet<u8> = { 0..10 }.collect();
         let b1: HashSet<u8> = { 0..2 }.collect();
         let b2: HashSet<u8> = { 0..3 }.collect();
-        let vec1 = HgVector::from_basis(b1.clone(), 1.);
-        let mut vec2 = HgVector::from_basis(b2, 2.);
+        let vec1 = SparseVector::from_basis(b1.clone(), 1.);
+        let mut vec2 = SparseVector::from_basis(b2, 2.);
         println!("vec2 after creation: {:?}", vec2);
-        vec2 += HgVector::from_basis(b1, 3.);
+        vec2 += SparseVector::from_basis(b1, 3.);
         println!("vec2 after addition assign: {:?}", vec2);
         println!("vec1 + vec2: {:?}", (vec1 + vec2));
     }

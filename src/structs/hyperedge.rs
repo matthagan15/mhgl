@@ -8,7 +8,7 @@ use std::{
 };
 use uuid::Uuid;
 
-use crate::structs::{node_vec::HgVector, nodes::NodeID};
+use crate::structs::{node_vec::SparseVector, nodes::NodeID};
 
 pub type EdgeWeight = f64;
 type EdgeID = Uuid;
@@ -150,36 +150,36 @@ impl<N: NodeID> SparseEdge<N> {
         self.id.clone()
     }
 
-    pub fn map_basis(&self, b: &HashSet<N>) -> HgVector<N> {
-        let mut ret: HgVector<N> = HgVector::new();
+    pub fn map_basis(&self, b: &HashSet<N>) -> SparseVector<N> {
+        let mut ret: SparseVector<N> = SparseVector::new();
         match self.direction {
             EdgeDirection::Directed => {
                 if self.matches_input(b) {
-                    let tmp = HgVector::from_basis(self.out_nodes.clone(), self.weight);
+                    let tmp = SparseVector::from_basis(self.out_nodes.clone(), self.weight);
                     ret += tmp;
                 }
             }
             EdgeDirection::Undirected => {
                 if self.matches_input(b) {
-                    let tmp = HgVector::from_basis(self.out_nodes.clone(), self.weight);
+                    let tmp = SparseVector::from_basis(self.out_nodes.clone(), self.weight);
                     ret += tmp;
                 } else if self.matches_output(b) {
-                    let tmp = HgVector::from_basis(self.in_nodes.clone(), self.weight);
+                    let tmp = SparseVector::from_basis(self.in_nodes.clone(), self.weight);
                     ret += tmp;
                 }
             }
             EdgeDirection::Oriented => {
                 if self.matches_input(b) {
-                    let tmp = HgVector::from_basis(self.out_nodes.clone(), self.weight);
+                    let tmp = SparseVector::from_basis(self.out_nodes.clone(), self.weight);
                     ret += tmp;
                 } else if self.matches_output(b) {
-                    let tmp = HgVector::from_basis(self.in_nodes.clone(), -1. * self.weight);
+                    let tmp = SparseVector::from_basis(self.in_nodes.clone(), -1. * self.weight);
                     ret += tmp;
                 }
             }
             EdgeDirection::Loop => {
                 if self.matches_input(b) {
-                    let tmp = HgVector::from_basis(self.in_nodes.clone(), self.weight);
+                    let tmp = SparseVector::from_basis(self.in_nodes.clone(), self.weight);
                     ret += tmp;
                 }
             }
@@ -191,7 +191,7 @@ impl<N: NodeID> SparseEdge<N> {
                             destination.insert(id.clone());
                         }
                     }
-                    let tmp = HgVector::from_basis(destination, self.weight);
+                    let tmp = SparseVector::from_basis(destination, self.weight);
                     ret += tmp;
                 }
             }
@@ -200,8 +200,8 @@ impl<N: NodeID> SparseEdge<N> {
     }
 
     /// Map an input vector to an output vector.
-    pub fn map_vec(&self, input_vec: &HgVector<N>) -> HgVector<N> {
-        let mut ret = HgVector::new();
+    pub fn map_vec(&self, input_vec: &SparseVector<N>) -> SparseVector<N> {
+        let mut ret = SparseVector::new();
         for (basis, weight) in input_vec.basis() {
             let mut y = self.map_basis(&basis.into_iter().collect());
             y *= weight;

@@ -1,9 +1,10 @@
 use std::ops::{Add, Index, Mul};
 
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-use super::EdgeWeight;
-use crate::structs::nodes::BitNode;
+use super::{EdgeWeight, EdgeID};
+use crate::structs::nodes::BitNodes;
 
 /// A smaller HyperEdge implementation that uses bits to encode if a node is present or not
 /// holdup: isn't this awful for sparse hypergraphs? now we need a bit for any node present,
@@ -13,43 +14,52 @@ use crate::structs::nodes::BitNode;
 /// ## Standards
 /// the first node in the graph is the first bit in the array, so inputs[0][0], the last node is the
 /// furthest from here.
-pub struct BitEdge<const K1: usize, const K2: usize> {
+pub struct BitEdge<const K: usize> {
+    id: EdgeID,
     weight: EdgeWeight,
-    inputs: BitNode<K1>,
-    outputs: BitNode<K2>,
+    inputs: BitNodes<K>,
+    outputs: BitNodes<K>,
 }
 
-impl<const K1: usize, const K2: usize> BitEdge<K1, K2> {
-    pub fn new() -> BitEdge<K1, K2> {
+impl<const K: usize> BitEdge<K> {
+    pub fn new() -> BitEdge<K> {
         BitEdge {
+            id: Uuid::new_v4(),
             weight: 0.0,
-            inputs: BitNode::<K1>::new(),
-            outputs: BitNode::<K2>::new(),
+            inputs: BitNodes::<K>::new(),
+            outputs: BitNodes::<K>::new(),
         }
     }
 
-    /// Currently drops input_nodes if it has more than 1 bit flipped.
+    /// If you already have the data this tags it
     pub fn from(
-        input_nodes: BitNode<K1>,
-        output_nodes: BitNode<K2>,
         weight: EdgeWeight,
-    ) -> BitEdge<K1, K2> {
+        input_nodes: BitNodes<K>,
+        output_nodes: BitNodes<K>,
+    ) -> BitEdge<K> {
         BitEdge {
+            id: Uuid::new_v4(),
             weight: weight,
             inputs: input_nodes,
             outputs: output_nodes,
         }
     }
 
-    pub fn matches_input<const k: usize>(&self, start_nodes: BitNode<k>) -> bool {
-        let mut ret = true;
-        if k == K1 {
-            for ix in 0..k {
-                if self.inputs.bits[k] != start_nodes.bits[k] {
-                    ret = false;
-                }
-            }
+    pub fn map_basis(&self, input_basis: BitNodes<K>) -> BitNodes<K> {
+        if self.inputs == input_basis {
+            self.outputs.clone()
+        } else {
+            // TODO: THIS IS WRONG! Currently maps a non-matching input to the 
+            // empty set, which is NOT the same as the zero vector. need to
+            // return a bit vector as opposed to a BitNodes.
+            BitNodes::<K>::new()
         }
-        ret
+    }
+
+    pub fn matches_input(&self, start_nodes: BitNodes<K>) -> bool {
+        self.inputs == start_nodes
+    }
+    pub fn matches_output(&self, end_nodes: BitNodes<K>) -> bool {
+        self.outputs == end_nodes
     }
 }

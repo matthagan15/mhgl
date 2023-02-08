@@ -1,4 +1,4 @@
-use std::{collections::HashSet, u8, ops::Add};
+use std::{collections::HashSet, ops::Add, u8};
 use uuid::Uuid;
 
 use crate::structs::nodes::NodeID;

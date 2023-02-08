@@ -5,16 +5,18 @@ use uuid::Uuid;
 use crate::structs::{nodes::NodeID, *};
 
 pub fn walk<N: NodeID>(
-    start: HgVector<N>,
+    start: SparseVector<N>,
     walk_operator: &SparseGraph<N>,
     num_steps: usize,
-) -> HgVector<N> {
+) -> SparseVector<N> {
     let mut ret = start;
     for _ in 0..num_steps {
         ret = walk_operator.map_vec(ret);
     }
     ret
 }
+
+pub fn bfs() {}
 
 pub fn compute_probabilistic_walk_graph<N: NodeID>(graph: &SparseGraph<N>) -> SparseGraph<N> {
     SparseGraph::new()

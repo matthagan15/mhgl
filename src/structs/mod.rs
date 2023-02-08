@@ -10,13 +10,14 @@ pub type GraphID = Uuid;
 pub type EdgeWeight = f64;
 
 pub mod bit_edge;
+pub mod hgraph;
 mod hyperedge;
-mod sparse_graph;
 pub mod matrix_graph;
 mod node_vec;
 pub mod nodes;
+mod sparse_graph;
 
 pub use hyperedge::EdgeDirection;
 pub use hyperedge::SparseEdge;
+pub use node_vec::SparseVector;
 pub use sparse_graph::SparseGraph;
-pub use node_vec::HgVector;

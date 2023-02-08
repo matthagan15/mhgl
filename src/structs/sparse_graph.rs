@@ -1,6 +1,6 @@
 use crate::structs::{
     hyperedge::{EdgeDirection, SparseEdge},
-    node_vec::HgVector,
+    node_vec::SparseVector,
     nodes::NodeID,
     EdgeID, EdgeWeight, NodeUUID,
 };
@@ -439,7 +439,7 @@ impl<N: NodeID> SparseGraph<N> {
         }
     }
 
-    fn map_basis(&self, b: &HashSet<N>) -> HgVector<N> {
+    fn map_basis(&self, b: &HashSet<N>) -> SparseVector<N> {
         let mut potential_edges = HashSet::new();
         let input_dim = b.len();
         for node in b.iter() {
@@ -453,7 +453,7 @@ impl<N: NodeID> SparseGraph<N> {
                 }
             }
         }
-        let mut ret = HgVector::new();
+        let mut ret = SparseVector::new();
         for p in potential_edges {
             if let Some(e) = self.edges.get(p) {
                 ret += e.map_basis(b);
@@ -462,8 +462,8 @@ impl<N: NodeID> SparseGraph<N> {
         ret
     }
 
-    pub fn map_vec(&self, x: HgVector<N>) -> HgVector<N> {
-        let mut ret = HgVector::new();
+    pub fn map_vec(&self, x: SparseVector<N>) -> SparseVector<N> {
+        let mut ret = SparseVector::new();
         for (basis, coeff) in x.basis() {
             let mut tmp = self.map_basis(&basis.into_iter().collect());
             tmp *= coeff;
@@ -473,7 +473,7 @@ impl<N: NodeID> SparseGraph<N> {
     }
 
     /// Return a uniformly random basis vector.
-    pub fn random_basis(&self) -> HgVector<N> {
+    pub fn random_basis(&self) -> SparseVector<N> {
         let mut base = HashSet::new();
         let mut rng = thread_rng();
         for node in self.nodes.iter() {
@@ -481,7 +481,7 @@ impl<N: NodeID> SparseGraph<N> {
                 base.insert(node.clone());
             }
         }
-        HgVector::from_basis(base, 1.0)
+        SparseVector::from_basis(base, 1.0)
     }
 }
 

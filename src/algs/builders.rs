@@ -4,7 +4,7 @@ use rand::Rng;
 use uuid::Uuid;
 
 use crate::structs::nodes::NodeID;
-use crate::structs::{EdgeDirection, SparseGraph, NodeUUID, SparseEdge};
+use crate::structs::{EdgeDirection, NodeUUID, SparseEdge, SparseGraph};
 use crate::utils::power_set;
 
 /// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be

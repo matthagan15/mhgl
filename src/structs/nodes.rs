@@ -17,18 +17,19 @@ impl NodeID for u32 {}
 impl NodeID for u16 {}
 impl NodeID for u8 {}
 
-#[derive(PartialEq, Eq, Debug)]
-pub struct BitNode<const K: usize> {
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct BitNodes<const K: usize> {
     pub bits: [u8; K],
 }
 
-impl<const K: usize> BitNode<K> {
-    pub fn new() -> BitNode<K> {
-        BitNode { bits: [0; K] }
+impl<const K: usize> BitNodes<K> {
+    /// Gives the zero aka empty element.
+    pub fn new() -> BitNodes<K> {
+        BitNodes { bits: [0; K] }
     }
 
-    pub fn from(bits: [u8; K]) -> BitNode<K> {
-        BitNode { bits: bits }
+    pub fn from(bits: [u8; K]) -> BitNodes<K> {
+        BitNodes { bits: bits }
     }
 
     pub fn is_node(&self) -> bool {
@@ -39,7 +40,7 @@ impl<const K: usize> BitNode<K> {
         num_ones == 1
     }
 
-    pub fn dim(&self) -> usize {
+    pub fn cardinality(&self) -> usize {
         let mut num_ones = 0;
         for ix in 0..K {
             num_ones += self.bits[ix].count_ones();
@@ -53,21 +54,21 @@ impl<const K: usize> BitNode<K> {
     }
 }
 
-impl<const K: usize> Add for BitNode<K> {
-    type Output = BitNode<K>;
+impl<const K: usize> Add for BitNodes<K> {
+    type Output = BitNodes<K>;
 
-    /// Basically returns the union of the two neighborhoods.
+    /// Returns the union of the two neighborhoods.
     fn add(self, rhs: Self) -> Self::Output {
         let mut new_bits = [0; K];
         for ix in 0..K {
             new_bits[ix] = self.bits[ix] | rhs.bits[ix];
         }
-        BitNode::from(new_bits)
+        BitNodes::from(new_bits)
     }
 }
 
-impl<const K: usize> Mul for BitNode<K> {
-    type Output = BitNode<K>;
+impl<const K: usize> Mul for BitNodes<K> {
+    type Output = BitNodes<K>;
 
     /// Returns the intersection of the two neighborhoods.
     fn mul(self, rhs: Self) -> Self::Output {
@@ -75,6 +76,6 @@ impl<const K: usize> Mul for BitNode<K> {
         for ix in 0..K {
             new_bits[ix] = self.bits[ix] & rhs.bits[ix];
         }
-        BitNode::from(new_bits)
+        BitNodes::from(new_bits)
     }
 }
