@@ -81,9 +81,14 @@
 //! cool sounding name I went full 90's and just named it matts hypergraph library (mhgl).
 //! 
 //! # TODO
-//! Need to make a decision on the library API
+//! Need to make a decision on the library API. I'm leaning towards providing 
+//! two types of structures: a deterministic node type where the graph simply
+//! iterates through the numbers for storing nodes (i.e. create_node() would give 0 on first go, 1 on second, etc.) and another type for storing Uuids. The 
+//! behavior is split over these two so I'll just have to do that. 
 
 #![forbid(unsafe_code)]
+
+use uuid::Uuid;
 
 pub mod algs;
 pub mod structs;
@@ -95,13 +100,15 @@ type HGraph32 = structs::SparseGraph<u32>;
 type HGraph64 = structs::SparseGraph<u64>;
 type HGraph128 = structs::SparseGraph<u128>;
 
+type HGraph = structs::SparseGraph<Uuid>;
+
 #[cfg(test)]
 mod tests {
-    use crate::structs::*;
+    use crate::{structs::*, HGraph};
 
     #[test]
     fn it_works() {
-        let hg: SparseGraph<u8> = SparseGraph::new();
-        println!("it works?");
+        let hg = HGraph::new();
+        println!("it works? {:#?}", hg);
     }
 }

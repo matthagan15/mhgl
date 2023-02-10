@@ -1,9 +1,9 @@
 # mhgl
 
 ## Matt's HyperGraph Library (mhgl)
-A straightforward library that provides hypergraph datastructures and some algorithms for working
-with them. We use the most general possible hypergraph, that is a directed, weighted hypergraph as
-oppossed to the standard undirected, unweighted hypergraph as the undirected and unweighted can
+A straightforward library that aims to provide a small number of well crafted hypergraph datastructures and some algorithms for working
+with them. We base our datastructures on the most general possible hypergraph mathematically, that is a directed, weighted hypergraph as
+oppossed to the standard undirected, unweighted hypergraph as the un-directed and un-weighted can
 be constructed from the directed and weighted variant. Sometimes the prefix "hyper" will be dropped from
 hypergraph and hyperedge, this is a (mostly harmless) bad habit. There are plans to support three types of
 storage, the first being a sparse representation, the second being a more dense version utilizing a binary
@@ -81,5 +81,11 @@ capture shared behavior.
 I was initially using "graphene" for my personal project, turns out that was already used for a graph library.
 Hyperion my second choice was also taken, and so was graphite my third. Instead of trying to come up with a
 cool sounding name I went full 90's and just named it matts hypergraph library (mhgl).
+
+## TODO
+Need to make a decision on the library API. I'm leaning towards providing
+two types of structures: a deterministic node type where the graph simply
+iterates through the numbers for storing nodes (i.e. create_node() would give 0 on first go, 1 on second, etc.) and another type for storing Uuids. The
+behavior is split over these two so I'll just have to do that.
 
 License: MIT

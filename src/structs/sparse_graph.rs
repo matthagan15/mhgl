@@ -260,8 +260,15 @@ impl<N: NodeID> SparseGraph<N> {
             edge.remove_input_node(node);
         }
     }
-
+    pub fn remove_output_node_from_edge(&mut self, node: &N, edge: &EdgeID) {
+        if let Some(edge) = self.edges.get_mut(edge) {
+            edge.remove_output_node(node);
+        }
+    }
     pub fn remove_node(&mut self, node: &N) {
+        for edge in self.edges.values_mut() {
+            edge.remove_node(node);
+        }
         self.nodes.remove(node);
     }
 
@@ -320,11 +327,7 @@ impl<N: NodeID> SparseGraph<N> {
         }
     }
 
-    pub fn remove_output_node_from_edge(&mut self, node: &N, edge: &EdgeID) {
-        if let Some(edge) = self.edges.get_mut(edge) {
-            edge.remove_output_node(node);
-        }
-    }
+
 
     pub fn clone_id(&self) -> GraphID {
         self.id.clone()
@@ -414,11 +417,15 @@ impl<N: NodeID> SparseGraph<N> {
 
     /// Number of nodes in the graph
     pub fn len(&self) -> usize {
-        self.nodes.len()
+        self.nodes.len() + self.edges.len()
     }
 
     pub fn num_nodes(&self) -> usize {
         self.nodes.len()
+    }
+
+    pub fn num_edges(&self) -> usize {
+        self.edges.len()
     }
 
     /// iterator over nodes present.
@@ -431,12 +438,12 @@ impl<N: NodeID> SparseGraph<N> {
         self.nodes.clone()
     }
 
-    pub fn covers_nodes(&self, other_nodes: &HashSet<N>) -> bool {
-        self.nodes.is_superset(other_nodes)
+    pub fn has_nodes(&self, nodes: &HashSet<N>) -> bool {
+        self.nodes.is_superset(nodes)
     }
 
-    pub fn edge_vec(&self) -> Vec<EdgeID> {
-        self.edges.iter().map(|(id, _)| id.clone()).collect()
+    pub fn edges(&self) -> Vec<Uuid> {
+        self.edges.keys().cloned().collect()
     }
 
     pub fn get_edge_from_id(&self, id: &EdgeID) -> Option<&SparseEdge<N>> {
@@ -447,12 +454,8 @@ impl<N: NodeID> SparseGraph<N> {
         self.edges.get(edge_id).cloned()
     }
 
-    pub fn num_edges(&self) -> usize {
-        self.edges.len()
-    }
-
     /// Returns a list of EdgeIDs that have the provided node as a given input.
-    pub fn get_nodes_containing_edges(&self, node: &N) -> HashSet<EdgeID> {
+    pub fn get_outbound_edges(&self, node: &N) -> HashSet<EdgeID> {
         if let Some(edges) = self.node_to_containing_edges.get(node) {
             edges.clone()
         } else {

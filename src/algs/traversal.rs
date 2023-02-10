@@ -25,7 +25,7 @@ pub fn compute_probabilistic_walk_graph<N: NodeID>(graph: &SparseGraph<N>) -> Sp
 pub fn compute_cut<N: NodeID>(selected_nodes: HashSet<N>, graph: &SparseGraph<N>) {
     let mut pot_edges = HashSet::new();
     for node in selected_nodes.iter() {
-        let new_edges = graph.get_nodes_containing_edges(node);
+        let new_edges = graph.get_outbound_edges(node);
         for e in new_edges {
             pot_edges.insert(e);
         }

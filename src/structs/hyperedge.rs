@@ -137,6 +137,10 @@ impl<N: NodeID> SparseEdge<N> {
     pub fn remove_output_node(&mut self, node: &N) {
         self.out_nodes.remove(node);
     }
+    pub fn remove_node(&mut self, node: &N) {
+        self.in_nodes.remove(node);
+        self.out_nodes.remove(node);
+    }
 
     pub fn flip_to_and_from(&mut self) {
         let tmp_from = self.in_nodes.clone();
