@@ -47,7 +47,7 @@ use super::GraphID;
 ///
 /// - how can you compute the most important node in a hypergraph?
 ///
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SparseGraph<N: NodeID> {
     id: Uuid,
     pub nodes: HashSet<N>,
@@ -130,11 +130,32 @@ impl SparseGraph<u64> {
     }
 }
 
-impl SparseGraph<NodeUUID> {
-    pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<NodeUUID> {
+impl SparseGraph<u128> {
+    pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<u128> {
+        let mut node_set = HashSet::with_capacity(num_nodes);
+        for _ in 0..num_nodes {
+            node_set.insert(Uuid::new_v4().as_u128());
+        }
         SparseGraph {
             id: Uuid::new_v4(),
-            nodes: (0..num_nodes).map(|_| Uuid::new_v4().into()).collect(),
+            nodes: node_set,
+            edges: HashMap::new(),
+            input_cardinality_to_edges: HashMap::new(),
+            output_cardinality_to_edges: HashMap::new(),
+            node_to_containing_edges: HashMap::new(),
+        }
+    }
+}
+
+impl SparseGraph<Uuid> {
+    pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<Uuid> {
+        let mut node_set = HashSet::with_capacity(num_nodes);
+        for _ in 0..num_nodes {
+            node_set.insert(Uuid::new_v4());
+        }
+        SparseGraph {
+            id: Uuid::new_v4(),
+            nodes: node_set,
             edges: HashMap::new(),
             input_cardinality_to_edges: HashMap::new(),
             output_cardinality_to_edges: HashMap::new(),

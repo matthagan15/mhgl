@@ -13,8 +13,8 @@ use crate::utils::power_set;
 fn erdos_renyi(
     num_nodes: usize,
     dimension_with_probability: Vec<(usize, usize, f64)>,
-) -> SparseGraph<NodeUUID> {
-    let mut hg = SparseGraph::<NodeUUID>::new_with_num_nodes(num_nodes);
+) -> SparseGraph<Uuid> {
+    let mut hg = SparseGraph::<Uuid>::new_with_num_nodes(num_nodes);
     let mut rng = rand::thread_rng();
     let nodes = hg.nodes();
     let mut seen_dims: HashSet<usize> = HashSet::new();

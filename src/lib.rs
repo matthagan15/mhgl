@@ -9,7 +9,7 @@
 //! which a single matrix is used to store the hypergraph. This library uses ndarray for matrices, as
 //! it is currently the most mature and most general purpose matrix library in the ecosystem in my
 //! opinion.
-//!
+//! 
 //! # Nodes
 //! This library uses the notation "node" as opposed to vertex to align with my research. The
 //! rationale behind this is that "V" is preferred to represent a vector space as opposed to
@@ -79,12 +79,21 @@
 //! I was initially using "graphene" for my personal project, turns out that was already used for a graph library.
 //! Hyperion my second choice was also taken, and so was graphite my third. Instead of trying to come up with a
 //! cool sounding name I went full 90's and just named it matts hypergraph library (mhgl).
+//! 
+//! # TODO
+//! Need to make a decision on the library API
 
 #![forbid(unsafe_code)]
 
 pub mod algs;
 pub mod structs;
 pub mod utils;
+
+type HGraph8 = structs::SparseGraph<u8>;
+type HGraph16 = structs::SparseGraph<u16>;
+type HGraph32 = structs::SparseGraph<u32>;
+type HGraph64 = structs::SparseGraph<u64>;
+type HGraph128 = structs::SparseGraph<u128>;
 
 #[cfg(test)]
 mod tests {
