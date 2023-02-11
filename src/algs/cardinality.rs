@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::structs::{nodes::NodeID, EdgeWeight, SparseGraph};
+use crate::structs::{nodes::NodeID, EdgeWeight, SparseGraph, hgraph::HyperGraph, SparseVector};
 
 /// Returns a monte carlo estimator to the average cardinality of the provided hypergraph. Essentially samples random basis vectors, applies the graph, and then takes the average of the cardinality random variable over these samples. allows you to specify the number of steps taken in the hypergraph.
 fn average_cardinality<N: NodeID>(
@@ -10,7 +10,7 @@ fn average_cardinality<N: NodeID>(
 ) -> HashMap<usize, EdgeWeight> {
     let mut avg_card: HashMap<usize, EdgeWeight> = HashMap::new();
     for _ in 0..num_samples {
-        let mut state_vec = hg.random_basis();
+        let mut state_vec: SparseVector<N> = hg.random_basis();
         for _ in 0..num_steps {
             state_vec = hg.map_vec(state_vec);
         }

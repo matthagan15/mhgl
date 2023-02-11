@@ -9,6 +9,7 @@ use std::{
 
 use super::nodes::NodeID;
 
+
 /// This is basic dot product that tells us if two basis vectors are orthonormal. This is the
 /// most straightforward way, if they are the same. Fails if duplicates in either vector is detected.
 fn are_basis_elems_equal<N: NodeID>(a: &Vec<N>, b: &Vec<N>) -> bool {
@@ -48,19 +49,11 @@ pub fn distance<N: NodeID>(x: &SparseVector<N>, y: &SparseVector<N>) -> f64 {
     tot.sqrt()
 }
 
-trait HgVector: PartialEq + Eq + Clone + Add + AddAssign + Mul<EdgeWeight> + MulAssign<EdgeWeight> {
-    fn zero() -> Self;
-}
-
 /// Addition on HgBasis elements returns the union of the underlying sets,
 /// Multiplication returns the intersection
-trait HgBasis: PartialEq + Eq + Clone + Add + Mul {
+trait HgBasis: PartialEq + Eq + Clone + Add + Mul {}
 
-}
-
-pub struct BitVec<const K: usize> {
-    
-}
+pub struct BitVec<const K: usize> {}
 
 /// A representation of a vector living in the power set module. Aka something a
 /// hypergraph can act on in a linear fashion.

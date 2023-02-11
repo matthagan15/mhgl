@@ -3,7 +3,7 @@ use std::ops::{Add, Index, Mul};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::{EdgeWeight, EdgeID};
+use super::{EdgeID, EdgeWeight};
 use crate::structs::nodes::BitNodes;
 
 /// A smaller HyperEdge implementation that uses bits to encode if a node is present or not
@@ -49,7 +49,7 @@ impl<const K: usize> BitEdge<K> {
         if self.inputs == input_basis {
             self.outputs.clone()
         } else {
-            // TODO: THIS IS WRONG! Currently maps a non-matching input to the 
+            // TODO: THIS IS WRONG! Currently maps a non-matching input to the
             // empty set, which is NOT the same as the zero vector. need to
             // return a bit vector as opposed to a BitNodes.
             BitNodes::<K>::new()

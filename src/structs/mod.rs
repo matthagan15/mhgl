@@ -15,6 +15,7 @@ mod hyperedge;
 mod node_vec;
 pub mod nodes;
 mod sparse_graph;
+mod vec_trait;
 
 pub use hyperedge::EdgeDirection;
 pub use hyperedge::SparseEdge;

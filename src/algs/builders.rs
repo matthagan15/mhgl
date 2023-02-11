@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use rand::Rng;
 use uuid::Uuid;
 
+use crate::structs::hgraph::HyperGraph;
 use crate::structs::nodes::NodeID;
 use crate::structs::{EdgeDirection, NodeUUID, SparseEdge, SparseGraph};
 use crate::utils::power_set;

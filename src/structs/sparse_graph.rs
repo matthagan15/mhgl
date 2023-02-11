@@ -3,7 +3,9 @@ use crate::structs::{
     node_vec::SparseVector,
     nodes::NodeID,
     EdgeID, EdgeWeight, NodeUUID,
+    hgraph::HyperGraph,
 };
+
 use core::num;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
@@ -165,16 +167,6 @@ impl SparseGraph<Uuid> {
 }
 
 impl<N: NodeID> SparseGraph<N> {
-    pub fn new() -> SparseGraph<N> {
-        SparseGraph {
-            id: Uuid::new_v4(),
-            nodes: HashSet::new(),
-            edges: HashMap::new(),
-            input_cardinality_to_edges: HashMap::new(),
-            output_cardinality_to_edges: HashMap::new(),
-            node_to_containing_edges: HashMap::new(),
-        }
-    }
     /// adds the nodes to the internal set
     pub fn add_nodes(&mut self, nodes: HashSet<N>) {
         for node in nodes {
@@ -327,8 +319,6 @@ impl<N: NodeID> SparseGraph<N> {
         }
     }
 
-
-
     pub fn clone_id(&self) -> GraphID {
         self.id.clone()
     }
@@ -463,7 +453,36 @@ impl<N: NodeID> SparseGraph<N> {
         }
     }
 
-    fn map_basis(&self, b: &HashSet<N>) -> SparseVector<N> {
+    
+
+    pub fn map_vec(&self, x: SparseVector<N>) -> SparseVector<N> {
+        let mut ret = SparseVector::new();
+        for (basis, coeff) in x.basis() {
+            let mut tmp = self.map_basis(&basis.into_iter().collect());
+            tmp *= coeff;
+            ret += tmp;
+        }
+        ret
+    }
+
+    
+}
+
+impl<N: NodeID> HyperGraph for SparseGraph<N> {
+    type Node = N;
+    type Basis = HashSet<N>;
+    fn new() -> SparseGraph<N> {
+        SparseGraph {
+            id: Uuid::new_v4(),
+            nodes: HashSet::new(),
+            edges: HashMap::new(),
+            input_cardinality_to_edges: HashMap::new(),
+            output_cardinality_to_edges: HashMap::new(),
+            node_to_containing_edges: HashMap::new(),
+        }
+    }
+    
+    fn map_basis(&self, b: &Self::Basis) -> SparseVector<Self::Node> {
         let mut potential_edges = HashSet::new();
         let input_dim = b.len();
         for node in b.iter() {
@@ -477,7 +496,7 @@ impl<N: NodeID> SparseGraph<N> {
                 }
             }
         }
-        let mut ret = SparseVector::new();
+        let mut ret = SparseVector::<Self::Node>::new();
         for p in potential_edges {
             if let Some(e) = self.edges.get(p) {
                 ret += e.map_basis(b);
@@ -486,18 +505,8 @@ impl<N: NodeID> SparseGraph<N> {
         ret
     }
 
-    pub fn map_vec(&self, x: SparseVector<N>) -> SparseVector<N> {
-        let mut ret = SparseVector::new();
-        for (basis, coeff) in x.basis() {
-            let mut tmp = self.map_basis(&basis.into_iter().collect());
-            tmp *= coeff;
-            ret += tmp;
-        }
-        ret
-    }
-
     /// Return a uniformly random basis vector.
-    pub fn random_basis(&self) -> SparseVector<N> {
+    fn random_basis(&self) -> SparseVector<Self::Node> {
         let mut base = HashSet::new();
         let mut rng = thread_rng();
         for node in self.nodes.iter() {
@@ -505,8 +514,9 @@ impl<N: NodeID> SparseGraph<N> {
                 base.insert(node.clone());
             }
         }
-        SparseVector::from_basis(base, 1.0)
+        SparseVector::<N>::from_basis(base, 1.)
     }
+
 }
 
 impl Display for SparseGraph<NodeUUID> {

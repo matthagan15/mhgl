@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use uuid::Uuid;
 
-use crate::structs::{nodes::NodeID, *};
+use crate::structs::{nodes::NodeID, *, hgraph::HyperGraph};
 
 pub fn walk<N: NodeID>(
     start: SparseVector<N>,
@@ -19,7 +19,7 @@ pub fn walk<N: NodeID>(
 pub fn bfs() {}
 
 pub fn compute_probabilistic_walk_graph<N: NodeID>(graph: &SparseGraph<N>) -> SparseGraph<N> {
-    SparseGraph::new()
+    SparseGraph::<N>::new()
 }
 
 pub fn compute_cut<N: NodeID>(selected_nodes: HashSet<N>, graph: &SparseGraph<N>) {

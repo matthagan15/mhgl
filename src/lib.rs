@@ -9,7 +9,7 @@
 //! which a single matrix is used to store the hypergraph. This library uses ndarray for matrices, as
 //! it is currently the most mature and most general purpose matrix library in the ecosystem in my
 //! opinion.
-//! 
+//!
 //! # Nodes
 //! This library uses the notation "node" as opposed to vertex to align with my research. The
 //! rationale behind this is that "V" is preferred to represent a vector space as opposed to
@@ -79,12 +79,12 @@
 //! I was initially using "graphene" for my personal project, turns out that was already used for a graph library.
 //! Hyperion my second choice was also taken, and so was graphite my third. Instead of trying to come up with a
 //! cool sounding name I went full 90's and just named it matts hypergraph library (mhgl).
-//! 
+//!
 //! # TODO
-//! Need to make a decision on the library API. I'm leaning towards providing 
+//! Need to make a decision on the library API. I'm leaning towards providing
 //! two types of structures: a deterministic node type where the graph simply
-//! iterates through the numbers for storing nodes (i.e. create_node() would give 0 on first go, 1 on second, etc.) and another type for storing Uuids. The 
-//! behavior is split over these two so I'll just have to do that. 
+//! iterates through the numbers for storing nodes (i.e. create_node() would give 0 on first go, 1 on second, etc.) and another type for storing Uuids. The
+//! behavior is split over these two so I'll just have to do that.
 
 #![forbid(unsafe_code)]
 
@@ -104,7 +104,7 @@ type HGraph = structs::SparseGraph<Uuid>;
 
 #[cfg(test)]
 mod tests {
-    use crate::{structs::*, HGraph};
+    use crate::{structs::{*, hgraph::HyperGraph}, HGraph};
 
     #[test]
     fn it_works() {
