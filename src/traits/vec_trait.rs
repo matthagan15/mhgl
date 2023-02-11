@@ -15,4 +15,5 @@ pub trait HgVector:
     fn basis(&self) -> HashMap<Self::Basis, EdgeWeight>;
     fn from(basis_weight_pairs: Vec<(Self::Basis, EdgeWeight)>) -> Self;
     fn project(&mut self, cardinality: usize);
+    fn l_norm(&self, l: i32) -> f64;
 }

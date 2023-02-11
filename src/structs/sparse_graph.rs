@@ -345,7 +345,7 @@ impl<N: HgNode> SparseGraph<N> {
                 .insert(e_id.clone());
             for node in edge.in_nodes.iter() {
                 self.node_to_containing_edges
-                    .entry(*node)
+                    .entry(node.clone())
                     .or_default()
                     .insert(e_id.clone());
             }
@@ -362,7 +362,7 @@ impl<N: HgNode> SparseGraph<N> {
                     .insert(e_id.clone());
                 for node in edge.out_nodes.iter() {
                     self.node_to_containing_edges
-                        .entry(*node)
+                        .entry(node.clone())
                         .or_default()
                         .insert(e_id.clone());
                 }

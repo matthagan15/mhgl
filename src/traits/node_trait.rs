@@ -2,7 +2,7 @@ use serde::Serialize;
 use std::hash::Hash;
 use uuid::Uuid;
 
-pub trait HgNode: Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize {}
+pub trait HgNode: Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Serialize {}
 
 impl HgNode for Uuid {}
 impl HgNode for u128 {}

@@ -19,10 +19,10 @@ fn are_basis_elems_equal<N: HgNode>(a: &Vec<N>, b: &Vec<N>) -> bool {
     let mut b_set = HashSet::new();
     for ix in 0..dim {
         // prepare sets and check for duplicates. If duplicates detected, return false.
-        if a_set.insert(a[ix]) == false {
+        if a_set.insert(a[ix].clone()) == false {
             return false;
         }
-        if b_set.insert(b[ix]) == false {
+        if b_set.insert(b[ix].clone()) == false {
             return false;
         }
     }
@@ -241,6 +241,14 @@ impl<N: HgNode> HgVector for SparseVector<N> {
                 self.cardinality_to_basis_set.remove(&card);
             }
         }
+    }
+    fn l_norm(&self, l: i32) -> f64 {
+        let mut tot = 0.0;
+        for w in self.basis_to_weight.values() {
+            tot += w.abs().powi(l);
+        }
+        let exp = 1. / l as f64;
+        tot.powf(exp)
     }
 }
 
