@@ -6,13 +6,13 @@ use std::{
 
 /// For BasisTrait types Add and Mul represent set-theoretic operations. Add corresponds to taking the union of the underlying subset of N and Mul corresponds to taking the intersection of the underlying subset.
 pub trait HgBasis:
-    Sized + Add + AddAssign + Mul + MulAssign + PartialEq + Eq + Hash + Clone
+    Sized + PartialEq + Eq + Hash + Clone
 {
-    type Node;
-
-    /// Use of HashSet forces all nodes to be distinct.
-    fn from(nodes: HashSet<Self::Node>) -> Self;
     fn cardinality(&self) -> usize;
+    fn intersect_with(&mut self, rhs: &Self);
+    fn intersection(&self, rhs: &Self);
+    fn union_with(&mut self, rhs: &Self);
+    fn union(&self, rhs: &Self);
     fn matches_cardinality(&self, cardinality: usize) -> bool {
         self.cardinality() == cardinality
     }

@@ -17,8 +17,10 @@ pub mod hgraph;
 mod hyperedge;
 mod node_vec;
 mod sparse_graph;
+mod bit_vec;
 
 pub use bit_graph::BitGraph;
+pub use bit_vec::BitVec;
 
 pub use hyperedge::EdgeDirection;
 pub use hyperedge::SparseEdge;

@@ -82,22 +82,28 @@ impl<const K: usize> MulAssign for BitNodes<K> {
 impl<const K: usize> HgNode for BitNodes<K> {}
 
 impl<const K: usize> HgBasis for BitNodes<K> {
-    type Node = BitNodes<K>;
-
-    fn from(nodes: std::collections::HashSet<Self::Node>) -> Self {
-        let mut ret = BitNodes::new();
-        for node in nodes {
-            ret += node;
-        }
-        ret
-    }
-
     fn cardinality(&self) -> usize {
         let mut num_ones = 0;
         for ix in 0..K {
             num_ones += self.bits[ix].count_ones();
         }
         num_ones as usize
+    }
+
+    fn intersect_with(&mut self, rhs: &Self) {
+        todo!()
+    }
+
+    fn intersection(&self, rhs: &Self) {
+        todo!()
+    }
+
+    fn union_with(&mut self, rhs: &Self) {
+        todo!()
+    }
+
+    fn union(&self, rhs: &Self) {
+        todo!()
     }
 }
 

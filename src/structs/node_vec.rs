@@ -184,8 +184,36 @@ impl<N: HgNode> SparseVector<N> {
     }
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
+struct SparseBasis<N: HgNode> {
+    nodes: Vec<N>,
+}
+
+impl<N: HgNode> HgBasis for SparseBasis<N> {
+    fn cardinality(&self) -> usize {
+        self.nodes.len()
+    }
+
+    fn intersect_with(&mut self, rhs: &Self) {
+        todo!()
+    }
+
+    fn intersection(&self, rhs: &Self) {
+        todo!()
+    }
+
+    fn union_with(&mut self, rhs: &Self) {
+        todo!()
+    }
+
+    fn union(&self, rhs: &Self) {
+        todo!()
+    }
+}
+
+
 impl<N: HgNode> HgVector for SparseVector<N> {
-    type Basis = Vec<N>;
+    type Basis = SparseBasis<N>;
 
     fn zero() -> Self {
         SparseVector::new()
@@ -208,8 +236,8 @@ impl<N: HgNode> HgVector for SparseVector<N> {
         tot
     }
 
-    fn basis(&self) -> HashMap<Self::Basis, EdgeWeight> {
-        self.basis_to_weight.clone()
+    fn basis(&self) -> &HashMap<Self::Basis, EdgeWeight> {
+        &self.basis_to_weight
     }
 
     fn from(basis_weight_pairs: Vec<(Self::Basis, EdgeWeight)>) -> Self {
