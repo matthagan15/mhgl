@@ -1,7 +1,7 @@
 use std::{collections::HashSet, ops::Add, u8};
 use uuid::Uuid;
 
-use crate::structs::nodes::NodeID;
+use crate::traits::*;
 
 /// Returns subset of power set of given id's with the condition that each set returned has dims number
 /// of elements.
@@ -59,7 +59,7 @@ impl Add<usize> for PowerSetBits {
     }
 }
 
-pub fn lazy_power_set<N: NodeID>(v: Vec<N>, prob_keep: f64) {
+pub fn lazy_power_set<N: HgNode>(v: Vec<N>, prob_keep: f64) {
     let mut bits = PowerSetBits::from_length(v.len());
 }
 

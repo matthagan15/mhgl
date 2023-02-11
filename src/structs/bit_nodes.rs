@@ -6,15 +6,6 @@ use std::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub trait NodeID: Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize {}
-
-impl NodeID for Uuid {}
-impl NodeID for u128 {}
-impl NodeID for u64 {}
-impl NodeID for u32 {}
-impl NodeID for u16 {}
-impl NodeID for u8 {}
-
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct BitNodes<const K: usize> {
     pub bits: [u8; K],

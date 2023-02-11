@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{EdgeID, EdgeWeight};
-use crate::structs::nodes::BitNodes;
+use crate::structs::bit_nodes::BitNodes;
 
 /// A smaller HyperEdge implementation that uses bits to encode if a node is present or not
 /// holdup: isn't this awful for sparse hypergraphs? now we need a bit for any node present,

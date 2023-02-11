@@ -8,7 +8,8 @@ use std::{
 };
 use uuid::Uuid;
 
-use crate::structs::{node_vec::SparseVector, nodes::NodeID};
+use crate::structs::node_vec::SparseVector;
+use crate::traits::*;
 
 pub type EdgeWeight = f64;
 type EdgeID = Uuid;
@@ -40,7 +41,7 @@ pub enum EdgeDirection {
 /// - SuperBlob: connects any two disjoint subsets of nodes within the blob. ex: SuperBlob ({a,b,c}) could map
 /// {a} -> {b} and {a} -> {b,c}. d
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SparseEdge<N: NodeID> {
+pub struct SparseEdge<N: HgNode> {
     pub id: EdgeID,
     pub weight: EdgeWeight,
     pub in_nodes: HashSet<N>,
@@ -48,7 +49,7 @@ pub struct SparseEdge<N: NodeID> {
     pub direction: EdgeDirection,
 }
 
-impl<N: NodeID> SparseEdge<N> {
+impl<N: HgNode> SparseEdge<N> {
     pub fn new() -> SparseEdge<N> {
         SparseEdge {
             id: Uuid::new_v4(),
@@ -250,13 +251,13 @@ impl<N: NodeID> SparseEdge<N> {
     }
 }
 
-impl<N: NodeID> ToString for SparseEdge<N> {
+impl<N: HgNode> ToString for SparseEdge<N> {
     fn to_string(&self) -> String {
         serde_json::to_string(self).unwrap()
     }
 }
 
-impl<N: NodeID> Hash for SparseEdge<N> {
+impl<N: HgNode> Hash for SparseEdge<N> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }

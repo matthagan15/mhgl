@@ -2,17 +2,15 @@ use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 use crate::structs::{hyperedge::SparseEdge, EdgeWeight, NodeUUID};
+use crate::traits::*;
 use std::{
     collections::{HashMap, HashSet},
     ops::{Add, AddAssign, Mul, MulAssign},
 };
 
-use super::nodes::NodeID;
-
-
 /// This is basic dot product that tells us if two basis vectors are orthonormal. This is the
 /// most straightforward way, if they are the same. Fails if duplicates in either vector is detected.
-fn are_basis_elems_equal<N: NodeID>(a: &Vec<N>, b: &Vec<N>) -> bool {
+fn are_basis_elems_equal<N: HgNode>(a: &Vec<N>, b: &Vec<N>) -> bool {
     if a.len() != b.len() {
         return false;
     }
@@ -38,7 +36,7 @@ fn dot_conj(w: EdgeWeight) -> EdgeWeight {
 
 /// Defaults to euclidean distance, should probably add in a parameter to determine
 /// which metric to use.
-pub fn distance<N: NodeID>(x: &SparseVector<N>, y: &SparseVector<N>) -> f64 {
+pub fn distance<N: HgNode>(x: &SparseVector<N>, y: &SparseVector<N>) -> f64 {
     let mut tmp = y.clone();
     tmp *= -1.;
     tmp += x.clone();
@@ -48,12 +46,6 @@ pub fn distance<N: NodeID>(x: &SparseVector<N>, y: &SparseVector<N>) -> f64 {
     }
     tot.sqrt()
 }
-
-/// Addition on HgBasis elements returns the union of the underlying sets,
-/// Multiplication returns the intersection
-trait HgBasis: PartialEq + Eq + Clone + Add + Mul {}
-
-pub struct BitVec<const K: usize> {}
 
 /// A representation of a vector living in the power set module. Aka something a
 /// hypergraph can act on in a linear fashion.
@@ -65,12 +57,12 @@ pub struct BitVec<const K: usize> {}
 /// data storage is a HashMap from basis to coefficient. Unfortunately you cannot hash
 /// a hashset due to the randomness, so we use SORTED vectors as the basis elements.
 #[derive(Clone, Debug, Serialize)]
-pub struct SparseVector<N: NodeID> {
+pub struct SparseVector<N: HgNode> {
     pub basis_to_weight: HashMap<Vec<N>, EdgeWeight>,
     cardinality_to_basis_set: HashMap<usize, HashSet<Vec<N>>>,
 }
 
-impl<N: NodeID> SparseVector<N> {
+impl<N: HgNode> SparseVector<N> {
     pub fn new() -> SparseVector<N> {
         SparseVector {
             basis_to_weight: HashMap::new(),
@@ -179,7 +171,7 @@ impl<N: NodeID> SparseVector<N> {
                 }
             }
         }
-        1.
+        tot
     }
     pub fn apply_projection(&mut self, dim: usize) {
         let new_nodes: HashMap<Vec<N>, EdgeWeight> = self
@@ -192,7 +184,77 @@ impl<N: NodeID> SparseVector<N> {
     }
 }
 
-impl<N: NodeID> Add for SparseVector<N> {
+impl<N: HgNode> HgVector for SparseVector<N> {
+    type Basis = Vec<N>;
+
+    fn zero() -> Self {
+        SparseVector::new()
+    }
+
+    /// is incorrect, what about 0.0 weight basis elements?
+    fn is_zero(&self) -> bool {
+        self.basis_to_weight.len() == 0
+    }
+
+    fn dot(&self, other: &Self) -> EdgeWeight {
+        let mut tot = 0.;
+        for (self_hood, self_weight) in self.basis_to_weight.iter() {
+            for (other_hood, other_weight) in other.basis().iter() {
+                if are_basis_elems_equal(self_hood, other_hood) {
+                    tot += dot_conj(*self_weight) + other_weight;
+                }
+            }
+        }
+        tot
+    }
+
+    fn basis(&self) -> HashMap<Self::Basis, EdgeWeight> {
+        self.basis_to_weight.clone()
+    }
+
+    fn from(basis_weight_pairs: Vec<(Self::Basis, EdgeWeight)>) -> Self {
+        let mut hm = HashMap::with_capacity(basis_weight_pairs.len());
+        let mut card_map = HashMap::new();
+        for (b, w) in basis_weight_pairs.into_iter() {
+            let card = b.len();
+            let card_set: &mut HashSet<Self::Basis> = card_map.entry(card).or_default();
+            card_set.insert(b.clone());
+            hm.insert(b, w);
+        }
+        SparseVector {
+            basis_to_weight: hm,
+            cardinality_to_basis_set: card_map,
+        }
+    }
+
+    fn project(&mut self, cardinality: usize) {
+        if let Some(chosen_ones) = self.cardinality_to_basis_set.get(&cardinality) {
+            let mut new_map = self.basis_to_weight.clone();
+            self.basis_to_weight = new_map
+                .into_iter()
+                .filter(|(b, w)| chosen_ones.contains(b))
+                .collect();
+        }
+        let cards: Vec<_> = self.cardinality_to_basis_set.keys().cloned().collect();
+        for card in cards {
+            if card != cardinality {
+                self.cardinality_to_basis_set.remove(&card);
+            }
+        }
+    }
+}
+
+impl<N: HgNode> PartialEq for SparseVector<N> {
+    fn eq(&self, other: &Self) -> bool {
+        let self_dot = self.dot(self);
+        let other_dot = other.dot(self);
+        self_dot == other_dot
+    }
+}
+
+impl<N: HgNode> Eq for SparseVector<N> {}
+
+impl<N: HgNode> Add for SparseVector<N> {
     type Output = SparseVector<N>;
 
     fn add(mut self, rhs: Self) -> Self::Output {
@@ -205,7 +267,7 @@ impl<N: NodeID> Add for SparseVector<N> {
     }
 }
 
-impl<N: NodeID> AddAssign for SparseVector<N> {
+impl<N: HgNode> AddAssign for SparseVector<N> {
     fn add_assign(&mut self, rhs: Self) {
         for (basis, weight) in rhs.basis_to_weight.iter() {
             let old_weight = self.basis_to_weight.entry(basis.to_vec()).or_insert(0.);
@@ -214,7 +276,7 @@ impl<N: NodeID> AddAssign for SparseVector<N> {
     }
 }
 
-impl<N: NodeID> Mul<EdgeWeight> for SparseVector<N> {
+impl<N: HgNode> Mul<EdgeWeight> for SparseVector<N> {
     type Output = SparseVector<N>;
 
     fn mul(mut self, rhs: EdgeWeight) -> Self::Output {
@@ -225,7 +287,7 @@ impl<N: NodeID> Mul<EdgeWeight> for SparseVector<N> {
     }
 }
 
-impl<N: NodeID> MulAssign<EdgeWeight> for SparseVector<N> {
+impl<N: HgNode> MulAssign<EdgeWeight> for SparseVector<N> {
     fn mul_assign(&mut self, rhs: EdgeWeight) {
         for (_, w) in self.basis_to_weight.iter_mut() {
             *w = *w * rhs;

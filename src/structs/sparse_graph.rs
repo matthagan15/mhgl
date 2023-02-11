@@ -1,9 +1,11 @@
-use crate::structs::{
-    hyperedge::{EdgeDirection, SparseEdge},
-    node_vec::SparseVector,
-    nodes::NodeID,
-    EdgeID, EdgeWeight, NodeUUID,
-    hgraph::HyperGraph,
+use crate::traits::{HgNode, HgVector};
+use crate::{
+    structs::{
+        hyperedge::{EdgeDirection, SparseEdge},
+        node_vec::SparseVector,
+        EdgeID, EdgeWeight, NodeUUID,
+    },
+    traits::HyperGraph,
 };
 
 use core::num;
@@ -50,7 +52,7 @@ use super::GraphID;
 /// - how can you compute the most important node in a hypergraph?
 ///
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SparseGraph<N: NodeID> {
+pub struct SparseGraph<N: HgNode> {
     id: Uuid,
     pub nodes: HashSet<N>,
     pub edges: HashMap<EdgeID, SparseEdge<N>>,
@@ -166,7 +168,7 @@ impl SparseGraph<Uuid> {
     }
 }
 
-impl<N: NodeID> SparseGraph<N> {
+impl<N: HgNode> SparseGraph<N> {
     /// adds the nodes to the internal set
     pub fn add_nodes(&mut self, nodes: HashSet<N>) {
         for node in nodes {
@@ -453,8 +455,6 @@ impl<N: NodeID> SparseGraph<N> {
         }
     }
 
-    
-
     pub fn map_vec(&self, x: SparseVector<N>) -> SparseVector<N> {
         let mut ret = SparseVector::new();
         for (basis, coeff) in x.basis() {
@@ -464,13 +464,12 @@ impl<N: NodeID> SparseGraph<N> {
         }
         ret
     }
-
-    
 }
 
-impl<N: NodeID> HyperGraph for SparseGraph<N> {
+impl<N: HgNode> HyperGraph for SparseGraph<N> {
     type Node = N;
     type Basis = HashSet<N>;
+    type HVector = SparseVector<N>;
     fn new() -> SparseGraph<N> {
         SparseGraph {
             id: Uuid::new_v4(),
@@ -481,7 +480,7 @@ impl<N: NodeID> HyperGraph for SparseGraph<N> {
             node_to_containing_edges: HashMap::new(),
         }
     }
-    
+
     fn map_basis(&self, b: &Self::Basis) -> SparseVector<Self::Node> {
         let mut potential_edges = HashSet::new();
         let input_dim = b.len();
@@ -516,7 +515,6 @@ impl<N: NodeID> HyperGraph for SparseGraph<N> {
         }
         SparseVector::<N>::from_basis(base, 1.)
     }
-
 }
 
 impl Display for SparseGraph<NodeUUID> {

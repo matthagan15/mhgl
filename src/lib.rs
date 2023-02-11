@@ -92,6 +92,7 @@ use uuid::Uuid;
 
 pub mod algs;
 pub mod structs;
+pub mod traits;
 pub mod utils;
 
 type HGraph8 = structs::SparseGraph<u8>;
@@ -104,11 +105,11 @@ type HGraph = structs::SparseGraph<Uuid>;
 
 #[cfg(test)]
 mod tests {
-    use crate::{structs::{*, hgraph::HyperGraph}, HGraph};
+    use crate::{structs::*, traits::HyperGraph, HGraph};
 
     #[test]
     fn it_works() {
-        let hg = HGraph::new();
+        let hg = SparseGraph::<u8>::new();
         println!("it works? {:#?}", hg);
     }
 }

@@ -3,9 +3,8 @@ use std::collections::HashSet;
 use rand::Rng;
 use uuid::Uuid;
 
-use crate::structs::hgraph::HyperGraph;
-use crate::structs::nodes::NodeID;
 use crate::structs::{EdgeDirection, NodeUUID, SparseEdge, SparseGraph};
+use crate::traits::*;
 use crate::utils::power_set;
 
 /// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be
@@ -68,7 +67,7 @@ fn erdos_renyi(
     hg
 }
 
-pub fn uniform_undirected_erdos_renyi<N: NodeID>(num_nodes: usize, prob: f64) -> SparseGraph<N> {
+pub fn uniform_undirected_erdos_renyi<N: HgNode>(num_nodes: usize, prob: f64) -> SparseGraph<N> {
     if num_nodes < u8::MAX as usize {
         SparseGraph::new()
     } else {
