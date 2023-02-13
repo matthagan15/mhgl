@@ -1,3 +1,3 @@
-pub struct BitVec {
+pub struct BitVec<const K: usize> {
     
 }

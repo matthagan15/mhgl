@@ -1,12 +1,12 @@
 use std::{
     hash::Hash,
-    ops::{Add, Mul, MulAssign, AddAssign},
+    ops::{Add, AddAssign, Mul, MulAssign},
 };
 
-use serde::{Deserialize, Serialize, ser::SerializeStruct};
+use serde::{ser::SerializeStruct, Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::traits::{HgNode, HgBasis};
+use crate::traits::{HgBasis, HgNode};
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash, PartialOrd, Ord)]
 pub struct BitNodes<const K: usize> {
@@ -91,26 +91,39 @@ impl<const K: usize> HgBasis for BitNodes<K> {
     }
 
     fn intersect_with(&mut self, rhs: &Self) {
-        todo!()
+        for ix in 0..K {
+            self.bits[ix] = self.bits[ix] & rhs.bits[ix]
+        }
     }
 
-    fn intersection(&self, rhs: &Self) {
-        todo!()
+    fn intersection(&self, rhs: &Self) -> BitNodes<K> {
+        let mut ret = BitNodes::new();
+        for ix in 0..K {
+            ret.bits[ix] = self.bits[ix] & rhs.bits[ix];
+        }
+        ret
     }
 
     fn union_with(&mut self, rhs: &Self) {
-        todo!()
+        for ix in 0..K {
+            self.bits[ix] = self.bits[ix] | rhs.bits[ix];
+        }
     }
 
-    fn union(&self, rhs: &Self) {
-        todo!()
+    fn union(&self, rhs: &Self) -> BitNodes<K> {
+        let mut ret = BitNodes::new();
+        for ix in 0..K {
+            ret.bits[ix] = self.bits[ix] | rhs.bits[ix];
+        }
+        ret
     }
 }
 
 impl<const K: usize> Serialize for BitNodes<K> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer {
+        S: serde::Serializer,
+    {
         let mut s = serializer.serialize_struct("BitNodes", K)?;
         let v = self.bits.to_vec();
         s.serialize_field("bits", &v)?;

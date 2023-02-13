@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{EdgeID, EdgeWeight};
-use crate::structs::bit_nodes::BitNodes;
+use crate::{structs::bit_nodes::BitNodes, traits::HgBasis};
 
 /// A smaller HyperEdge implementation that uses bits to encode if a node is present or not
 /// holdup: isn't this awful for sparse hypergraphs? now we need a bit for any node present,
@@ -14,8 +14,9 @@ use crate::structs::bit_nodes::BitNodes;
 /// ## Standards
 /// the first node in the graph is the first bit in the array, so inputs[0][0], the last node is the
 /// furthest from here.
+#[derive(Debug, Clone)]
 pub struct BitEdge<const K: usize> {
-    id: EdgeID,
+    pub id: EdgeID,
     weight: EdgeWeight,
     inputs: BitNodes<K>,
     outputs: BitNodes<K>,
@@ -56,10 +57,16 @@ impl<const K: usize> BitEdge<K> {
         }
     }
 
-    pub fn matches_input(&self, start_nodes: BitNodes<K>) -> bool {
-        self.inputs == start_nodes
+    pub fn matches_input(&self, start_nodes: &BitNodes<K>) -> bool {
+        self.inputs == *start_nodes
     }
-    pub fn matches_output(&self, end_nodes: BitNodes<K>) -> bool {
-        self.outputs == end_nodes
+    pub fn matches_output(&self, end_nodes: &BitNodes<K>) -> bool {
+        self.outputs == *end_nodes
+    }
+    pub fn input_cardinality(&self) -> usize {
+        self.inputs.cardinality()
+    }
+    pub fn output_cardinality(&self) -> usize {
+        self.outputs.cardinality()
     }
 }

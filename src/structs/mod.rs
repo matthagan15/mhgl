@@ -11,13 +11,14 @@ pub type EdgeWeight = f64;
 
 mod basis;
 pub mod bit_edge;
-pub mod bit_nodes;
 mod bit_graph;
+pub mod bit_nodes;
+mod bit_vec;
 pub mod hgraph;
 mod hyperedge;
 mod node_vec;
 mod sparse_graph;
-mod bit_vec;
+mod generic_vec;
 
 pub use bit_graph::BitGraph;
 pub use bit_vec::BitVec;

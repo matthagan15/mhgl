@@ -65,17 +65,13 @@ pub struct SparseGraph<N: HgNode> {
 impl SparseGraph<u8> {
     /// If num_nodes is greater than the underlying storage method (aka u8) then it returns empty hypergraph.
     pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<u8> {
-        if num_nodes > u8::MAX.into() {
-            SparseGraph::new()
-        } else {
-            SparseGraph {
-                id: Uuid::new_v4(),
-                nodes: (0..num_nodes as u8).collect(),
-                edges: HashMap::new(),
-                input_cardinality_to_edges: HashMap::new(),
-                output_cardinality_to_edges: HashMap::new(),
-                node_to_containing_edges: HashMap::new(),
-            }
+        SparseGraph {
+            id: Uuid::new_v4(),
+            nodes: (0..num_nodes as u8).collect(),
+            edges: HashMap::new(),
+            input_cardinality_to_edges: HashMap::new(),
+            output_cardinality_to_edges: HashMap::new(),
+            node_to_containing_edges: HashMap::new(),
         }
     }
 }
@@ -83,17 +79,13 @@ impl SparseGraph<u8> {
 impl SparseGraph<u16> {
     /// If num_nodes is greater than the underlying storage method (aka u8) then it returns empty hypergraph.
     pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<u16> {
-        if num_nodes > u16::MAX.into() {
-            SparseGraph::new()
-        } else {
-            SparseGraph {
-                id: Uuid::new_v4(),
-                nodes: (0..num_nodes as u16).collect(),
-                edges: HashMap::new(),
-                input_cardinality_to_edges: HashMap::new(),
-                output_cardinality_to_edges: HashMap::new(),
-                node_to_containing_edges: HashMap::new(),
-            }
+        SparseGraph {
+            id: Uuid::new_v4(),
+            nodes: (0..num_nodes as u16).collect(),
+            edges: HashMap::new(),
+            input_cardinality_to_edges: HashMap::new(),
+            output_cardinality_to_edges: HashMap::new(),
+            node_to_containing_edges: HashMap::new(),
         }
     }
 }
@@ -101,17 +93,13 @@ impl SparseGraph<u16> {
 impl SparseGraph<u32> {
     /// If num_nodes is greater than the underlying storage method (aka u8) then it returns empty hypergraph.
     pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<u32> {
-        if num_nodes as u32 > u32::MAX {
-            SparseGraph::new()
-        } else {
-            SparseGraph {
-                id: Uuid::new_v4(),
-                nodes: (0..num_nodes as u32).collect(),
-                edges: HashMap::new(),
-                input_cardinality_to_edges: HashMap::new(),
-                output_cardinality_to_edges: HashMap::new(),
-                node_to_containing_edges: HashMap::new(),
-            }
+        SparseGraph {
+            id: Uuid::new_v4(),
+            nodes: (0..num_nodes as u32).collect(),
+            edges: HashMap::new(),
+            input_cardinality_to_edges: HashMap::new(),
+            output_cardinality_to_edges: HashMap::new(),
+            node_to_containing_edges: HashMap::new(),
         }
     }
 }
@@ -119,17 +107,13 @@ impl SparseGraph<u32> {
 impl SparseGraph<u64> {
     /// If num_nodes is greater than the underlying storage method (aka u8) then it returns empty hypergraph.
     pub fn new_with_num_nodes(num_nodes: usize) -> SparseGraph<u64> {
-        if num_nodes as u64 > u64::MAX {
-            SparseGraph::new()
-        } else {
-            SparseGraph {
-                id: Uuid::new_v4(),
-                nodes: (0..num_nodes as u64).collect(),
-                edges: HashMap::new(),
-                input_cardinality_to_edges: HashMap::new(),
-                output_cardinality_to_edges: HashMap::new(),
-                node_to_containing_edges: HashMap::new(),
-            }
+        SparseGraph {
+            id: Uuid::new_v4(),
+            nodes: (0..num_nodes as u64).collect(),
+            edges: HashMap::new(),
+            input_cardinality_to_edges: HashMap::new(),
+            output_cardinality_to_edges: HashMap::new(),
+            node_to_containing_edges: HashMap::new(),
         }
     }
 }
@@ -169,6 +153,10 @@ impl SparseGraph<Uuid> {
 }
 
 impl<N: HgNode> SparseGraph<N> {
+    pub fn new() -> SparseGraph<N> {
+        SparseGraph { id: Uuid::new_v4(), nodes: HashSet::new(), edges: HashMap::new(), input_cardinality_to_edges: HashMap::new(), output_cardinality_to_edges: HashMap::new(), node_to_containing_edges: HashMap::new() }
+    }
+
     /// adds the nodes to the internal set
     pub fn add_nodes(&mut self, nodes: HashSet<N>) {
         for node in nodes {
@@ -464,24 +452,7 @@ impl<N: HgNode> SparseGraph<N> {
         }
         ret
     }
-}
-
-impl<N: HgNode> HyperGraph for SparseGraph<N> {
-    type Node = N;
-    type Basis = HashSet<N>;
-    type HVector = SparseVector<N>;
-    fn new() -> SparseGraph<N> {
-        SparseGraph {
-            id: Uuid::new_v4(),
-            nodes: HashSet::new(),
-            edges: HashMap::new(),
-            input_cardinality_to_edges: HashMap::new(),
-            output_cardinality_to_edges: HashMap::new(),
-            node_to_containing_edges: HashMap::new(),
-        }
-    }
-
-    fn map_basis(&self, b: &Self::Basis) -> SparseVector<Self::Node> {
+    fn map_basis(&self, b: &HashSet<N>) -> SparseVector<N> {
         let mut potential_edges = HashSet::new();
         let input_dim = b.len();
         for node in b.iter() {
@@ -495,7 +466,7 @@ impl<N: HgNode> HyperGraph for SparseGraph<N> {
                 }
             }
         }
-        let mut ret = SparseVector::<Self::Node>::new();
+        let mut ret = SparseVector::<N>::new();
         for p in potential_edges {
             if let Some(e) = self.edges.get(p) {
                 ret += e.map_basis(b);
@@ -505,7 +476,7 @@ impl<N: HgNode> HyperGraph for SparseGraph<N> {
     }
 
     /// Return a uniformly random basis vector.
-    fn random_basis(&self) -> SparseVector<Self::Node> {
+    fn random_basis(&self) -> SparseVector<N> {
         let mut base = HashSet::new();
         let mut rng = thread_rng();
         for node in self.nodes.iter() {

@@ -195,11 +195,33 @@ impl<N: HgNode> HgBasis for SparseBasis<N> {
     }
 
     fn intersect_with(&mut self, rhs: &Self) {
-        todo!()
+        let mut left_ix = 0;
+        let mut right_ix = 0;
+        let l = self.nodes.len();
+        for 
     }
 
-    fn intersection(&self, rhs: &Self) {
-        todo!()
+    /// Works with assumption that vecs are sorted.
+    fn intersection(&self, rhs: &Self) -> SparseBasis<N> {
+        let mut ret = Vec::new();
+        let l1 = self.nodes.len();
+        let l2 = rhs.nodes.len();
+        let mut left_counter = 0;
+        let mut right_counter = 0;
+        for ix in 0..(l1 + l2) {
+            if self.nodes[left_counter] < rhs.nodes[right_counter] {
+                left_counter += 1;
+            } else if self.nodes[left_counter] > rhs.nodes[right_counter] {
+                right_counter += 1;
+            } else {
+                ret.push(self.nodes[left_counter].clone());
+                left_counter += 1;
+                right_counter += 1;
+            }
+        }
+        SparseBasis {
+            nodes: ret,
+        }
     }
 
     fn union_with(&mut self, rhs: &Self) {
@@ -210,7 +232,6 @@ impl<N: HgNode> HgBasis for SparseBasis<N> {
         todo!()
     }
 }
-
 
 impl<N: HgNode> HgVector for SparseVector<N> {
     type Basis = SparseBasis<N>;
