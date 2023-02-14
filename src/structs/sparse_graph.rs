@@ -476,7 +476,7 @@ impl<N: HgNode> SparseGraph<N> {
     }
 
     /// Return a uniformly random basis vector.
-    fn random_basis(&self) -> SparseVector<N> {
+    pub fn random_basis(&self) -> SparseVector<N> {
         let mut base = HashSet::new();
         let mut rng = thread_rng();
         for node in self.nodes.iter() {

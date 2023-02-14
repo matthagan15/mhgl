@@ -185,7 +185,7 @@ impl<N: HgNode> SparseVector<N> {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
-struct SparseBasis<N: HgNode> {
+pub struct SparseBasis<N: HgNode> {
     nodes: Vec<N>,
 }
 
@@ -195,10 +195,11 @@ impl<N: HgNode> HgBasis for SparseBasis<N> {
     }
 
     fn intersect_with(&mut self, rhs: &Self) {
-        let mut left_ix = 0;
-        let mut right_ix = 0;
-        let l = self.nodes.len();
-        for 
+        // TODO: Make this not shitty
+        let self_set: HashSet<N> = self.nodes.clone().into_iter().collect();
+        let rhs_set: HashSet<N> = rhs.nodes.clone().into_iter().collect();
+        let intersection: Vec<N> = self_set.intersection(&rhs_set).cloned().collect();
+        self.nodes = intersection;
     }
 
     /// Works with assumption that vecs are sorted.
@@ -228,7 +229,7 @@ impl<N: HgNode> HgBasis for SparseBasis<N> {
         todo!()
     }
 
-    fn union(&self, rhs: &Self) {
+    fn union(&self, rhs: &Self) -> Self {
         todo!()
     }
 }
@@ -258,22 +259,23 @@ impl<N: HgNode> HgVector for SparseVector<N> {
     }
 
     fn basis(&self) -> &HashMap<Self::Basis, EdgeWeight> {
-        &self.basis_to_weight
+        todo!()
     }
 
     fn from(basis_weight_pairs: Vec<(Self::Basis, EdgeWeight)>) -> Self {
-        let mut hm = HashMap::with_capacity(basis_weight_pairs.len());
-        let mut card_map = HashMap::new();
-        for (b, w) in basis_weight_pairs.into_iter() {
-            let card = b.len();
-            let card_set: &mut HashSet<Self::Basis> = card_map.entry(card).or_default();
-            card_set.insert(b.clone());
-            hm.insert(b, w);
-        }
-        SparseVector {
-            basis_to_weight: hm,
-            cardinality_to_basis_set: card_map,
-        }
+        // let mut hm = HashMap::with_capacity(basis_weight_pairs.len());
+        // let mut card_map = HashMap::new();
+        // for (b, w) in basis_weight_pairs.into_iter() {
+        //     let card = b.cardinality();
+        //     let card_set: &mut HashSet<Self::Basis> = card_map.entry(card).or_default();
+        //     card_set.insert(b.clone());
+        //     hm.insert(b, w);
+        // }
+        // SparseVector {
+        //     basis_to_weight: hm,
+        //     cardinality_to_basis_set: card_map,
+        // }
+        todo!()
     }
 
     fn project(&mut self, cardinality: usize) {

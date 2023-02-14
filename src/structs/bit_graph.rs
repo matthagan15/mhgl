@@ -59,7 +59,7 @@ impl<const K: usize> BitGraph<K> {
     pub fn remove_input_node_from_edge() {}
     pub fn remove_output_node_from_edge() {}
     pub fn remove_edge() {}
-    pub fn map_basis(&self, input: BitNodes<K>) -> BitVec<K> {
+    pub fn map_basis(&self, input: BitNodes<K>) {
         let mut tot = 0.0;
         if let Some(potentials) = self.input_card_to_edges.get(&input.cardinality()) {
             for potential in potentials {

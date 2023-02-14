@@ -137,9 +137,19 @@ impl<B: HgBasis> GeneroVector<B> {
         tot
     }
     pub fn apply_projection(&mut self, dim: usize) {
-        self.cardinality_to_basis_set = self.cardinality_to_basis_set.into_iter().filter(|(c, h)| {*c == dim}).collect();
-        if let Some(remaining_basis) = self.cardinality_to_basis_set.get(&dim) {
-            self.basis_to_weight = self.basis_to_weight.into_iter().filter(|(b, w)| remaining_basis.contains(b)).collect();
+        let cards: HashSet<usize> = self.cardinality_to_basis_set.keys().cloned().collect();
+        let mut basis_for_removal = HashSet::new();
+        for card in cards {
+            if card != dim {
+                if let Some(basis_set) = self.cardinality_to_basis_set.remove(&card) {
+                    for basis in basis_set {
+                        basis_for_removal.insert(basis);
+                    }
+                }
+            }
+        }
+        for basis in basis_for_removal {
+            self.basis_to_weight.remove(&basis);
         }
     }
 }
