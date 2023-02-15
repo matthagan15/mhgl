@@ -4,8 +4,7 @@ use crate::traits::{HgNode, HgBasis};
 
 /// Searches a sorted vector (does not check if it is sorted) and returns
 /// the index of the node that would directly precede the provided node if
-/// it were to be inserted. If the node is present in the vec then this would
-/// be the index of the found node. We assume that duplicates are not allowed. 
+/// it were to be inserted. If the node is present in the vec then it returns the index of the provided node. We assume that duplicates are not allowed. 
 fn binary_search<N: HgNode>(sorted: &Vec<N>, node: &N) -> Option<usize> {
     if sorted.len() == 0 {
         return Some(0);
@@ -79,6 +78,9 @@ impl<N: HgNode> SparseBasis<N> {
             } else {
                 // ix + 1 indexing is safe due to above check
                 // ix == self.nodes.len() - 1
+                // Also this is where we guarantee that a node cannot
+                // be inserted twice, if self.nodes[ix + 1] == node
+                // then we do nothing.
                 if self.nodes[ix] < node && self.nodes[ix + 1] > node {
                     self.nodes.insert(ix + 1, node);
                     true
@@ -97,21 +99,17 @@ impl<N: HgNode> SparseBasis<N> {
 }
 
 impl<N: HgNode> HgBasis for SparseBasis<N> {
+    fn new_empty() -> Self {
+        SparseBasis::<N>::new()
+    }
+
     fn cardinality(&self) -> usize {
         self.nodes.len()
     }
 
-    // fn intersect_with(&mut self, rhs: &Self) {
-    //     // TODO: Make this not shitty
-    //     let self_set: HashSet<N> = self.nodes.clone().into_iter().collect();
-    //     let rhs_set: HashSet<N> = rhs.nodes.clone().into_iter().collect();
-    //     let intersection: Vec<N> = self_set.intersection(&rhs_set).cloned().collect();
-    //     self.nodes = intersection;
-    // }
-
     fn intersect_with(&mut self, rhs: &Self) {
         let mut good_nodes = Vec::with_capacity(self.nodes.len());
-        for ix in 0..self.nodes.len() {
+        for _ in 0..self.nodes.len() {
             if let Some(node) = self.nodes.pop() {
                 if binary_search(&rhs.nodes, &node).is_some() {
                     good_nodes.insert(0, node);
@@ -151,11 +149,24 @@ impl<N: HgNode> HgBasis for SparseBasis<N> {
         }
     }
 
+    // TODO: This is pretty unoptimal but it works.
     fn union(&self, rhs: &Self) -> Self {
-        // let mut ret = SparseBasis::new();
-        
-        // ret
-        todo!()
+        let lhs_set: HashSet<N> = self.nodes.iter().cloned().collect();
+        let rhs_set: HashSet<N> = rhs.nodes.iter().cloned().collect();
+        let mut union: Vec<N> = lhs_set.union(&rhs_set).cloned().collect();
+        union.sort();
+        SparseBasis { nodes: union }
+    }
+
+    fn remove_node(&mut self, node: &Self) {
+        if node.nodes.len() == 1 {
+            let node_int = node.nodes[0].clone();
+            if let Some(ix) = binary_search(&self.nodes, &node_int) {
+                if self.nodes[ix] == node_int {
+                    self.nodes.remove(ix);
+                }
+            }
+        }
     }
 }
 
@@ -192,5 +203,17 @@ mod test {
         let added_properly = b1.add_node(5);
         println!("added_properly: {:}", added_properly);
         println!("b1: {:?}", b1);
+        let added_twice = b1.add_node(5);
+        b1.add_node(4);
+        println!("added twice? {:}", added_twice);
+        println!("b1: {:?}", b1);
+        let six = SparseBasis { nodes: vec![6_u8] };
+        b1.remove_node(&six);
+        println!("post removal: {:?}", b1);
+        let maybe_ix = binary_search(&b1.nodes, &6);
+        println!("maybe_ix: {:?}", maybe_ix);
+        println!("try removing 6 again.");
+        b1.remove_node(&six);
+        println!("post removal: {:?}", b1);
     }
 }

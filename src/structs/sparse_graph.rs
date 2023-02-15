@@ -3,7 +3,7 @@ use crate::{
     structs::{
         sparse_edge::{EdgeDirection, SparseEdge},
         sparse_vec::SparseVector,
-        EdgeID, EdgeWeight, NodeUUID,
+        EdgeID, EdgeWeight, NodeID,
     },
     traits::HyperGraph,
 };
@@ -488,12 +488,12 @@ impl<N: HgNode> SparseGraph<N> {
     }
 }
 
-impl Display for SparseGraph<NodeUUID> {
+impl Display for SparseGraph<NodeID> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let graph_string = self.id.clone().to_string();
 
         let mut node_string = String::new();
-        let nodes: Vec<&NodeUUID> = self.nodes.iter().collect();
+        let nodes: Vec<&NodeID> = self.nodes.iter().collect();
         for n_ix in 0..nodes.len() {
             node_string += &nodes[n_ix].to_string();
             if n_ix == nodes.len() - 1 {
@@ -504,7 +504,7 @@ impl Display for SparseGraph<NodeUUID> {
         }
 
         let mut edge_string = String::new();
-        let edges_vec: Vec<&SparseEdge<NodeUUID>> = self.edges.values().collect();
+        let edges_vec: Vec<&SparseEdge<NodeID>> = self.edges.values().collect();
         for e_ix in 0..self.edges.len() {
             edge_string += &edges_vec[e_ix].to_string();
             if e_ix == self.edges.len() - 1 {

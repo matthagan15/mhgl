@@ -1,25 +1,27 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use uuid::Uuid;
 
-use crate::structs::{EdgeID, EdgeWeight, NodeUUID, SparseGraph};
+use crate::structs::{EdgeID, EdgeWeight, NodeID, SparseGraph};
 
-use super::SparseVector;
 use crate::traits::*;
 
 #[derive(Debug, Clone)]
-struct EZGraph<N: HgNode> {
+struct HGraph {
+    // TODO: Move storage of nodes from underlying graph structure to container structures.
     pub name: String,
-    graph: SparseGraph<N>,
+    nodes: HashSet<NodeID>,
+    graph: SparseGraph<NodeID>,
     id_to_label: HashMap<Uuid, String>,
     label_to_id: HashMap<String, Uuid>,
 }
 
-impl<N: HgNode> EZGraph<N> {
-    pub fn new() -> EZGraph<N> {
-        EZGraph {
-            graph: SparseGraph::new(),
+impl HGraph {
+    pub fn new() -> HGraph {
+        HGraph {
             name: String::new(),
+            nodes: HashSet::new(),
+            graph: SparseGraph::new(),
             id_to_label: HashMap::new(),
             label_to_id: HashMap::new(),
         }
@@ -35,11 +37,11 @@ impl<N: HgNode> EZGraph<N> {
 mod test {
     use uuid::Uuid;
 
-    use crate::structs::hgraph::EZGraph;
+    use super::HGraph;
 
     #[test]
     fn test_hgraph_trait_ergonomics() {
-        let h = EZGraph::<Uuid>::new();
+        let h = HGraph::new();
         println!("bytes? {:?}", b"testing");
         println!("{:#?}", h);
     }

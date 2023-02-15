@@ -3,7 +3,7 @@
 
 use uuid::Uuid;
 
-pub type NodeUUID = Uuid;
+pub type NodeID = Uuid;
 pub type EdgeID = Uuid;
 pub type PathID = Uuid;
 pub type GraphID = Uuid;
@@ -14,11 +14,11 @@ pub mod bit_edge;
 mod bit_graph;
 pub mod bit_nodes;
 mod bit_vec;
-pub mod hgraph;
 mod sparse_edge;
 mod sparse_vec;
 mod sparse_graph;
 mod generic_vec;
+mod generic_edge;
 
 pub use bit_graph::BitGraph;
 pub use bit_vec::BitVec;

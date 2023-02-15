@@ -82,6 +82,9 @@ impl<const K: usize> MulAssign for BitNodes<K> {
 impl<const K: usize> HgNode for BitNodes<K> {}
 
 impl<const K: usize> HgBasis for BitNodes<K> {
+    fn new_empty() -> Self {
+        BitNodes::<K>::new()
+    }
     fn cardinality(&self) -> usize {
         let mut num_ones = 0;
         for ix in 0..K {
@@ -116,6 +119,14 @@ impl<const K: usize> HgBasis for BitNodes<K> {
             ret.bits[ix] = self.bits[ix] | rhs.bits[ix];
         }
         ret
+    }
+
+    fn remove_node(&mut self, node: &Self) {
+        if node.cardinality() == 1 {
+            for ix in 0..K {
+                self.bits[ix] = self.bits[ix] ^ node.bits[ix];
+            }
+        }
     }
 }
 

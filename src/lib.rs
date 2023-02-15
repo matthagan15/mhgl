@@ -1,10 +1,13 @@
 //!# Matt's HyperGraph Library (mhgl)
-//! A straightforward library that aims to provide a small number of hypergraph datastructures and some algorithms for working
-//! with them. We base our datastructures on the most general possible hypergraph mathematically, that is a directed, weighted hypergraph as
-//! oppossed to the standard undirected, unweighted hypergraph as the un-directed and un-weighted can
-//! be constructed from the directed and weighted variant. Sometimes the prefix "hyper" will be dropped from
-//! hypergraph and hyperedge, this is a (mostly harmless) bad habit.
-//!
+//! This crate provides a small number of hypergraph datastructures and some algorithms for working
+//! with them. The datastructures provided are based on the most general possible hypergraph mathematically, that is a directed, weighted hypergraph. Directed and weighted hypergraphs are fairly different than the usually studied "undirected" hypergraph, in which case an edge is simply a subset of nodes. A directed and weighted hypergraph maps a subset of nodes to another subset of nodes with a specified edge weight. 
+//! 
+//! We provide the following three hypergraph variants:
+//! 1. HGraph - Represents nodes as UUIDs that are randomly assigned. The easiest and most straightforward to use.
+//! 2. PGraph<N> - A "performance" oriented version of HGraph that represents nodes as unsigned integers and is generic over which unsigned integer to use. Allows for smaller memory profiles than HGraph.
+//! 3. BGraph - Represents subsets of nodes using a binary encoding. Each node is assigned to a bit, so any subset of nodes can be represented using n bits. This is advantageous for very dense hypergraphs on fewer nodes. 
+//! 
+//! 
 //! There are currently dense and sparse hypergraphs provided. Dense hypergraphs are based on a binary encoding of the power set of possible nodes $2^N$. This means that we represent each possible subset by a binary number over $|N|$ bits. Nodes are then represented using a 1 hot encoding, where there is only a single 1 in the binary string, it's placement indicates which node is being looked at. Due to this it is rather cumbersome to add or subtract nodes, so this behavior is not yet supported for dense graphs. The reason for density is that edges can be represented using only 2n + 128 (id) + 64 (edge weight). The sparse graph is based on each node being represented by an integer, there is currently support for the primitive unsigned types u8 through u128 to allow for varying memory profiles. For u128 supported nodes we also allow for the use of the Uuid crate, where each node is securely randomly generated. Letting k represent the number of bits used for each node, a sparse edge now takes up at most k * inbound_set_size + k * outbound_set_size + 128 (id) + 64 (edge weight) + 3 (direction enum), where inbound_set_size and outbound_set_size are simply the size of the subsets being mapped to and from. If these sizes remain much smaller than the number of nodes in the graph we see that the scaling with respect to n is much better than the dense case.
 //! There are plans to support three types of
 //! storage, the first being a sparse representation, the second being a more dense version utilizing a binary
@@ -97,6 +100,9 @@ pub mod algs;
 pub mod structs;
 pub mod traits;
 pub mod utils;
+mod hgraph;
+mod pgraph;
+mod bgraph;
 
 type HGraph8 = structs::SparseGraph<u8>;
 type HGraph16 = structs::SparseGraph<u16>;
@@ -104,11 +110,10 @@ type HGraph32 = structs::SparseGraph<u32>;
 type HGraph64 = structs::SparseGraph<u64>;
 type HGraph128 = structs::SparseGraph<u128>;
 
-type HGraph = structs::SparseGraph<Uuid>;
 
 #[cfg(test)]
 mod tests {
-    use crate::{structs::*, traits::HyperGraph, HGraph};
+    use crate::{structs::*, traits::HyperGraph};
 
     #[test]
     fn it_works() {
