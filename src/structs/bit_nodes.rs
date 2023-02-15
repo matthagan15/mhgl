@@ -128,6 +128,17 @@ impl<const K: usize> HgBasis for BitNodes<K> {
             }
         }
     }
+
+    fn complement(&self, rhs: &Self) -> Self {
+        let mut new_bits = [0_u8; K];
+        for ix in 0..K {
+            // First get all the bits that are only 1 for one of the basis
+            new_bits[ix] = self.bits[ix] ^ rhs.bits[ix];
+            // Then make sure that one is self.
+            new_bits[ix] = new_bits[ix] & self.bits[ix];
+        }
+        BitNodes { bits: new_bits }
+    }
 }
 
 impl<const K: usize> Serialize for BitNodes<K> {

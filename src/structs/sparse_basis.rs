@@ -94,7 +94,13 @@ impl<N: HgNode> SparseBasis<N> {
     }
 
     fn contains_node(&self, node: &N) -> bool {
-        binary_search(&self.nodes, node).is_some()
+        let mut ret = false;
+        if let Some(ix) = binary_search(&self.nodes, node) {
+            if self.nodes[ix] == *node {
+                ret = true;
+            }
+        }
+        ret
     }
 }
 
@@ -167,6 +173,16 @@ impl<N: HgNode> HgBasis for SparseBasis<N> {
                 }
             }
         }
+    }
+
+    fn complement(&self, rhs: &Self) -> Self {
+        let mut ret = Vec::new();
+        for ix in 0..self.nodes.len() {
+            if rhs.contains_node(&self.nodes[ix]) == false {
+                ret.push(self.nodes[ix].clone());
+            }
+        }
+        SparseBasis { nodes: ret }
     }
 }
 

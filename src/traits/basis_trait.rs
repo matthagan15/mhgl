@@ -31,4 +31,9 @@ pub trait HgBasis: Sized + PartialEq + Eq + Hash + Clone {
         }
     }
     fn remove_node(&mut self, node: &Self);
+    fn complement(&self, rhs: &Self) -> Self;
+    fn covers_basis(&self, basis: &Self) -> bool {
+        let intersection = self.intersection(basis);
+        intersection == *basis
+    }
 }

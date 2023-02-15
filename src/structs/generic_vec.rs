@@ -152,4 +152,24 @@ impl<B: HgBasis> GeneroVector<B> {
             self.basis_to_weight.remove(&basis);
         }
     }
+
+    /// Remove the basis element from the vector, returning the associated
+    /// coefficient or 0. if it was not present.
+    pub fn remove_basis(&mut self, basis: &B) -> EdgeWeight {
+        if let Some(w) = self.basis_to_weight.remove(basis) {
+            if let Some(card_set) = self.cardinality_to_basis_set.get_mut(&basis.cardinality()) {
+                card_set.remove(basis);
+            }
+            w
+        } else {
+            0.
+        }
+    }
+    pub fn add_basis(&mut self, basis: B, weight: EdgeWeight) {
+        let old_weight = self.basis_to_weight.entry(basis.clone()).or_insert(0.);
+        *old_weight = *old_weight + weight;
+        let card_set = self.cardinality_to_basis_set.entry(basis.cardinality()).or_default();
+        card_set.insert(basis);
+    }
+
 }
