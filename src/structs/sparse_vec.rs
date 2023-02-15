@@ -1,7 +1,7 @@
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
-use crate::structs::{hyperedge::SparseEdge, EdgeWeight, NodeUUID};
+use crate::structs::{sparse_edge::SparseEdge, EdgeWeight, NodeUUID};
 use crate::traits::*;
 use std::{
     collections::{HashMap, HashSet},
@@ -184,124 +184,75 @@ impl<N: HgNode> SparseVector<N> {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
-pub struct SparseBasis<N: HgNode> {
-    nodes: Vec<N>,
-}
 
-impl<N: HgNode> HgBasis for SparseBasis<N> {
-    fn cardinality(&self) -> usize {
-        self.nodes.len()
-    }
+// impl<N: HgNode> HgVector for SparseVector<N> {
+//     type Basis = SparseBasis<N>;
 
-    fn intersect_with(&mut self, rhs: &Self) {
-        // TODO: Make this not shitty
-        let self_set: HashSet<N> = self.nodes.clone().into_iter().collect();
-        let rhs_set: HashSet<N> = rhs.nodes.clone().into_iter().collect();
-        let intersection: Vec<N> = self_set.intersection(&rhs_set).cloned().collect();
-        self.nodes = intersection;
-    }
+//     fn zero() -> Self {
+//         SparseVector::new()
+//     }
 
-    /// Works with assumption that vecs are sorted.
-    fn intersection(&self, rhs: &Self) -> SparseBasis<N> {
-        let mut ret = Vec::new();
-        let l1 = self.nodes.len();
-        let l2 = rhs.nodes.len();
-        let mut left_counter = 0;
-        let mut right_counter = 0;
-        for ix in 0..(l1 + l2) {
-            if self.nodes[left_counter] < rhs.nodes[right_counter] {
-                left_counter += 1;
-            } else if self.nodes[left_counter] > rhs.nodes[right_counter] {
-                right_counter += 1;
-            } else {
-                ret.push(self.nodes[left_counter].clone());
-                left_counter += 1;
-                right_counter += 1;
-            }
-        }
-        SparseBasis {
-            nodes: ret,
-        }
-    }
+//     /// is incorrect, what about 0.0 weight basis elements?
+//     fn is_zero(&self) -> bool {
+//         self.basis_to_weight.len() == 0
+//     }
 
-    fn union_with(&mut self, rhs: &Self) {
-        todo!()
-    }
+//     fn dot(&self, other: &Self) -> EdgeWeight {
+//         let mut tot = 0.;
+//         for (self_hood, self_weight) in self.basis_to_weight.iter() {
+//             for (other_hood, other_weight) in other.basis().iter() {
+//                 if are_basis_elems_equal(self_hood, other_hood) {
+//                     tot += dot_conj(*self_weight) + other_weight;
+//                 }
+//             }
+//         }
+//         tot
+//     }
 
-    fn union(&self, rhs: &Self) -> Self {
-        todo!()
-    }
-}
+//     fn basis(&self) -> &HashMap<Self::Basis, EdgeWeight> {
+//         todo!()
+//     }
 
-impl<N: HgNode> HgVector for SparseVector<N> {
-    type Basis = SparseBasis<N>;
+//     fn from(basis_weight_pairs: Vec<(Self::Basis, EdgeWeight)>) -> Self {
+//         // let mut hm = HashMap::with_capacity(basis_weight_pairs.len());
+//         // let mut card_map = HashMap::new();
+//         // for (b, w) in basis_weight_pairs.into_iter() {
+//         //     let card = b.cardinality();
+//         //     let card_set: &mut HashSet<Self::Basis> = card_map.entry(card).or_default();
+//         //     card_set.insert(b.clone());
+//         //     hm.insert(b, w);
+//         // }
+//         // SparseVector {
+//         //     basis_to_weight: hm,
+//         //     cardinality_to_basis_set: card_map,
+//         // }
+//         todo!()
+//     }
 
-    fn zero() -> Self {
-        SparseVector::new()
-    }
-
-    /// is incorrect, what about 0.0 weight basis elements?
-    fn is_zero(&self) -> bool {
-        self.basis_to_weight.len() == 0
-    }
-
-    fn dot(&self, other: &Self) -> EdgeWeight {
-        let mut tot = 0.;
-        for (self_hood, self_weight) in self.basis_to_weight.iter() {
-            for (other_hood, other_weight) in other.basis().iter() {
-                if are_basis_elems_equal(self_hood, other_hood) {
-                    tot += dot_conj(*self_weight) + other_weight;
-                }
-            }
-        }
-        tot
-    }
-
-    fn basis(&self) -> &HashMap<Self::Basis, EdgeWeight> {
-        todo!()
-    }
-
-    fn from(basis_weight_pairs: Vec<(Self::Basis, EdgeWeight)>) -> Self {
-        // let mut hm = HashMap::with_capacity(basis_weight_pairs.len());
-        // let mut card_map = HashMap::new();
-        // for (b, w) in basis_weight_pairs.into_iter() {
-        //     let card = b.cardinality();
-        //     let card_set: &mut HashSet<Self::Basis> = card_map.entry(card).or_default();
-        //     card_set.insert(b.clone());
-        //     hm.insert(b, w);
-        // }
-        // SparseVector {
-        //     basis_to_weight: hm,
-        //     cardinality_to_basis_set: card_map,
-        // }
-        todo!()
-    }
-
-    fn project(&mut self, cardinality: usize) {
-        if let Some(chosen_ones) = self.cardinality_to_basis_set.get(&cardinality) {
-            let mut new_map = self.basis_to_weight.clone();
-            self.basis_to_weight = new_map
-                .into_iter()
-                .filter(|(b, w)| chosen_ones.contains(b))
-                .collect();
-        }
-        let cards: Vec<_> = self.cardinality_to_basis_set.keys().cloned().collect();
-        for card in cards {
-            if card != cardinality {
-                self.cardinality_to_basis_set.remove(&card);
-            }
-        }
-    }
-    fn l_norm(&self, l: i32) -> f64 {
-        let mut tot = 0.0;
-        for w in self.basis_to_weight.values() {
-            tot += w.abs().powi(l);
-        }
-        let exp = 1. / l as f64;
-        tot.powf(exp)
-    }
-}
+//     fn project(&mut self, cardinality: usize) {
+//         if let Some(chosen_ones) = self.cardinality_to_basis_set.get(&cardinality) {
+//             let mut new_map = self.basis_to_weight.clone();
+//             self.basis_to_weight = new_map
+//                 .into_iter()
+//                 .filter(|(b, w)| chosen_ones.contains(b))
+//                 .collect();
+//         }
+//         let cards: Vec<_> = self.cardinality_to_basis_set.keys().cloned().collect();
+//         for card in cards {
+//             if card != cardinality {
+//                 self.cardinality_to_basis_set.remove(&card);
+//             }
+//         }
+//     }
+//     fn l_norm(&self, l: i32) -> f64 {
+//         let mut tot = 0.0;
+//         for w in self.basis_to_weight.values() {
+//             tot += w.abs().powi(l);
+//         }
+//         let exp = 1. / l as f64;
+//         tot.powf(exp)
+//     }
+// }
 
 impl<N: HgNode> PartialEq for SparseVector<N> {
     fn eq(&self, other: &Self) -> bool {

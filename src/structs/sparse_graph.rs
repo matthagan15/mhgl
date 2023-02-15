@@ -1,8 +1,8 @@
 use crate::traits::{HgNode, HgVector};
 use crate::{
     structs::{
-        hyperedge::{EdgeDirection, SparseEdge},
-        node_vec::SparseVector,
+        sparse_edge::{EdgeDirection, SparseEdge},
+        sparse_vec::SparseVector,
         EdgeID, EdgeWeight, NodeUUID,
     },
     traits::HyperGraph,

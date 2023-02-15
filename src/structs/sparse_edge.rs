@@ -8,7 +8,7 @@ use std::{
 };
 use uuid::Uuid;
 
-use crate::structs::node_vec::SparseVector;
+use crate::structs::sparse_vec::SparseVector;
 use crate::traits::*;
 
 pub type EdgeWeight = f64;
