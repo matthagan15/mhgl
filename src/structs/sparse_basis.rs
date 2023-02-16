@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Debug};
 
 use crate::traits::{HgNode, HgBasis};
 
@@ -23,7 +23,7 @@ fn binary_search<N: HgNode>(sorted: &Vec<N>, node: &N) -> Option<usize> {
             reached_end = true;
             break;
         }
-        if r - l == 1 {
+        if r - l <= 1 {
             if sorted[l] < *node && sorted[r] > *node {
                 mid = l;
             } else if sorted[l] < *node && sorted[r] <= *node {
@@ -94,6 +94,9 @@ impl<N: HgNode> SparseBasis<N> {
     }
 
     fn contains_node(&self, node: &N) -> bool {
+        if self.nodes.len() == 0 {
+            return false;
+        }
         let mut ret = false;
         if let Some(ix) = binary_search(&self.nodes, node) {
             if self.nodes[ix] == *node {
@@ -104,7 +107,7 @@ impl<N: HgNode> SparseBasis<N> {
     }
 }
 
-impl<N: HgNode> HgBasis for SparseBasis<N> {
+impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
     fn new_empty() -> Self {
         SparseBasis::<N>::new()
     }
@@ -134,6 +137,9 @@ impl<N: HgNode> HgBasis for SparseBasis<N> {
         let mut left_counter = 0;
         let mut right_counter = 0;
         for ix in 0..(l1 + l2) {
+            if left_counter == l1 || right_counter == l2 {
+                break;
+            }
             if self.nodes[left_counter] < rhs.nodes[right_counter] {
                 left_counter += 1;
             } else if self.nodes[left_counter] > rhs.nodes[right_counter] {

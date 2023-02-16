@@ -4,6 +4,7 @@ use crate::traits::HgBasis;
 
 use super::{EdgeID, EdgeWeight, EdgeDirection, generic_vec::GeneroVector};
 
+#[derive(Debug, Clone)]
 pub struct GeneroEdge<B: HgBasis> {
     pub id: EdgeID,
     weight: EdgeWeight,
@@ -22,14 +23,14 @@ impl<B: HgBasis> GeneroEdge<B> {
         GeneroEdge { id: Uuid::new_v4(), weight: weight, in_nodes: in_nodes, out_nodes: out_nodes, direction: edge_type }
     }
 
-    pub fn add_input_node(&mut self, node: &B) {
+    pub fn add_input_nodes(&mut self, node: &B) {
         self.in_nodes.add_node(node);
     }
 
     pub fn remove_input_node(&mut self, node: &B) {
         self.in_nodes.remove_node(node);
     }
-    pub fn add_output_node(&mut self, node: &B) {
+    pub fn add_output_nodes(&mut self, node: &B) {
         self.out_nodes.add_node(node);
     }
 
@@ -55,6 +56,36 @@ impl<B: HgBasis> GeneroEdge<B> {
         self.in_nodes = self.out_nodes.clone();
         self.out_nodes = tmp;
     }
+
+    /// Allows you to change edge type. We make the following decisions:
+    /// - If you change to a "directed" variant, then we will make sure that if
+    /// the edge was previously a loop or blob it maps to the empty set, if the
+    /// edge was previously a "directed" variant then we keep input and output
+    /// as it was.
+    /// - If you change to a blob then we take the union of the input and output 
+    /// and set that to be the blob.
+    /// - If you change to a loop then we simply drop the output. 
+    pub fn change_direction(&mut self, new_direction: EdgeDirection) {
+        match new_direction {
+            EdgeDirection::Directed | EdgeDirection::Oriented | EdgeDirection::Undirected => {
+                if self.direction == EdgeDirection::Blob || self.direction == EdgeDirection::Loop {
+                    self.out_nodes = B::new_empty();
+                }
+                self.direction = new_direction;
+            },
+            EdgeDirection::Blob => {
+                let u = self.in_nodes.union(&self.out_nodes);
+                self.out_nodes = B::new_empty();
+                self.in_nodes = u;
+                self.direction = new_direction;
+            },
+            EdgeDirection::Loop => {
+                self.out_nodes = B::new_empty();
+                self.direction = new_direction
+            }
+        }
+    }
+
     pub fn clone_input_nodes(&self) -> B {
         self.in_nodes.clone()
     }
@@ -134,5 +165,30 @@ impl<B: HgBasis> GeneroEdge<B> {
         }
         v
     }
+}
 
+mod test {
+    use std::collections::HashSet;
+
+    use crate::structs::{sparse_basis::SparseBasis, EdgeDirection, generic_vec::GeneroVector};
+
+    use super::GeneroEdge;
+
+    #[test]
+    fn test_sparse_map_vec() {
+        let nodes: Vec<u16> = vec![11,23, 492, 493, 203];
+        let b1 = SparseBasis::from(HashSet::from([11_u16, 23, 492, 493]));
+        let b2 = SparseBasis::from(HashSet::from([11_u16, 23, 492, 493, 203]));
+        let b3 = SparseBasis::<u16>::new();
+        let mut e = GeneroEdge::<SparseBasis<u16>>::new();
+        e.change_direction(EdgeDirection::Blob);
+        e.add_input_nodes(&b2);
+        println!("e: {:?}", e);
+        let mut v = GeneroVector::<SparseBasis<u16>>::new();
+        v.add_basis(b1.clone(), 2.);
+        v.add_basis(b3.clone(), 3.);
+        println!("input vector: {:#?}", v);
+        let out = e.map_vector(v);
+        println!("output vector: {:#?}", out);
+    }
 }
