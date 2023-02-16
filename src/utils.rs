@@ -38,11 +38,9 @@ struct PowerSetBits<const M: usize> {
 }
 
 impl<const M: usize> PowerSetBits<M> {
-
     pub fn num_ones(&self) -> u32 {
         self.bits.iter().fold(0, |tot, b| tot + b.count_ones())
     }
-
     pub fn rotate_left_one(&mut self) {
         let leading_bit = self.bits[0] & 0b1000_0000_u8;
         for ix in 0..M {
@@ -70,20 +68,14 @@ impl<const M: usize> PowerSetBits<M> {
         }
     }
 
-<<<<<<< HEAD
     // TODO: Implement up to 8 shift, then use that as the base instead of one
-=======
->>>>>>> 53868a8087f41c32132ce4b51b811ff7a8b77f7e
     pub fn rotate_left(&mut self, l: u32) {
         for _ in 0..l {
             self.rotate_left_one();
         }
     }
 
-<<<<<<< HEAD
     // TODO: Implement up to 8 shift, then use that as the base instead of one
-=======
->>>>>>> 53868a8087f41c32132ce4b51b811ff7a8b77f7e
     pub fn rotate_right(&mut self, r: u32) {
         for _ in 0..r {
             self.rotate_right_one();
