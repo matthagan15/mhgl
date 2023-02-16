@@ -154,7 +154,14 @@ impl SparseGraph<Uuid> {
 
 impl<N: HgNode> SparseGraph<N> {
     pub fn new() -> SparseGraph<N> {
-        SparseGraph { id: Uuid::new_v4(), nodes: HashSet::new(), edges: HashMap::new(), input_cardinality_to_edges: HashMap::new(), output_cardinality_to_edges: HashMap::new(), node_to_containing_edges: HashMap::new() }
+        SparseGraph {
+            id: Uuid::new_v4(),
+            nodes: HashSet::new(),
+            edges: HashMap::new(),
+            input_cardinality_to_edges: HashMap::new(),
+            output_cardinality_to_edges: HashMap::new(),
+            node_to_containing_edges: HashMap::new(),
+        }
     }
 
     /// adds the nodes to the internal set

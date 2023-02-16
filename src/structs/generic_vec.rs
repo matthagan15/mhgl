@@ -3,10 +3,9 @@ use std::collections::{HashMap, HashSet};
 use rand::*;
 use serde::Serialize;
 
-use crate::traits::{HgNode, HgBasis};
+use crate::traits::{HgBasis, HgNode};
 
 use super::EdgeWeight;
-
 
 /// A representation of a vector living in the power set module. Aka something a
 /// hypergraph can act on in a linear fashion.
@@ -33,11 +32,13 @@ impl<B: HgBasis> GeneroVector<B> {
 
     pub fn new_from(input: Vec<(B, EdgeWeight)>) -> GeneroVector<B> {
         let mut basis_map = HashMap::with_capacity(input.len());
-        let mut card_map =  HashMap::new();
+        let mut card_map = HashMap::new();
         for (basis, weight) in input.into_iter() {
             let cur_weight = basis_map.entry(basis.clone()).or_insert(0.);
             *cur_weight += weight;
-            let card_basis_set = card_map.entry(basis.cardinality()).or_insert(HashSet::new());
+            let card_basis_set = card_map
+                .entry(basis.cardinality())
+                .or_insert(HashSet::new());
             card_basis_set.insert(basis);
         }
         GeneroVector {
@@ -168,8 +169,10 @@ impl<B: HgBasis> GeneroVector<B> {
     pub fn add_basis(&mut self, basis: B, weight: EdgeWeight) {
         let old_weight = self.basis_to_weight.entry(basis.clone()).or_insert(0.);
         *old_weight = *old_weight + weight;
-        let card_set = self.cardinality_to_basis_set.entry(basis.cardinality()).or_default();
+        let card_set = self
+            .cardinality_to_basis_set
+            .entry(basis.cardinality())
+            .or_default();
         card_set.insert(basis);
     }
-
 }

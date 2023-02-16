@@ -26,12 +26,11 @@ pub trait HyperGraph {
     // fn random_basis(&self) -> SparseVector<Self::Node>;
     // fn random_step(&self, start: &mut Self::HVector);
     // fn random_basis_step(&self, start: &Self::Basis) -> Self::Basis;
-    
 
     // TODO: Thoughts on a closure type hypergraph? One in which you give it a function
-    // from basis elements to basis elements to the EdgeWeight type. Then when you need to 
-    // take a step or actually traverse the hypergraph you just call the closure. Would be 
+    // from basis elements to basis elements to the EdgeWeight type. Then when you need to
+    // take a step or actually traverse the hypergraph you just call the closure. Would be
     // useful for complete hypergraphs on more than ~ 17 nodes, you essentially are trading off
-    // memory for time, because if you store the hypergraph then you are fucked past 17 ish 
+    // memory for time, because if you store the hypergraph then you are fucked past 17 ish
     // nodes, similar to number of qubits.
 }

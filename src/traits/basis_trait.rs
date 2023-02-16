@@ -19,7 +19,7 @@ pub trait HgBasis: Sized + PartialEq + Eq + Hash + Clone {
     fn is_empty_set(&self) -> bool {
         self.matches_cardinality(0)
     }
-    // The reason for using Self to represent a node is 
+    // The reason for using Self to represent a node is
     // easy compatibility with BitNodes
     // TODO: Check if this should be a node?
     fn add_node(&mut self, node: &Self) {

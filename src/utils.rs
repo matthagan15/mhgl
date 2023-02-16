@@ -10,7 +10,7 @@ pub fn power_set(v: Vec<Uuid>, dims: usize) -> HashSet<Vec<Uuid>> {
         return HashSet::new();
     }
     if dims == 1 {
-        return v.into_iter().map(|node| vec![node]).collect();
+        return HashSet::from([v]);
     }
     if dims > v.len() {
         let l = v.len();

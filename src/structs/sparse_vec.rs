@@ -184,7 +184,6 @@ impl<N: HgNode> SparseVector<N> {
     }
 }
 
-
 // impl<N: HgNode> HgVector for SparseVector<N> {
 //     type Basis = SparseBasis<N>;
 

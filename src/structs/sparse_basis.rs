@@ -1,10 +1,10 @@
 use std::{collections::HashSet, fmt::Debug};
 
-use crate::traits::{HgNode, HgBasis};
+use crate::traits::{HgBasis, HgNode};
 
 /// Searches a sorted vector (does not check if it is sorted) and returns
 /// the index of the node that would directly precede the provided node if
-/// it were to be inserted. If the node is present in the vec then it returns the index of the provided node. We assume that duplicates are not allowed. 
+/// it were to be inserted. If the node is present in the vec then it returns the index of the provided node. We assume that duplicates are not allowed.
 fn binary_search<N: HgNode>(sorted: &Vec<N>, node: &N) -> Option<usize> {
     if sorted.len() == 0 {
         return Some(0);
@@ -42,7 +42,6 @@ fn binary_search<N: HgNode>(sorted: &Vec<N>, node: &N) -> Option<usize> {
     } else {
         None
     }
-    
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
@@ -150,9 +149,7 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
                 right_counter += 1;
             }
         }
-        SparseBasis {
-            nodes: ret,
-        }
+        SparseBasis { nodes: ret }
     }
 
     fn union_with(&mut self, rhs: &Self) {
@@ -214,14 +211,18 @@ mod test {
         let mut b1: SparseBasis<u8> = SparseBasis {
             nodes: vec![1, 3, 5, 6, 7, 8, 9],
         };
-        let b2: SparseBasis<u8> = SparseBasis { nodes: vec![2, 3, 4, 5, 6, 7, 8, 9, 10 ] };
+        let b2: SparseBasis<u8> = SparseBasis {
+            nodes: vec![2, 3, 4, 5, 6, 7, 8, 9, 10],
+        };
         b1.intersect_with(&b2);
         println!("b1 post intersection: {:?}", b1);
     }
 
     #[test]
     fn test_add_node() {
-        let mut b1: SparseBasis<u8> = SparseBasis { nodes: vec![0,1,2,3,5,6,7,8] };
+        let mut b1: SparseBasis<u8> = SparseBasis {
+            nodes: vec![0, 1, 2, 3, 5, 6, 7, 8],
+        };
         let added_properly = b1.add_node(5);
         println!("added_properly: {:}", added_properly);
         println!("b1: {:?}", b1);
