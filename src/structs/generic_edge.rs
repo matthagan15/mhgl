@@ -65,16 +65,22 @@ impl<B: HgBasis> GeneroEdge<B> {
         self.out_nodes = new_output;
     }
 
+    /// For blobs this returns the size of the blob
     pub fn input_cardinality(&self) -> usize {
         self.in_nodes.cardinality()
     }
 
+    /// For blobs this returns the size of the blob.
     pub fn output_cardinality(&self) -> usize {
-        self.out_nodes.cardinality()
+        if self.direction == EdgeDirection::Blob || self.direction == EdgeDirection::Loop {
+            self.in_nodes.cardinality()
+        } else {
+            self.out_nodes.cardinality()
+        }
     }
 
     pub fn change_weight(&mut self, new_weight: EdgeWeight) {
-        // NaN check is done at graph level, assuming edges should 
+        // NaN check is done at graph level, assuming edges should
         // not be publicly accessible.
         self.weight = new_weight
     }

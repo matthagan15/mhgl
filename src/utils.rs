@@ -1,5 +1,10 @@
 use core::num;
-use std::{collections::{HashSet, HashMap}, ops::Add, u8, fmt::Write};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Write,
+    ops::Add,
+    u8,
+};
 use uuid::Uuid;
 
 use crate::traits::*;
@@ -33,7 +38,7 @@ pub fn power_set<N: HgNode>(v: Vec<N>, dims: usize) -> HashSet<Vec<N>> {
 }
 
 #[derive(Debug, Clone)]
-struct PowerSetBits<const M: usize> {
+pub struct PowerSetBits<const M: usize> {
     pub bits: [u8; M],
 }
 
@@ -136,6 +141,19 @@ impl<const M: usize> PowerSetBits<M> {
         self.rotate_right(total_rotations_left);
     }
 
+    pub fn get_nodes_set(&self) -> HashSet<[u8; M]> {
+        let mut ret = HashSet::new();
+        for ix in 0..self.num_ones() {
+            let mut tmp = self.clone();
+            tmp.flip_kth_bit(ix);
+            for jx in 0..M {
+                tmp.bits[jx] = tmp.bits[jx] ^ self.bits[jx];
+            }
+            ret.insert(tmp.bits);
+        }
+        ret
+    }
+
     /// TODO: This is currently broken, needs fixing.
     pub fn base_rotation_left(&mut self, bit_shift: u32) {
         let bit_shift_to_bit_flag = HashMap::from([
@@ -146,8 +164,8 @@ impl<const M: usize> PowerSetBits<M> {
             (5_u32, 0b1111_1000_u8),
             (6_u32, 0b1111_1100_u8),
             (7_u32, 0b1111_1110_u8),
-            (8_u32, 0b1111_1111_u8)
-            ]);
+            (8_u32, 0b1111_1111_u8),
+        ]);
         if let Some(bit_flag) = bit_shift_to_bit_flag.get(&bit_shift) {
             let leading_bits = self.bits[0] & bit_flag;
             for ix in 0..M {
@@ -171,6 +189,7 @@ impl<const M: usize> PowerSetBits<M> {
         println!("{:}", buf);
     }
 }
+
 mod test {
     use uuid::Uuid;
 
@@ -178,40 +197,46 @@ mod test {
 
     #[test]
     fn test_leading_ones() {
-        let og = PowerSetBits { bits: [
-            0b_0111_1111_u8,
-            0b_1111_1111_u8,
-            0b_1111_1111_u8,
-            0b_1111_1111_u8,
-            0b_1100_0000_u8,
-        ]};
+        let og = PowerSetBits {
+            bits: [
+                0b_0111_1111_u8,
+                0b_1111_1111_u8,
+                0b_1111_1111_u8,
+                0b_1111_1111_u8,
+                0b_1100_0000_u8,
+            ],
+        };
         println!("leading ones: {:}", og.leading_ones());
     }
 
     #[test]
     fn test_leading_zeros() {
-        let og = PowerSetBits { bits: [
-            0b_1010_0000_u8,
-            0b_0000_0000_u8,
-            0b_0000_0000_u8,
-            0b_0000_0000_u8,
-            0b_0001_0000_u8,
-            0b_1111_1111_u8,
-            0b_1111_1111_u8,
-            0b_1111_1111_u8,
-            0b_1100_0000_u8,
-        ]};
+        let og = PowerSetBits {
+            bits: [
+                0b_1010_0000_u8,
+                0b_0000_0000_u8,
+                0b_0000_0000_u8,
+                0b_0000_0000_u8,
+                0b_0001_0000_u8,
+                0b_1111_1111_u8,
+                0b_1111_1111_u8,
+                0b_1111_1111_u8,
+                0b_1100_0000_u8,
+            ],
+        };
         println!("leading zeros: {:}", og.leading_zeros());
     }
 
     #[test]
     fn test_pb_flipper() {
-        let mut og = PowerSetBits {bits: [
-            0b_0110_1001_u8,
-            0b_1001_0110_u8,
-            0b_0001_0001_u8,
-            0b_1010_1010_u8,
-            ]};
+        let mut og = PowerSetBits {
+            bits: [
+                0b_0110_1001_u8,
+                0b_1001_0110_u8,
+                0b_0001_0001_u8,
+                0b_1010_1010_u8,
+            ],
+        };
         for k in 1..7 {
             println!("{:}", "#".repeat(50));
             println!("k = {:}", k);
@@ -224,12 +249,14 @@ mod test {
 
     #[test]
     fn test_power_set_bits_rotation_simple() {
-        let mut pb = PowerSetBits {bits: [
-            0b_0110_1001_u8,
-            0b_1001_0110_u8,
-            0b_0001_0001_u8,
-            0b_1010_1010_u8,
-            ]};
+        let mut pb = PowerSetBits {
+            bits: [
+                0b_0110_1001_u8,
+                0b_1001_0110_u8,
+                0b_0001_0001_u8,
+                0b_1010_1010_u8,
+            ],
+        };
         let og = pb.clone();
         pb.print_formatted();
         pb.rotate_left(4);
@@ -242,12 +269,14 @@ mod test {
 
     #[test]
     fn test_power_set_bits_base_rotation() {
-        let mut pb = PowerSetBits {bits: [
-            0b_0110_1001_u8,
-            0b_1001_0110_u8,
-            0b_0001_0001_u8,
-            0b_1010_1010_u8,
-            ]};
+        let mut pb = PowerSetBits {
+            bits: [
+                0b_0110_1001_u8,
+                0b_1001_0110_u8,
+                0b_0001_0001_u8,
+                0b_1010_1010_u8,
+            ],
+        };
         pb.print_formatted();
         pb.base_rotation_left(4);
         pb.print_formatted();

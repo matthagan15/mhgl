@@ -6,7 +6,10 @@ use std::{
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::traits::{HgBasis, HgNode};
+use crate::{
+    traits::{HgBasis, HgNode},
+    utils::PowerSetBits,
+};
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash, PartialOrd, Ord)]
 pub struct BitNodes<const K: usize> {
@@ -138,6 +141,16 @@ impl<const K: usize> HgBasis for BitNodes<K> {
             new_bits[ix] = new_bits[ix] & self.bits[ix];
         }
         BitNodes { bits: new_bits }
+    }
+
+    fn nodes(&self) -> std::collections::HashSet<Self> {
+        let pb = PowerSetBits {
+            bits: self.bits.clone(),
+        };
+        pb.get_nodes_set()
+            .into_iter()
+            .map(|array| BitNodes { bits: array })
+            .collect()
     }
 }
 

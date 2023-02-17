@@ -36,4 +36,5 @@ pub trait HgBasis: Sized + PartialEq + Eq + Hash + Clone {
         let intersection = self.intersection(basis);
         intersection == *basis
     }
+    fn nodes(&self) -> HashSet<Self>;
 }

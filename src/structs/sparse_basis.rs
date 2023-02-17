@@ -187,6 +187,15 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
         }
         SparseBasis { nodes: ret }
     }
+
+    fn nodes(&self) -> HashSet<Self> {
+        self.nodes
+            .iter()
+            .map(|n| SparseBasis {
+                nodes: vec![n.clone()],
+            })
+            .collect()
+    }
 }
 
 mod test {
