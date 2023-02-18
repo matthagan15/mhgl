@@ -6,7 +6,7 @@ use crate::traits::HgBasis;
 
 use super::{generic_edge::GeneroEdge, EdgeDirection, EdgeID, EdgeWeight, GraphID, SparseEdge, generic_vec::GeneroVector};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GeneroGraph<B: HgBasis> {
     pub id: GraphID,
     edges: HashMap<EdgeID, GeneroEdge<B>>,
@@ -51,6 +51,16 @@ impl<B: HgBasis> GeneroGraph<B> {
                         }
                     }
                 }
+            }
+        }
+        ret
+    }
+
+    pub fn get_containing_edges(&self, basis: &B) -> HashSet<EdgeID> {
+        let mut ret = HashSet::new();
+        for (id, edge) in self.edges.iter() {
+            if edge.contains(basis) {
+                ret.insert(id.clone());
             }
         }
         ret
@@ -230,9 +240,26 @@ impl<B: HgBasis> GeneroGraph<B> {
     }
 
     pub fn map_basis(&self, input: &B) -> GeneroVector<B> {
-        todo!()
+        let mut ret = GeneroVector::new();
+        for node in input.nodes() {
+            if let Some(edges) = self.node_to_outbound_edges.get(&node) {
+                for edge_id in edges {
+                    if let Some(edge) = self.edges.get(edge_id) {
+                        if edge.matches_input(input) {
+                            ret.add_basis(edge.clone_output_nodes(), edge.weight);
+                        }
+                    }
+                }
+            }
+        }
+        ret
     }
     pub fn map(&self, input: &GeneroVector<B>) -> GeneroVector<B> {
-        todo!()
+        let mut ret = GeneroVector::new();
+        for (b, w) in input.basis_to_weight.iter() {
+            let mut tmp = self.map_basis(&b);
+            tmp *= *w;
+        }
+        ret
     }
 }

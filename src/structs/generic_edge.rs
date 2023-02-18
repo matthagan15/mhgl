@@ -153,6 +153,12 @@ impl<B: HgBasis> GeneroEdge<B> {
         }
     }
 
+    /// Returns true if output and input unioned cover the provided basis
+    pub fn contains(&self, basis: &B) -> bool {
+        let total = self.in_nodes.union(&self.out_nodes);
+        total.covers_basis(basis)
+    }
+
     pub fn map_vector(&self, mut v: GeneroVector<B>) -> GeneroVector<B> {
         match self.direction {
             EdgeDirection::Directed => {

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, ops::{Add, AddAssign, Mul, MulAssign}};
 
 use rand::*;
 use serde::Serialize;
@@ -174,5 +174,56 @@ impl<B: HgBasis> GeneroVector<B> {
             .entry(basis.cardinality())
             .or_default();
         card_set.insert(basis);
+    }
+}
+
+impl<B: HgBasis> Add for GeneroVector<B> {
+    type Output = GeneroVector<B>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut total = HashMap::new();
+        for (b, w) in self.basis_to_weight.iter() {
+            total.insert(b.clone(), *w);
+        }
+        for (b, w) in rhs.basis_to_weight {
+            let weight = total.entry(b).or_insert(0.0);
+            *weight = *weight + w;
+        }
+        GeneroVector::new_from(total.into_iter().collect())
+    }
+}
+
+impl<'a, B: HgBasis> AddAssign<&'a GeneroVector<B>> for GeneroVector<B> {
+    fn add_assign(&mut self, rhs: &'a Self) {
+        for (b, w) in rhs.basis_to_weight.iter() {
+            if self.basis_to_weight.contains_key(b) {
+                let x = self.basis_to_weight.get_mut(b).expect("just checked");
+                *x = *x + *w;
+            } else {
+                self.basis_to_weight.insert(b.clone(), *w);
+                let hs = self.cardinality_to_basis_set.entry(b.cardinality()).or_default();
+                hs.insert(b.clone());
+            }
+        }
+    }
+}
+
+impl<B: HgBasis> Mul<EdgeWeight> for GeneroVector<B> {
+    type Output = GeneroVector<B>;
+
+    fn mul(self, rhs: EdgeWeight) -> Self::Output {
+        let mut ret = self;
+        for (b, w) in ret.basis_to_weight.iter_mut() {
+            *w = *w * rhs;
+        }
+        ret
+    }
+}
+
+impl<B: HgBasis> MulAssign<EdgeWeight> for GeneroVector<B> {
+    fn mul_assign(&mut self, rhs: EdgeWeight) {
+        for (b, w) in self.basis_to_weight.iter_mut() {
+            *w = *w * rhs;
+        }
     }
 }

@@ -21,9 +21,15 @@ mod sparse_edge;
 mod sparse_graph;
 mod sparse_vec;
 
+pub use generic_vec::GeneroVector;
+pub use generic_edge::GeneroEdge;
+pub use generic_graph::GeneroGraph;
+
+
 pub use bit_graph::BitGraph;
 pub use bit_vec::BitVec;
 
+pub use sparse_basis::SparseBasis;
 pub use sparse_edge::EdgeDirection;
 pub use sparse_edge::SparseEdge;
 pub use sparse_graph::SparseGraph;
