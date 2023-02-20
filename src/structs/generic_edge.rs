@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::{hash::Hash, collections::HashSet};
 
 use uuid::Uuid;
 
@@ -127,8 +127,13 @@ impl<B: HgBasis> GeneroEdge<B> {
         self.out_nodes.clone()
     }
 
+    pub fn nodes(&self) -> HashSet<B> {
+        let tot = self.in_nodes.union(&self.out_nodes);
+        tot.nodes()
+    }
+
     // TODO: need to handle undirected, oriented, and blob edges
-    pub fn matches_input(&self, basis: &B) -> bool {
+    pub fn can_map_basis(&self, basis: &B) -> bool {
         match self.direction {
             EdgeDirection::Directed | EdgeDirection::Loop => self.in_nodes == *basis,
             EdgeDirection::Oriented | EdgeDirection::Undirected => {
@@ -157,6 +162,14 @@ impl<B: HgBasis> GeneroEdge<B> {
     pub fn contains(&self, basis: &B) -> bool {
         let total = self.in_nodes.union(&self.out_nodes);
         total.covers_basis(basis)
+    }
+
+    pub fn map(&self, basis: &B) -> GeneroVector<B> {
+        if self.can_map_basis(basis) == false {
+            return GeneroVector::new();
+        }
+        let mut new_vec = GeneroVector::from_basis(basis.clone(), 1.);
+        self.map_vector(new_vec)
     }
 
     pub fn map_vector(&self, mut v: GeneroVector<B>) -> GeneroVector<B> {

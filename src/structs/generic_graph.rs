@@ -46,7 +46,7 @@ impl<B: HgBasis> GeneroGraph<B> {
             if let Some(potentials) = self.node_to_outbound_edges.get(&node) {
                 for edge_id in potentials {
                     if let Some(edge) = self.edges.get(edge_id) {
-                        if edge.matches_input(basis) {
+                        if edge.can_map_basis(basis) {
                             ret.insert(edge_id.clone());
                         }
                     }
@@ -241,16 +241,21 @@ impl<B: HgBasis> GeneroGraph<B> {
 
     pub fn map_basis(&self, input: &B) -> GeneroVector<B> {
         let mut ret = GeneroVector::new();
+        let mut good_edges = HashSet::new();
         for node in input.nodes() {
             if let Some(edges) = self.node_to_outbound_edges.get(&node) {
                 for edge_id in edges {
                     if let Some(edge) = self.edges.get(edge_id) {
-                        if edge.matches_input(input) {
-                            ret.add_basis(edge.clone_output_nodes(), edge.weight);
+                        if edge.can_map_basis(input) {
+                            good_edges.insert(edge_id);
                         }
                     }
                 }
             }
+        }
+        for edge_id in good_edges {
+            let e = self.edges.get(edge_id).expect("This was checked in prior loop.");
+            ret += &e.map(input);
         }
         ret
     }

@@ -60,6 +60,14 @@ impl<N: HgNode> SparseBasis<N> {
         SparseBasis { nodes: nodes }
     }
 
+    pub fn node_set(&self) -> HashSet<N> {
+        self.nodes.iter().cloned().collect()
+    }
+
+    pub fn to_node_set(self) -> HashSet<N> {
+        self.nodes.into_iter().collect()
+    }
+
     /// Returns true if node was not present and was added correctly, false otherwise (includes node already being present)
     pub fn add_node(&mut self, node: N) -> bool {
         if self.nodes.len() == 0 {

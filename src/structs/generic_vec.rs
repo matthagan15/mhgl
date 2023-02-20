@@ -46,6 +46,11 @@ impl<B: HgBasis> GeneroVector<B> {
             cardinality_to_basis_set: card_map,
         }
     }
+
+    pub fn to_tuples(self) -> Vec<(B, EdgeWeight)> {
+        self.basis().into_iter().collect()
+    }
+
     pub fn basis(&self) -> Vec<(B, EdgeWeight)> {
         self.basis_to_weight.clone().into_iter().collect()
     }
