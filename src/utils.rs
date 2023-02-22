@@ -7,7 +7,7 @@ use std::{
 };
 use uuid::Uuid;
 
-use crate::traits::*;
+use crate::{traits::*, structs::bit_nodes::BitNodes};
 
 /// Returns subset of power set of given id's with the condition that each set returned has dims number
 /// of elements.
@@ -113,7 +113,7 @@ impl<const M: usize> PowerSetBits<M> {
         ret
     }
 
-    pub fn flip_kth_bit(&mut self, k: u32) {
+    pub fn flip_kth_one(&mut self, k: u32) {
         if k == 0 {
             return;
         }
@@ -143,13 +143,29 @@ impl<const M: usize> PowerSetBits<M> {
 
     pub fn get_nodes_set(&self) -> HashSet<[u8; M]> {
         let mut ret = HashSet::new();
+        let mut tmp = self.clone();
         for ix in 0..self.num_ones() {
-            let mut tmp = self.clone();
-            tmp.flip_kth_bit(ix);
-            for jx in 0..M {
-                tmp.bits[jx] = tmp.bits[jx] ^ self.bits[jx];
+            let mut pb = PowerSetBits {bits: [0; M]};
+            pb.flip_kth_bit(tmp.leading_zeros());
+            tmp.flip_kth_one(1);
+            ret.insert(pb.bits);
+        }
+        ret
+    }
+
+    pub fn flip_kth_bit(&mut self, k: u32) {
+        self.rotate_left(k);
+        self.bits[0] = self.bits[0] ^ 0b_1000_0000_u8;
+        self.rotate_right(k);
+    }
+
+    pub fn is_zero(&self) -> bool {
+        let mut ret = true;
+        for ix in 0..M {
+            if self.bits[ix] > 0 {
+                ret = false;
+                break;
             }
-            ret.insert(tmp.bits);
         }
         ret
     }
@@ -178,6 +194,20 @@ impl<const M: usize> PowerSetBits<M> {
                     self.bits[ix] = self.bits[ix] | leading_bits.reverse_bits();
                 }
             }
+        }
+    }
+
+    pub fn to_bit_nodes(self) -> BitNodes<M> {
+        BitNodes { bits: self.bits }
+    }
+
+    pub fn clear(&mut self) {
+        self.bits = [0; M];
+    }
+
+    pub fn flip_all_bits(&mut self) {
+        for ix in 0..M {
+            self.bits[ix] = self.bits[ix] ^ u8::MAX;
         }
     }
 
@@ -237,14 +267,27 @@ mod test {
                 0b_1010_1010_u8,
             ],
         };
-        for k in 1..7 {
+        for k in 0..7 {
             println!("{:}", "#".repeat(50));
             println!("k = {:}", k);
             og.print_formatted();
             let mut pb = og.clone();
-            pb.flip_kth_bit(k);
+            pb.flip_kth_one(k);
             pb.print_formatted();
         }
+    }
+
+    #[test]
+    fn test_pb_flips_all_ones() {
+        let mut pb = PowerSetBits {
+            bits: [u8::MAX; 4]
+        };
+        pb.flip_kth_one(1);
+        pb.flip_kth_one(2);
+        pb.flip_kth_one(3);
+        pb.print_formatted();
+        pb.flip_all_bits();
+        pb.print_formatted();
     }
 
     #[test]
