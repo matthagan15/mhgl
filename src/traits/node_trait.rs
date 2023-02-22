@@ -1,12 +1,90 @@
 use serde::Serialize;
 use std::hash::Hash;
+use std::fmt::Debug;
+use std::ops::AddAssign;
 use uuid::Uuid;
 
-pub trait HgNode: Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Serialize {}
+pub trait HgNode: Debug + Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize {
+    fn max_number() -> Self;
+    fn zero() -> Self;
+    fn plus_one(&mut self);
+}
 
-impl HgNode for Uuid {}
-impl HgNode for u128 {}
-impl HgNode for u64 {}
-impl HgNode for u32 {}
-impl HgNode for u16 {}
-impl HgNode for u8 {}
+impl HgNode for Uuid {
+    fn max_number() -> Self {
+        Uuid::from_u128(u128::MAX)
+    }
+
+    fn zero() -> Self {
+        Uuid::nil()
+    }
+
+    fn plus_one(&mut self) {
+        *self = Uuid::from_u128(self.as_u128() + 1)
+    }
+}
+impl HgNode for u128 {
+    fn max_number() -> Self {
+        u128::MAX   
+    }
+
+    fn zero() -> Self {
+        0
+    }
+
+    fn plus_one(&mut self) {
+        *self = *self + 1;
+    }
+}
+impl HgNode for u64 {
+    fn max_number() -> Self {
+        u64::MAX 
+    }
+
+    fn zero() -> Self {
+        0
+    }
+
+    fn plus_one(&mut self) {
+        *self = *self + 1;
+    }
+}
+impl HgNode for u32 {
+    fn max_number() -> Self {
+        u32::MAX
+    }
+
+    fn zero() -> Self {
+        0
+    }
+
+    fn plus_one(&mut self) {
+        *self = *self + 1;
+    }
+}
+impl HgNode for u16 {
+    fn max_number() -> Self {
+        u16::MAX  
+    }
+
+    fn zero() -> Self {
+        0
+    }
+
+    fn plus_one(&mut self) {
+        *self = *self + 1;
+    }
+}
+impl HgNode for u8 {
+    fn max_number() -> Self {
+        u8::MAX 
+    }
+
+    fn zero() -> Self {
+        0
+    }
+
+    fn plus_one(&mut self) {
+        *self = *self + 1;
+    }
+}

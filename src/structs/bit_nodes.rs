@@ -82,7 +82,7 @@ impl<const K: usize> MulAssign for BitNodes<K> {
     }
 }
 
-impl<const K: usize> HgNode for BitNodes<K> {}
+// impl<const K: usize> HgNode for BitNodes<K> {}
 
 impl<const K: usize> HgBasis for BitNodes<K> {
     fn new_empty() -> Self {

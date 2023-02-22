@@ -36,8 +36,6 @@ impl HGraph {
 
     pub fn remove_node(&mut self, node: NodeID) {
         let node_basis = SparseBasis::from(HashSet::from([node.clone()]));
-        // TODO: WRONG! this currently gets edges that exactly match this basis
-        // Need a function that gets containing edges, inbound and outbound.
         let edges = self.graph.get_containing_edges(&node_basis);
         for edge in edges {
             if let Some(mut old_edge) = self.graph.remove_edge(&edge) {
