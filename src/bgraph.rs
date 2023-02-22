@@ -6,6 +6,24 @@ use uuid::Uuid;
 use crate::{traits::{HgNode, HgBasis}, structs::{GeneroGraph, bit_nodes::BitNodes, bit_edge::BitEdge, GeneroEdge, EdgeDirection, EdgeWeight}, utils::PowerSetBits};
 
 #[derive(Debug)]
+/// An implementation of a HyperGraph using a binary encoding of node subsets. 
+/// Utilizes constant generics and there is currently an issue where the number 
+/// of nodes does not match the constant provided. 
+/// Ex: BGraph<10> actually encodes 80 bits, the 10 specifies the number of u8's to use as the basis of the encoding. Nodes are referenced by u32's, if
+/// a BGraph<n> is created then you can use nodes from 0..8*n (exclusive).
+/// 
+/// ## Example Usage
+/// ```
+/// const n: usize = 80/8;
+/// let mut bg = BGraph::<n>::new();
+/// bg.create_edge(&[0,1,2], &[1,2,3], 1.2, EdgeDirection::Undirected);
+/// bg.create_edge(&[0,1,2], &[], 1.3, EdgeDirection::Loop);
+/// let v = vec![
+/// (HashSet::from([1,2,3]), 1.2),
+/// (HashSet::from([0,1,2]), 1.3),
+/// ];
+/// assert_eq!(bg.step(&[0,1,2]), v)
+/// ```
 pub struct BGraph<const K: usize> {
     pub name: String,
     graph: GeneroGraph<BitNodes<K>>,

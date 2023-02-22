@@ -8,6 +8,17 @@ use crate::structs::{EdgeID, EdgeWeight, NodeID, SparseGraph, GeneroGraph, Spars
 use crate::traits::*;
 
 #[derive(Debug, Clone)]
+/// The simplest to use hypergraph structure. Utilizes Uuid to store nodes and
+/// uses a sparse representation to store hyperedges. Creating nodes does not
+/// fail, unlike PGraph which may run out of storage. 
+/// 
+/// ## Example Usage
+/// ```
+/// let hg = HGraph::new();
+/// let nodes = hg.create_nodes(10);
+/// hg.create_directed_edge(&nodes[0..3], &nodes[0..=1], 1.2);
+/// assert_eq!(hg.step(&nodes[0..3]), vec![(HashSet::from(&nodes[0..=1]), 1.2)]);
+/// ```
 struct HGraph {
     // TODO: Move storage of nodes from underlying graph structure to container structures.
     pub name: String,
@@ -151,7 +162,7 @@ mod test {
         hg.name = String::from("tester :)");
         let nodes = hg.create_nodes(10);
         hg.create_directed_edge(&nodes[0..3], &nodes[0..=1], 1.);
-        println!("nodes:{:#?}", nodes);
+        println!("step:{:#?}", hg.step(&nodes[0..3]));
         println!("before removal:\n{:#?}", hg);
         hg.remove_node(nodes[0]);
         println!("post removal:\n{:#?}", hg);

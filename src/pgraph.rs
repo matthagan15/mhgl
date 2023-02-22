@@ -5,6 +5,14 @@ use uuid::Uuid;
 use crate::{traits::HgNode, structs::{GeneroGraph, SparseBasis, GeneroEdge, EdgeWeight, EdgeDirection}};
 
 #[derive(Debug, Clone)]
+/// A hypergraph type that simply counts nodes as they are created,
+/// as opposed to HGraph which utilizes Uuid's random generation.
+/// This allows for smaller data types to store nodes, which 
+/// theoretically can significantly reduce memory footprint for smaller,
+/// denser hypergraphs. Since we use smaller integer types however, this means
+/// that adding nodes could possibly fail. Due to this we also will re-use
+/// previously deleted nodes. Intended more for network analytics as opposed to 
+/// production environments.
 pub struct PGraph<N: HgNode> {
     pub name: String,
     nodes: HashSet<N>,
