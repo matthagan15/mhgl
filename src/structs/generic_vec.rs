@@ -1,4 +1,7 @@
-use std::{collections::{HashMap, HashSet}, ops::{Add, AddAssign, Mul, MulAssign}};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::{Add, AddAssign, Mul, MulAssign},
+};
 
 use rand::*;
 use serde::Serialize;
@@ -206,7 +209,10 @@ impl<'a, B: HgBasis> AddAssign<&'a GeneroVector<B>> for GeneroVector<B> {
                 *x = *x + *w;
             } else {
                 self.basis_to_weight.insert(b.clone(), *w);
-                let hs = self.cardinality_to_basis_set.entry(b.cardinality()).or_default();
+                let hs = self
+                    .cardinality_to_basis_set
+                    .entry(b.cardinality())
+                    .or_default();
                 hs.insert(b.clone());
             }
         }

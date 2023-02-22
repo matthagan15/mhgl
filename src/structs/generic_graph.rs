@@ -4,7 +4,10 @@ use uuid::Uuid;
 
 use crate::traits::HgBasis;
 
-use super::{generic_edge::GeneroEdge, EdgeDirection, EdgeID, EdgeWeight, GraphID, SparseEdge, generic_vec::GeneroVector};
+use super::{
+    generic_edge::GeneroEdge, generic_vec::GeneroVector, EdgeDirection, EdgeID, EdgeWeight,
+    GraphID, SparseEdge,
+};
 
 #[derive(Debug, Clone)]
 pub struct GeneroGraph<B: HgBasis> {
@@ -159,10 +162,16 @@ impl<B: HgBasis> GeneroGraph<B> {
         if let Some(edge) = self.edges.remove(edge_id) {
             match edge.direction {
                 EdgeDirection::Directed | EdgeDirection::Loop => {
-                    if let Some(set) = self.input_cardinality_to_edges.get_mut(&edge.input_cardinality()) {
+                    if let Some(set) = self
+                        .input_cardinality_to_edges
+                        .get_mut(&edge.input_cardinality())
+                    {
                         set.remove(edge_id);
                     }
-                    if let Some(set) = self.output_cardinality_to_edges.get_mut(&edge.output_cardinality()) {
+                    if let Some(set) = self
+                        .output_cardinality_to_edges
+                        .get_mut(&edge.output_cardinality())
+                    {
                         set.remove(edge_id);
                     }
                     for node in edge.in_nodes.nodes() {
@@ -173,16 +182,28 @@ impl<B: HgBasis> GeneroGraph<B> {
                     Some(edge)
                 }
                 EdgeDirection::Oriented | EdgeDirection::Undirected => {
-                    if let Some(set) = self.input_cardinality_to_edges.get_mut(&edge.input_cardinality()) {
+                    if let Some(set) = self
+                        .input_cardinality_to_edges
+                        .get_mut(&edge.input_cardinality())
+                    {
                         set.remove(edge_id);
                     }
-                    if let Some(set) = self.input_cardinality_to_edges.get_mut(&edge.output_cardinality()) {
+                    if let Some(set) = self
+                        .input_cardinality_to_edges
+                        .get_mut(&edge.output_cardinality())
+                    {
                         set.remove(edge_id);
                     }
-                    if let Some(set) = self.output_cardinality_to_edges.get_mut(&edge.output_cardinality()) {
+                    if let Some(set) = self
+                        .output_cardinality_to_edges
+                        .get_mut(&edge.output_cardinality())
+                    {
                         set.remove(edge_id);
                     }
-                    if let Some(set) = self.output_cardinality_to_edges.get_mut(&edge.input_cardinality()) {
+                    if let Some(set) = self
+                        .output_cardinality_to_edges
+                        .get_mut(&edge.input_cardinality())
+                    {
                         set.remove(edge_id);
                     }
                     for node in edge.in_nodes.nodes() {
@@ -220,8 +241,8 @@ impl<B: HgBasis> GeneroGraph<B> {
     }
 
     /// Change the input of an existing edge. If edge is a blob type it will
-    /// simply replace the blob basis with the new basis, keeping the ID 
-    /// the same. 
+    /// simply replace the blob basis with the new basis, keeping the ID
+    /// the same.
     pub fn change_edge_input(&mut self, edge_id: &EdgeID, new_input: B) {
         // TODO: Might be easier for blobs to simply create a new edge,
         // remove the old one, and insert the new one?
@@ -254,7 +275,10 @@ impl<B: HgBasis> GeneroGraph<B> {
             }
         }
         for edge_id in good_edges {
-            let e = self.edges.get(edge_id).expect("This was checked in prior loop.");
+            let e = self
+                .edges
+                .get(edge_id)
+                .expect("This was checked in prior loop.");
             ret += &e.map(input);
         }
         ret

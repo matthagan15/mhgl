@@ -1,10 +1,12 @@
 use serde::Serialize;
-use std::hash::Hash;
 use std::fmt::Debug;
+use std::hash::Hash;
 use std::ops::AddAssign;
 use uuid::Uuid;
 
-pub trait HgNode: Debug + Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize {
+pub trait HgNode:
+    Debug + Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize
+{
     fn max_number() -> Self;
     fn zero() -> Self;
     fn plus_one(&mut self);
@@ -25,7 +27,7 @@ impl HgNode for Uuid {
 }
 impl HgNode for u128 {
     fn max_number() -> Self {
-        u128::MAX   
+        u128::MAX
     }
 
     fn zero() -> Self {
@@ -38,7 +40,7 @@ impl HgNode for u128 {
 }
 impl HgNode for u64 {
     fn max_number() -> Self {
-        u64::MAX 
+        u64::MAX
     }
 
     fn zero() -> Self {
@@ -64,7 +66,7 @@ impl HgNode for u32 {
 }
 impl HgNode for u16 {
     fn max_number() -> Self {
-        u16::MAX  
+        u16::MAX
     }
 
     fn zero() -> Self {
@@ -77,7 +79,7 @@ impl HgNode for u16 {
 }
 impl HgNode for u8 {
     fn max_number() -> Self {
-        u8::MAX 
+        u8::MAX
     }
 
     fn zero() -> Self {

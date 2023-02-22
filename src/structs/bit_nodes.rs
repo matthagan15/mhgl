@@ -1,6 +1,7 @@
 use std::{
+    collections::HashSet,
     hash::Hash,
-    ops::{Add, AddAssign, Mul, MulAssign}, collections::HashSet,
+    ops::{Add, AddAssign, Mul, MulAssign},
 };
 
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
@@ -41,7 +42,7 @@ impl<const K: usize> BitNodes<K> {
 
     pub fn to_u32(self) -> HashSet<u32> {
         let mut ret = HashSet::with_capacity(self.cardinality());
-        let mut pb = PowerSetBits { bits: self.bits};
+        let mut pb = PowerSetBits { bits: self.bits };
         while pb.is_zero() == false {
             ret.insert(pb.leading_zeros());
             pb.flip_kth_one(1);

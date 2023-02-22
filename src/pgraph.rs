@@ -2,16 +2,19 @@ use std::collections::HashSet;
 
 use uuid::Uuid;
 
-use crate::{traits::HgNode, structs::{GeneroGraph, SparseBasis, GeneroEdge, EdgeWeight, EdgeDirection}};
+use crate::{
+    structs::{EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis},
+    traits::HgNode,
+};
 
 #[derive(Debug, Clone)]
 /// A hypergraph type that simply counts nodes as they are created,
 /// as opposed to HGraph which utilizes Uuid's random generation.
-/// This allows for smaller data types to store nodes, which 
+/// This allows for smaller data types to store nodes, which
 /// theoretically can significantly reduce memory footprint for smaller,
 /// denser hypergraphs. Since we use smaller integer types however, this means
 /// that adding nodes could possibly fail. Due to this we also will re-use
-/// previously deleted nodes. Intended more for network analytics as opposed to 
+/// previously deleted nodes. Intended more for network analytics as opposed to
 /// production environments.
 pub struct PGraph<N: HgNode> {
     pub name: String,
@@ -22,7 +25,12 @@ pub struct PGraph<N: HgNode> {
 
 impl<N: HgNode> PGraph<N> {
     pub fn new() -> Self {
-        PGraph { name: "".to_string(), nodes: HashSet::new(), reusable_nodes: Vec::new(), graph: GeneroGraph::new() }
+        PGraph {
+            name: "".to_string(),
+            nodes: HashSet::new(),
+            reusable_nodes: Vec::new(),
+            graph: GeneroGraph::new(),
+        }
     }
 
     /// May return no nodes if they cannot be created. For example, using u8 as the underlying storage method means only 255 nodes can be created. If you try adding more nodes after this then you get nothing back. Also it will reuse nodes, as this structure is intended more for analysis than production environments.
@@ -65,11 +73,16 @@ impl<N: HgNode> PGraph<N> {
         }
     }
 
-    pub fn create_directed_edge(&mut self, inputs: &[N], outputs: &[N], weight: EdgeWeight) -> u128 {
+    pub fn create_directed_edge(
+        &mut self,
+        inputs: &[N],
+        outputs: &[N],
+        weight: EdgeWeight,
+    ) -> u128 {
         let mut e = GeneroEdge::new();
         let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
         e.add_input_nodes(&input_basis);
-        
+
         let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
         e.add_output_nodes(&output_basis);
         e.change_direction(crate::structs::EdgeDirection::Directed);
@@ -101,12 +114,17 @@ impl<N: HgNode> PGraph<N> {
         id.as_u128()
     }
 
-    pub fn create_undirected_edge(&mut self, inputs: &[N], outputs: &[N], weight: EdgeWeight) -> u128 {
+    pub fn create_undirected_edge(
+        &mut self,
+        inputs: &[N],
+        outputs: &[N],
+        weight: EdgeWeight,
+    ) -> u128 {
         let mut e = GeneroEdge::new();
         let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
         e.change_direction(EdgeDirection::Undirected);
         e.add_input_nodes(&input_basis);
-        
+
         let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
         e.add_output_nodes(&output_basis);
         e.change_weight(weight);
@@ -115,12 +133,17 @@ impl<N: HgNode> PGraph<N> {
         id.as_u128()
     }
 
-    pub fn create_oriented_edge(&mut self, inputs: &[N], outputs: &[N], weight: EdgeWeight) -> u128 {
+    pub fn create_oriented_edge(
+        &mut self,
+        inputs: &[N],
+        outputs: &[N],
+        weight: EdgeWeight,
+    ) -> u128 {
         let mut e = GeneroEdge::new();
         e.change_direction(EdgeDirection::Oriented);
         let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
         e.add_input_nodes(&input_basis);
-        
+
         let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
         e.add_output_nodes(&output_basis);
         e.change_weight(weight);
@@ -145,9 +168,11 @@ impl<N: HgNode> PGraph<N> {
     pub fn step(&self, nodes: &[N]) -> Vec<(HashSet<N>, EdgeWeight)> {
         let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
         let out_vector = self.graph.map_basis(&start_basis);
-        out_vector.to_tuples().into_iter().map(|(b, w)| {
-            (b.to_node_set(), w)
-        }).collect()
+        out_vector
+            .to_tuples()
+            .into_iter()
+            .map(|(b, w)| (b.to_node_set(), w))
+            .collect()
     }
 }
 

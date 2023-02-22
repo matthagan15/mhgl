@@ -3,15 +3,17 @@ use std::collections::{HashMap, HashSet};
 
 use uuid::Uuid;
 
-use crate::structs::{EdgeID, EdgeWeight, NodeID, SparseGraph, GeneroGraph, SparseBasis, GeneroEdge, EdgeDirection};
+use crate::structs::{
+    EdgeDirection, EdgeID, EdgeWeight, GeneroEdge, GeneroGraph, NodeID, SparseBasis, SparseGraph,
+};
 
 use crate::traits::*;
 
 #[derive(Debug, Clone)]
 /// The simplest to use hypergraph structure. Utilizes Uuid to store nodes and
 /// uses a sparse representation to store hyperedges. Creating nodes does not
-/// fail, unlike PGraph which may run out of storage. 
-/// 
+/// fail, unlike PGraph which may run out of storage.
+///
 /// ## Example Usage
 /// ```
 /// let hg = HGraph::new();
@@ -57,11 +59,16 @@ impl HGraph {
         self.nodes.remove(&node);
     }
 
-    pub fn create_directed_edge(&mut self, inputs: &[NodeID], outputs: &[NodeID], weight: EdgeWeight) -> u128 {
+    pub fn create_directed_edge(
+        &mut self,
+        inputs: &[NodeID],
+        outputs: &[NodeID],
+        weight: EdgeWeight,
+    ) -> u128 {
         let mut e = GeneroEdge::new();
         let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
         e.add_input_nodes(&input_basis);
-        
+
         let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
         e.add_output_nodes(&output_basis);
         e.change_direction(crate::structs::EdgeDirection::Directed);
@@ -93,12 +100,17 @@ impl HGraph {
         id.as_u128()
     }
 
-    pub fn create_undirected_edge(&mut self, inputs: &[NodeID], outputs: &[NodeID], weight: EdgeWeight) -> u128 {
+    pub fn create_undirected_edge(
+        &mut self,
+        inputs: &[NodeID],
+        outputs: &[NodeID],
+        weight: EdgeWeight,
+    ) -> u128 {
         let mut e = GeneroEdge::new();
         let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
         e.change_direction(EdgeDirection::Undirected);
         e.add_input_nodes(&input_basis);
-        
+
         let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
         e.add_output_nodes(&output_basis);
         e.change_weight(weight);
@@ -107,12 +119,17 @@ impl HGraph {
         id.as_u128()
     }
 
-    pub fn create_oriented_edge(&mut self, inputs: &[NodeID], outputs: &[NodeID], weight: EdgeWeight) -> u128 {
+    pub fn create_oriented_edge(
+        &mut self,
+        inputs: &[NodeID],
+        outputs: &[NodeID],
+        weight: EdgeWeight,
+    ) -> u128 {
         let mut e = GeneroEdge::new();
         e.change_direction(EdgeDirection::Oriented);
         let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
         e.add_input_nodes(&input_basis);
-        
+
         let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
         e.add_output_nodes(&output_basis);
         e.change_weight(weight);
@@ -137,12 +154,13 @@ impl HGraph {
     pub fn step(&self, nodes: &[NodeID]) -> Vec<(HashSet<NodeID>, EdgeWeight)> {
         let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
         let out_vector = self.graph.map_basis(&start_basis);
-        out_vector.to_tuples().into_iter().map(|(b, w)| {
-            (b.to_node_set(), w)
-        }).collect()
+        out_vector
+            .to_tuples()
+            .into_iter()
+            .map(|(b, w)| (b.to_node_set(), w))
+            .collect()
     }
 }
-
 
 mod test {
     use uuid::Uuid;

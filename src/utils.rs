@@ -7,7 +7,7 @@ use std::{
 };
 use uuid::Uuid;
 
-use crate::{traits::*, structs::bit_nodes::BitNodes};
+use crate::{structs::bit_nodes::BitNodes, traits::*};
 
 /// Returns subset of power set of given id's with the condition that each set returned has dims number
 /// of elements.
@@ -145,7 +145,7 @@ impl<const M: usize> PowerSetBits<M> {
         let mut ret = HashSet::new();
         let mut tmp = self.clone();
         for ix in 0..self.num_ones() {
-            let mut pb = PowerSetBits {bits: [0; M]};
+            let mut pb = PowerSetBits { bits: [0; M] };
             pb.flip_kth_bit(tmp.leading_zeros());
             tmp.flip_kth_one(1);
             ret.insert(pb.bits);
@@ -279,9 +279,7 @@ mod test {
 
     #[test]
     fn test_pb_flips_all_ones() {
-        let mut pb = PowerSetBits {
-            bits: [u8::MAX; 4]
-        };
+        let mut pb = PowerSetBits { bits: [u8::MAX; 4] };
         pb.flip_kth_one(1);
         pb.flip_kth_one(2);
         pb.flip_kth_one(3);

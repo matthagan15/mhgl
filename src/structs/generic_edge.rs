@@ -1,4 +1,4 @@
-use std::{hash::Hash, collections::HashSet};
+use std::{collections::HashSet, hash::Hash};
 
 use uuid::Uuid;
 
