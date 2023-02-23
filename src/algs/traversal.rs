@@ -17,7 +17,12 @@ pub fn walk<N: HgNode>(
     ret
 }
 
-pub fn bfs() {}
+pub fn bfs_base<B: HgBasis>(graph: GeneroGraph<B>, start: &B, steps: usize) {
+    // TODO: change this to a dequeue.
+    // let mut frontier = Vec::new();
+    // let mut visited = HashSet::new();
+    todo!()
+}
 
 pub fn compute_probabilistic_walk_graph<N: HgNode>(graph: &SparseGraph<N>) -> SparseGraph<N> {
     SparseGraph::<N>::new()

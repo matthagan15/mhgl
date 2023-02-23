@@ -3,20 +3,20 @@ use std::collections::HashSet;
 use rand::Rng;
 use uuid::Uuid;
 
-use crate::structs::{EdgeDirection, NodeID, SparseEdge, SparseGraph};
-use crate::traits::*;
+use crate::structs::{EdgeDirection, NodeID, SparseEdge, SparseGraph, SparseBasis, GeneroGraph};
+use crate::{traits::*, HGraph};
 use crate::utils::power_set;
 
 /// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be
 /// specified. For example, an erdos_renyi hypergraph with only the probability (1,1,p) specified is equivalent
 /// to the standard erdos-renyi random graph. This means that our edges are undirected.
-fn erdos_renyi(
+pub fn erdos_renyi(
     num_nodes: usize,
     dimension_with_probability: Vec<(usize, usize, f64)>,
-) -> SparseGraph<Uuid> {
-    let mut hg = SparseGraph::<Uuid>::new_with_num_nodes(num_nodes);
+) -> HGraph {
+    let mut hg = HGraph::new();
+    let nodes = hg.create_nodes(num_nodes);
     let mut rng = rand::thread_rng();
-    let nodes = hg.nodes();
     let mut seen_dims: HashSet<usize> = HashSet::new();
     for (in_dim, out_dim, prob) in dimension_with_probability {
         if seen_dims.contains(&in_dim) && seen_dims.contains(&out_dim) {
@@ -37,7 +37,8 @@ fn erdos_renyi(
                     let in_set = HashSet::new();
                     let out_set = out.into_iter().cloned().collect();
                     let e = SparseEdge::from(in_set, out_set, EdgeDirection::Undirected);
-                    hg.add_edge(e);
+                    // hg.add_edge(e);
+                    hg.create_edge(&in_set.into_iter().collect(), outputs, weight, direction)
                 }
             }
         } else if pot_outputs.len() == 0 && pot_inputs.len() > 0 {

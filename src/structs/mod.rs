@@ -20,6 +20,7 @@ mod sparse_basis;
 mod sparse_edge;
 mod sparse_graph;
 mod sparse_vec;
+mod path;
 
 pub use generic_edge::GeneroEdge;
 pub use generic_graph::GeneroGraph;
@@ -33,3 +34,5 @@ pub use sparse_edge::EdgeDirection;
 pub use sparse_edge::SparseEdge;
 pub use sparse_graph::SparseGraph;
 pub use sparse_vec::SparseVector;
+
+pub use path::HgPath;
