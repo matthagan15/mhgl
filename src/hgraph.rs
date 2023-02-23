@@ -12,7 +12,7 @@ use crate::traits::*;
 #[derive(Debug, Clone)]
 /// The simplest to use hypergraph structure. Utilizes Uuid to store nodes and
 /// uses a sparse representation to store hyperedges. Creating nodes does not
-/// fail, unlike PGraph which may run out of storage.
+/// fail, unlike PGraph which may run out of storage, and can create and delete nodes, unlike BGraph which is fixed at compile time.
 ///
 /// ## Example Usage
 /// ```
@@ -21,7 +21,9 @@ use crate::traits::*;
 /// hg.create_directed_edge(&nodes[0..3], &nodes[0..=1], 1.2);
 /// assert_eq!(hg.step(&nodes[0..3]), vec![(HashSet::from(&nodes[0..=1]), 1.2)]);
 /// ```
-struct HGraph {
+/// 
+/// Currently do not support labeling nodes as no consistent API has been worked out yet. 
+pub struct HGraph {
     // TODO: Move storage of nodes from underlying graph structure to container structures.
     pub name: String,
     nodes: HashSet<NodeID>,
@@ -58,6 +60,34 @@ impl HGraph {
         }
         self.nodes.remove(&node);
     }
+
+    pub fn create_edge(
+        &mut self,
+        inputs: &[NodeID],
+        outputs: &[NodeID],
+        weight: EdgeWeight,
+        direction: EdgeDirection,) -> u128 {
+            match direction {
+                EdgeDirection::Directed | EdgeDirection::Oriented | EdgeDirection::Undirected => {
+                    let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
+                    let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
+                    let e = GeneroEdge::from(input_basis, output_basis, weight, direction);
+                    let id = e.id.clone();
+                    self.graph.add_edge(e);
+                    id.as_u128()
+                },
+                EdgeDirection::Loop | EdgeDirection::Blob => {
+                    let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
+                    let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
+                    input_basis.union_with(&output_basis);
+                    let e = GeneroEdge::from(input_basis, SparseBasis::new_empty(), weight, direction);
+                    let id = e.id.clone();
+                    self.graph.add_edge(e);
+                    id.as_u128()
+                },
+            }
+            
+        }
 
     pub fn create_directed_edge(
         &mut self,
@@ -160,6 +190,15 @@ impl HGraph {
             .map(|(b, w)| (b.to_node_set(), w))
             .collect()
     }
+
+    //TODO: Implelment these!
+    // /// Returns total sum weight of all edges that map input to output.
+    // pub fn query_weight(&self, input: &[NodeID], output: &[NodeID]) -> EdgeWeight {
+    //     self.graph.query_weight(&self, SparseBasis::from_slices(input, output))
+    // }
+    // pub fn query_edges() {
+
+    // }
 }
 
 mod test {

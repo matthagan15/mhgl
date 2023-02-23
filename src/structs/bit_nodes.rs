@@ -15,6 +15,8 @@ use crate::{
 #[derive(PartialEq, Eq, Debug, Clone, Hash, PartialOrd, Ord)]
 pub struct BitNodes<const K: usize> {
     pub bits: [u8; K],
+    // TODO: Change BitNodes API to have this.
+    // is_empty: bool,
 }
 
 impl<const K: usize> BitNodes<K> {

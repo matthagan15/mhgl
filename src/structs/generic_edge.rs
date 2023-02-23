@@ -158,6 +158,18 @@ impl<B: HgBasis> GeneroEdge<B> {
         }
     }
 
+    /// Returns true if input correctly maps to output from this edge, false
+    /// otherwise.
+    pub fn is_correctly_mapped(&self, input: &B, output: &B) -> bool {
+        match self.direction {
+            EdgeDirection::Directed => todo!(),
+            EdgeDirection::Undirected | xEdgeDirection::Oriented => todo!(),
+            EdgeDirection::Loop => todo!(),
+            EdgeDirection::Blob => todo!(),
+        }
+        false
+    }
+
     /// Returns true if output and input unioned cover the provided basis
     pub fn contains(&self, basis: &B) -> bool {
         let total = self.in_nodes.union(&self.out_nodes);
