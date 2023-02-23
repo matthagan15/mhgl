@@ -6,6 +6,22 @@ use crate::traits::HgBasis;
 
 use super::{generic_vec::GeneroVector, EdgeDirection, EdgeID, EdgeWeight};
 
+/// # Edge
+/// HyperEdges constitute the main objects of a HyperGraph. The fundamental type of edge is
+/// a directed, weighted edge which maps an input subset of nodes to an output subsets of nodes
+/// with an associated number. Again, there are 3 ways to represent a directed, weighted hyperedge:
+/// 1. An input set, an output set, and a weight. This is preferred for sparse graphs.
+/// 2. An input binary number, where each "1" indicates that node is present in the input, an output
+/// binary number (similar to input), and the weight.
+/// 3. As an entry in the hypgraph adjacency matrix (input index represents a set, output index represents a
+/// set, and the value in the matrix the weight.)
+///
+/// From these different representations of a directed, weighted hyperedge many other
+/// direction types can be constructed. For example, undirected hyperedges which maps a subset in both directions,
+/// oriented hyperedges in which the weight is negated going the "opposite" direction of the orientation, loops which
+/// map a subset back to itself, or "blob"
+/// types (which are the standard "undirected" hyperedge in the literature) which will map any subset to it's complement
+/// in the "blob".
 #[derive(Debug, Clone)]
 pub struct GeneroEdge<B: HgBasis> {
     pub id: EdgeID,
@@ -163,7 +179,7 @@ impl<B: HgBasis> GeneroEdge<B> {
     pub fn is_correctly_mapped(&self, input: &B, output: &B) -> bool {
         match self.direction {
             EdgeDirection::Directed => todo!(),
-            EdgeDirection::Undirected | xEdgeDirection::Oriented => todo!(),
+            EdgeDirection::Undirected | EdgeDirection::Oriented => todo!(),
             EdgeDirection::Loop => todo!(),
             EdgeDirection::Blob => todo!(),
         }

@@ -272,10 +272,11 @@ impl<B: HgBasis> GeneroGraph<B> {
     }
 
     pub fn query_edges(&self, input: &B, output: &B) -> Vec<EdgeID> {
-        let mut ret = Vec::new();
-        for (id, edge) in self.edges.iter() {
-            if edge.can_map_basis(basis)
-        }
+        todo!()
+        // let mut ret = Vec::new();
+        // for (id, edge) in self.edges.iter() {
+        //     if edge.can_map_basis(basis)
+        // }
     }
 
     pub fn map_basis(&self, input: &B) -> GeneroVector<B> {
