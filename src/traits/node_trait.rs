@@ -4,8 +4,6 @@ use std::hash::Hash;
 use std::ops::AddAssign;
 use uuid::Uuid;
 
-
-
 /// # Nodes
 /// This library uses the notation "node" as opposed to vertex to align with my research. The
 /// rationale behind this is that "V" is preferred to represent a vector space as opposed to

@@ -263,7 +263,7 @@ impl<B: HgBasis> GeneroGraph<B> {
     /// Returns the sum total of all edge weights mapping input basis `input` to output basis `output`.
     pub fn query_weight(&self, input: &B, output: &B) -> EdgeWeight {
         let mut ret = 0.;
-        for (b,w) in self.map_basis(input).to_tuples() {
+        for (b, w) in self.map_basis(input).to_tuples() {
             if b == *output {
                 ret += w;
             }

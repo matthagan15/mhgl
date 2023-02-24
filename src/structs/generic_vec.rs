@@ -18,11 +18,11 @@ use super::EdgeWeight;
 /// # Invariant/Internals
 /// Although a basis vector is a set, it's easiest to work with basis vectors when the
 /// data storage is a HashMap from basis to coefficient. Unfortunately you cannot hash
-/// a hashset due to the randomness, so we use SORTED vectors as the basis 
+/// a hashset due to the randomness, so we use SORTED vectors as the basis
 /// # Vectors
 /// We provide a simple datastructure that can be thought of as a "vector" that
 /// a directed, weighted hypergraph acts on. All it does is store a mapping
-/// from basis elements to coefficients, as well as a set of cardinality 
+/// from basis elements to coefficients, as well as a set of cardinality
 /// maps for easy projections on to basis elements with a certain number of
 /// nodes.elements.
 #[derive(Clone, Debug, Serialize)]

@@ -16,11 +16,11 @@ mod bit_vec;
 mod generic_edge;
 mod generic_graph;
 mod generic_vec;
+mod path;
 mod sparse_basis;
 mod sparse_edge;
 mod sparse_graph;
 mod sparse_vec;
-mod path;
 
 pub use generic_edge::GeneroEdge;
 pub use generic_graph::GeneroGraph;

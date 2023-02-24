@@ -1,5 +1,5 @@
-use crate::traits::HgBasis;
 use crate::structs::GeneroGraph;
+use crate::traits::HgBasis;
 
 use super::EdgeWeight;
 
@@ -15,11 +15,13 @@ pub struct HgPath<B: HgBasis> {
 
 impl<B: HgBasis> HgPath<B> {
     pub fn new(start: B) -> Self {
-        HgPath { sites: vec![start] , weight:
-        0.0}
+        HgPath {
+            sites: vec![start],
+            weight: 0.0,
+        }
     }
 
-    /// How many edges the path has traversed. A path with a single basis 
+    /// How many edges the path has traversed. A path with a single basis
     /// element is length 0, a path with two basis elements is length 1, etc.
     /// Note: path must be non-empty and start from somewhere. vec must never be empty.
     pub fn len(&self) -> usize {
@@ -28,7 +30,10 @@ impl<B: HgBasis> HgPath<B> {
 
     /// Returns the most recently visited basis if the path has non-zero length
     pub fn last_basis(&self) -> B {
-        self.sites.last().map(|b| b.clone()).expect("path should be non-empty.")
+        self.sites
+            .last()
+            .map(|b| b.clone())
+            .expect("path should be non-empty.")
     }
 
     /// Returns the first visited basis if the path has non-zero length
@@ -64,7 +69,12 @@ mod test {
 
     use uuid::Uuid;
 
-    use crate::{algs::builders::erdos_renyi, structs::{path::HgPath, SparseBasis, GeneroGraph}, traits::HgBasis, HGraph};
+    use crate::{
+        algs::builders::erdos_renyi,
+        structs::{path::HgPath, GeneroGraph, SparseBasis},
+        traits::HgBasis,
+        HGraph,
+    };
 
     #[test]
     fn test_simple_extension() {
@@ -72,11 +82,15 @@ mod test {
         let mut nodes = hg.create_nodes(10);
         nodes.sort();
         for ix in 0..9 {
-            hg.create_edge(&nodes[ix ..= ix], &nodes[ix + 1 ..= ix + 1], 1., crate::EdgeDirection::Directed);
+            hg.create_edge(
+                &nodes[ix..=ix],
+                &nodes[ix + 1..=ix + 1],
+                1.,
+                crate::EdgeDirection::Directed,
+            );
         }
         let p = HgPath::new(SparseBasis::from(HashSet::from([nodes[0]])));
         println!("nodes: {:#?}", nodes);
         println!("path extension:\n{:#?}", p.extend(&hg.graph));
-        
     }
 }

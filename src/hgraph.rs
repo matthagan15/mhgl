@@ -21,8 +21,8 @@ use crate::traits::*;
 /// hg.create_directed_edge(&nodes[0..3], &nodes[0..=1], 1.2);
 /// assert_eq!(hg.step(&nodes[0..3]), vec![(HashSet::from(&nodes[0..=1]), 1.2)]);
 /// ```
-/// 
-/// Currently do not support labeling nodes as no consistent API has been worked out yet. 
+///
+/// Currently do not support labeling nodes as no consistent API has been worked out yet.
 pub struct HGraph {
     // TODO: Move storage of nodes from underlying graph structure to container structures.
     pub name: String,
@@ -66,28 +66,28 @@ impl HGraph {
         inputs: &[NodeID],
         outputs: &[NodeID],
         weight: EdgeWeight,
-        direction: EdgeDirection,) -> u128 {
-            match direction {
-                EdgeDirection::Directed | EdgeDirection::Oriented | EdgeDirection::Undirected => {
-                    let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-                    let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
-                    let e = GeneroEdge::from(input_basis, output_basis, weight, direction);
-                    let id = e.id.clone();
-                    self.graph.add_edge(e);
-                    id.as_u128()
-                },
-                EdgeDirection::Loop | EdgeDirection::Blob => {
-                    let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-                    let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
-                    input_basis.union_with(&output_basis);
-                    let e = GeneroEdge::from(input_basis, SparseBasis::new_empty(), weight, direction);
-                    let id = e.id.clone();
-                    self.graph.add_edge(e);
-                    id.as_u128()
-                },
+        direction: EdgeDirection,
+    ) -> u128 {
+        match direction {
+            EdgeDirection::Directed | EdgeDirection::Oriented | EdgeDirection::Undirected => {
+                let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
+                let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
+                let e = GeneroEdge::from(input_basis, output_basis, weight, direction);
+                let id = e.id.clone();
+                self.graph.add_edge(e);
+                id.as_u128()
             }
-            
+            EdgeDirection::Loop | EdgeDirection::Blob => {
+                let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
+                let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
+                input_basis.union_with(&output_basis);
+                let e = GeneroEdge::from(input_basis, SparseBasis::new_empty(), weight, direction);
+                let id = e.id.clone();
+                self.graph.add_edge(e);
+                id.as_u128()
+            }
         }
+    }
 
     pub fn create_directed_edge(
         &mut self,

@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::structs::*;
 use crate::traits::*;
 
+/// Applies an input graph to an input vector a specified amount of times.
 pub fn walk<N: HgNode>(
     start: SparseVector<N>,
     walk_operator: &SparseGraph<N>,
@@ -17,6 +18,7 @@ pub fn walk<N: HgNode>(
     ret
 }
 
+/// first pass at basic BFS, probably something done incorrectly
 pub fn bfs_base<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> Vec<HgPath<B>> {
     // TODO: change this to a dequeue.
     let mut visited = HashSet::new();
@@ -39,7 +41,8 @@ pub fn bfs_base<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> 
 }
 
 // Thoughts on making an enum of walkers?
-// Thoughts on making iterators of walkers? 
+// Thoughts on making iterators of walkers?
+/// First pass at basic DFS, probably something done incorrectly.
 pub fn dfs_base<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> Vec<HgPath<B>> {
     let mut visited = HashSet::new();
     let mut start_path = HgPath::new(start.clone());
@@ -60,10 +63,12 @@ pub fn dfs_base<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> 
     completed
 }
 
+/// Constructs a random walk graph out of a specified input graph.
 pub fn compute_probabilistic_walk_graph<N: HgNode>(graph: &SparseGraph<N>) -> SparseGraph<N> {
     SparseGraph::<N>::new()
 }
 
+/// Where cut computations would go
 pub fn compute_cut<N: HgNode>(selected_nodes: HashSet<N>, graph: &SparseGraph<N>) {
     let mut pot_edges = HashSet::new();
     for node in selected_nodes.iter() {
@@ -75,7 +80,7 @@ pub fn compute_cut<N: HgNode>(selected_nodes: HashSet<N>, graph: &SparseGraph<N>
 }
 
 mod test {
-    use crate::{HGraph, structs::SparseBasis};
+    use crate::{structs::SparseBasis, HGraph};
 
     use super::bfs_base;
 
@@ -98,6 +103,13 @@ mod test {
         hg.create_edge(&b2, &b5, 1., crate::EdgeDirection::Directed);
         println!("nodes: {:#?}", nodes);
         println!("graph: {:#?}", hg.graph);
-        println!("bfs: {:#?}", bfs_base(&hg.graph, &SparseBasis::from(start.iter().cloned().collect()), 2));
+        println!(
+            "bfs: {:#?}",
+            bfs_base(
+                &hg.graph,
+                &SparseBasis::from(start.iter().cloned().collect()),
+                2
+            )
+        );
     }
 }

@@ -3,17 +3,14 @@ use std::collections::HashSet;
 use rand::Rng;
 use uuid::Uuid;
 
-use crate::structs::{EdgeDirection, NodeID, SparseEdge, SparseGraph, SparseBasis, GeneroGraph};
-use crate::{traits::*, HGraph};
+use crate::structs::{EdgeDirection, GeneroGraph, NodeID, SparseBasis, SparseEdge, SparseGraph};
 use crate::utils::power_set;
+use crate::{traits::*, HGraph};
 
 /// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be
 /// specified. For example, an erdos_renyi hypergraph with only the probability (1,1,p) specified is equivalent
 /// to the standard erdos-renyi random graph. This means that our edges are undirected.
-pub fn erdos_renyi(
-    num_nodes: usize,
-    dimension_with_probability: Vec<(usize, usize, f64)>,
-) -> () {
+pub fn erdos_renyi(num_nodes: usize, dimension_with_probability: Vec<(usize, usize, f64)>) -> () {
     // let mut hg = HGraph::new();
     // let nodes = hg.create_nodes(num_nodes);
     // let mut rng = rand::thread_rng();
