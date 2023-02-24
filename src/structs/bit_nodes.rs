@@ -4,11 +4,11 @@ use std::{
     ops::{Add, AddAssign, Mul, MulAssign},
 };
 
-use serde::{ser::SerializeStruct, Deserialize, Serialize};
-use uuid::Uuid;
+use serde::{ser::SerializeStruct, Serialize};
+
 
 use crate::{
-    traits::{HgBasis, HgNode},
+    traits::{HgBasis},
     utils::PowerSetBits,
 };
 
@@ -180,9 +180,9 @@ impl<const K: usize> Serialize for BitNodes<K> {
 }
 
 mod test {
-    use serde::Serialize;
+    
 
-    use super::BitNodes;
+    
 
     #[test]
     fn test_bit_nodes_serialization() {

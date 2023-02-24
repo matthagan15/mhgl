@@ -1,10 +1,10 @@
-use core::num;
-use std::collections::{HashMap, HashSet};
+
+use std::collections::{HashSet};
 
 use uuid::Uuid;
 
 use crate::structs::{
-    EdgeDirection, EdgeID, EdgeWeight, GeneroEdge, GeneroGraph, NodeID, SparseBasis, SparseGraph,
+    EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph, NodeID, SparseBasis,
 };
 
 use crate::traits::*;
@@ -202,9 +202,9 @@ impl HGraph {
 }
 
 mod test {
-    use uuid::Uuid;
+    
 
-    use super::HGraph;
+    
 
     #[test]
     fn test_hgraph_trait_ergonomics() {

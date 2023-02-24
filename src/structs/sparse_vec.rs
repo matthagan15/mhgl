@@ -1,7 +1,7 @@
 use rand::{thread_rng, Rng};
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
-use crate::structs::{sparse_edge::SparseEdge, EdgeWeight, NodeID};
+use crate::structs::{EdgeWeight};
 use crate::traits::*;
 use std::{
     collections::{HashMap, HashSet},
@@ -155,7 +155,7 @@ impl<N: HgNode> SparseVector<N> {
             let card_val = ret.entry(k.len()).or_insert(0.0);
             *card_val = *card_val + v.abs();
         }
-        for (k, v) in ret.iter_mut() {
+        for (_k, v) in ret.iter_mut() {
             *v = *v / tot;
         }
         ret
@@ -267,7 +267,7 @@ impl<N: HgNode> Add for SparseVector<N> {
     type Output = SparseVector<N>;
 
     fn add(mut self, rhs: Self) -> Self::Output {
-        let mut ret = self.clone();
+        let ret = self.clone();
         for (basis, weight) in rhs.basis() {
             let new_weight = self.basis_to_weight.entry(basis).or_insert(0.);
             *new_weight = *new_weight + weight;
@@ -305,15 +305,15 @@ impl<N: HgNode> MulAssign<EdgeWeight> for SparseVector<N> {
 }
 
 mod test {
-    use std::collections::HashSet;
+    
 
-    use uuid::Uuid;
+    
 
-    use super::SparseVector;
+    
 
     #[test]
     fn test_add() {
-        let mut nodes: HashSet<u8> = { 0..10 }.collect();
+        let _nodes: HashSet<u8> = { 0..10 }.collect();
         let b1: HashSet<u8> = { 0..2 }.collect();
         let b2: HashSet<u8> = { 0..3 }.collect();
         let vec1 = SparseVector::from_basis(b1.clone(), 1.);

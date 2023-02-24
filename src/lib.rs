@@ -37,7 +37,7 @@
 
 #![forbid(unsafe_code)]
 
-use uuid::Uuid;
+
 
 pub mod algs;
 mod bgraph;
@@ -57,7 +57,7 @@ pub use structs::EdgeDirection;
 mod tests {
     use std::collections::HashSet;
 
-    use uuid::Uuid;
+    
 
     use crate::structs::NodeID;
 

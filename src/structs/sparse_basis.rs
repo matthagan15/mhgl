@@ -143,7 +143,7 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
         let l2 = rhs.nodes.len();
         let mut left_counter = 0;
         let mut right_counter = 0;
-        for ix in 0..(l1 + l2) {
+        for _ix in 0..(l1 + l2) {
             if left_counter == l1 || right_counter == l2 {
                 break;
             }
@@ -207,15 +207,15 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
 }
 
 mod test {
-    use rand::{thread_rng, Rng};
+    
 
-    use crate::{structs::sparse_basis::binary_search, traits::HgBasis};
+    
 
-    use super::SparseBasis;
+    
 
     #[test]
     fn test_bin_search() {
-        let mut rng = thread_rng();
+        let _rng = thread_rng();
         let mut data: Vec<u8> = (0..25).collect();
         data.sort();
         let out = binary_search(&data, &24);

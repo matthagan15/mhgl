@@ -8,22 +8,18 @@ use crate::{
     traits::HyperGraph,
 };
 
-use core::num;
+
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use std::{
-    cmp::max,
     collections::{hash_set::Iter, HashMap, HashSet},
-    f32::consts::E,
     fmt::Display,
-    fs,
-    ops::{Add, AddAssign, Index},
 };
 use uuid::Uuid;
 
-use num_integer::binomial;
 
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
+
 
 use super::GraphID;
 
@@ -183,7 +179,7 @@ impl<N: HgNode> SparseGraph<N> {
         output_nodes: &HashSet<N>,
     ) -> Option<&EdgeID> {
         let in_dim = input_nodes.len();
-        let out_dim = output_nodes.len();
+        let _out_dim = output_nodes.len();
         if let Some(possible_from_in) = self.input_cardinality_to_edges.get(&in_dim) {
             for possible in possible_from_in {
                 if let Some(e) = self.edges.get(possible) {
@@ -528,9 +524,9 @@ impl Display for SparseGraph<NodeID> {
 }
 
 mod tests {
-    use std::collections::HashMap;
+    
 
-    use uuid::Uuid;
+    
 
-    use crate::structs::sparse_graph::SparseGraph;
+    
 }

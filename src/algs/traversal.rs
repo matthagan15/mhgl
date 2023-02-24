@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use uuid::Uuid;
+
 
 use crate::structs::*;
 use crate::traits::*;
@@ -22,7 +22,7 @@ pub fn walk<N: HgNode>(
 pub fn bfs_base<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> Vec<HgPath<B>> {
     // TODO: change this to a dequeue.
     let mut visited = HashSet::new();
-    let mut start_path = HgPath::new(start.clone());
+    let start_path = HgPath::new(start.clone());
     let mut frontier = vec![start_path];
     let mut completed = Vec::new();
     while frontier.len() > 0 {
@@ -45,7 +45,7 @@ pub fn bfs_base<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> 
 /// First pass at basic DFS, probably something done incorrectly.
 pub fn dfs_base<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> Vec<HgPath<B>> {
     let mut visited = HashSet::new();
-    let mut start_path = HgPath::new(start.clone());
+    let start_path = HgPath::new(start.clone());
     let mut frontier = vec![start_path];
     let mut completed = Vec::new();
     while frontier.len() > 0 {
@@ -64,7 +64,7 @@ pub fn dfs_base<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> 
 }
 
 /// Constructs a random walk graph out of a specified input graph.
-pub fn compute_probabilistic_walk_graph<N: HgNode>(graph: &SparseGraph<N>) -> SparseGraph<N> {
+pub fn compute_probabilistic_walk_graph<N: HgNode>(_graph: &SparseGraph<N>) -> SparseGraph<N> {
     SparseGraph::<N>::new()
 }
 
@@ -80,9 +80,9 @@ pub fn compute_cut<N: HgNode>(selected_nodes: HashSet<N>, graph: &SparseGraph<N>
 }
 
 mod test {
-    use crate::{structs::SparseBasis, HGraph};
+    
 
-    use super::bfs_base;
+    
 
     #[test]
     fn test_bfs() {

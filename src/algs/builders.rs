@@ -1,16 +1,16 @@
-use std::collections::HashSet;
 
-use rand::Rng;
-use uuid::Uuid;
 
-use crate::structs::{EdgeDirection, GeneroGraph, NodeID, SparseBasis, SparseEdge, SparseGraph};
-use crate::utils::power_set;
-use crate::{traits::*, HGraph};
+
+
+
+use crate::structs::{SparseGraph};
+
+use crate::{traits::*};
 
 /// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be
 /// specified. For example, an erdos_renyi hypergraph with only the probability (1,1,p) specified is equivalent
 /// to the standard erdos-renyi random graph. This means that our edges are undirected.
-pub fn erdos_renyi(num_nodes: usize, dimension_with_probability: Vec<(usize, usize, f64)>) -> () {
+pub fn erdos_renyi(_num_nodes: usize, _dimension_with_probability: Vec<(usize, usize, f64)>) -> () {
     // let mut hg = HGraph::new();
     // let nodes = hg.create_nodes(num_nodes);
     // let mut rng = rand::thread_rng();
@@ -65,7 +65,7 @@ pub fn erdos_renyi(num_nodes: usize, dimension_with_probability: Vec<(usize, usi
     // hg
 }
 
-pub fn uniform_undirected_erdos_renyi<N: HgNode>(num_nodes: usize, prob: f64) -> SparseGraph<N> {
+pub fn uniform_undirected_erdos_renyi<N: HgNode>(num_nodes: usize, _prob: f64) -> SparseGraph<N> {
     if num_nodes < u8::MAX as usize {
         SparseGraph::new()
     } else {
@@ -74,12 +74,12 @@ pub fn uniform_undirected_erdos_renyi<N: HgNode>(num_nodes: usize, prob: f64) ->
 }
 
 mod test {
-    use super::erdos_renyi;
+    
 
     #[test]
     fn test_erdos_renyi() {
-        let num_nodes = 4;
-        let dim_w_probs = vec![
+        let _num_nodes = 4;
+        let _dim_w_probs = vec![
             (1, 1, 0.5),
             (1, 2, 0.5),
             (0, 4, 1.),

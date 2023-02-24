@@ -6,7 +6,7 @@ use std::{
 use rand::*;
 use serde::Serialize;
 
-use crate::traits::{HgBasis, HgNode};
+use crate::traits::{HgBasis};
 
 use super::EdgeWeight;
 
@@ -127,7 +127,7 @@ impl<B: HgBasis> GeneroVector<B> {
             let card_val = ret.entry(b.cardinality()).or_insert(0.0);
             *card_val = *card_val + v.abs();
         }
-        for (k, v) in ret.iter_mut() {
+        for (_k, v) in ret.iter_mut() {
             *v = *v / tot;
         }
         ret
@@ -230,7 +230,7 @@ impl<B: HgBasis> Mul<EdgeWeight> for GeneroVector<B> {
 
     fn mul(self, rhs: EdgeWeight) -> Self::Output {
         let mut ret = self;
-        for (b, w) in ret.basis_to_weight.iter_mut() {
+        for (_b, w) in ret.basis_to_weight.iter_mut() {
             *w = *w * rhs;
         }
         ret
@@ -239,7 +239,7 @@ impl<B: HgBasis> Mul<EdgeWeight> for GeneroVector<B> {
 
 impl<B: HgBasis> MulAssign<EdgeWeight> for GeneroVector<B> {
     fn mul_assign(&mut self, rhs: EdgeWeight) {
-        for (b, w) in self.basis_to_weight.iter_mut() {
+        for (_b, w) in self.basis_to_weight.iter_mut() {
             *w = *w * rhs;
         }
     }

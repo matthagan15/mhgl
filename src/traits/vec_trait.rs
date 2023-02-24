@@ -1,7 +1,6 @@
 use crate::structs::EdgeWeight;
 use std::{
     collections::HashMap,
-    hash::Hash,
     ops::{Add, AddAssign, Mul, MulAssign},
 };
 

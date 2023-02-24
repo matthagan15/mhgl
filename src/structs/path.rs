@@ -65,16 +65,11 @@ impl<B: HgBasis> HgPath<B> {
 }
 
 mod test {
-    use std::collections::HashSet;
+    
 
-    use uuid::Uuid;
+    
 
-    use crate::{
-        algs::builders::erdos_renyi,
-        structs::{path::HgPath, GeneroGraph, SparseBasis},
-        traits::HgBasis,
-        HGraph,
-    };
+    
 
     #[test]
     fn test_simple_extension() {

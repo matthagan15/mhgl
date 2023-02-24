@@ -1,4 +1,4 @@
-use std::{collections::HashSet, hash::Hash};
+use std::{collections::HashSet};
 
 use uuid::Uuid;
 
@@ -176,7 +176,7 @@ impl<B: HgBasis> GeneroEdge<B> {
 
     /// Returns true if input correctly maps to output from this edge, false
     /// otherwise.
-    pub fn is_correctly_mapped(&self, input: &B, output: &B) -> bool {
+    pub fn is_correctly_mapped(&self, _input: &B, _output: &B) -> bool {
         match self.direction {
             EdgeDirection::Directed => todo!(),
             EdgeDirection::Undirected | EdgeDirection::Oriented => todo!(),
@@ -196,7 +196,7 @@ impl<B: HgBasis> GeneroEdge<B> {
         if self.can_map_basis(basis) == false {
             return GeneroVector::new();
         }
-        let mut new_vec = GeneroVector::from_basis(basis.clone(), 1.);
+        let new_vec = GeneroVector::from_basis(basis.clone(), 1.);
         self.map_vector(new_vec)
     }
 
@@ -252,15 +252,15 @@ impl<B: HgBasis> GeneroEdge<B> {
 }
 
 mod test {
-    use std::collections::HashSet;
+    
 
-    use crate::structs::{generic_vec::GeneroVector, sparse_basis::SparseBasis, EdgeDirection};
+    
 
-    use super::GeneroEdge;
+    
 
     #[test]
     fn test_sparse_map_vec() {
-        let nodes: Vec<u16> = vec![11, 23, 492, 493, 203];
+        let _nodes: Vec<u16> = vec![11, 23, 492, 493, 203];
         let b1 = SparseBasis::from(HashSet::from([11_u16, 23, 492, 493]));
         let b2 = SparseBasis::from(HashSet::from([11_u16, 23, 492, 493, 203]));
         let b3 = SparseBasis::<u16>::new();

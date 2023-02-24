@@ -1,11 +1,10 @@
-use core::num;
+
 use std::{
     collections::{HashMap, HashSet},
     fmt::Write,
-    ops::Add,
     u8,
 };
-use uuid::Uuid;
+
 
 use crate::{structs::bit_nodes::BitNodes, traits::*};
 
@@ -144,7 +143,7 @@ impl<const M: usize> PowerSetBits<M> {
     pub fn get_nodes_set(&self) -> HashSet<[u8; M]> {
         let mut ret = HashSet::new();
         let mut tmp = self.clone();
-        for ix in 0..self.num_ones() {
+        for _ix in 0..self.num_ones() {
             let mut pb = PowerSetBits { bits: [0; M] };
             pb.flip_kth_bit(tmp.leading_zeros());
             tmp.flip_kth_one(1);
@@ -221,9 +220,9 @@ impl<const M: usize> PowerSetBits<M> {
 }
 
 mod test {
-    use uuid::Uuid;
+    
 
-    use super::{power_set, PowerSetBits};
+    
 
     #[test]
     fn test_leading_ones() {
@@ -259,7 +258,7 @@ mod test {
 
     #[test]
     fn test_pb_flipper() {
-        let mut og = PowerSetBits {
+        let og = PowerSetBits {
             bits: [
                 0b_0110_1001_u8,
                 0b_1001_0110_u8,

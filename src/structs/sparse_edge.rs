@@ -1,10 +1,8 @@
 use core::hash::Hash;
 use serde::{Deserialize, Serialize};
-use std::default::Default;
+
 use std::{
-    collections::{HashMap, HashSet},
-    fmt::Display,
-    ops::Index,
+    collections::{HashSet},
 };
 use uuid::Uuid;
 
@@ -264,8 +262,8 @@ impl<N: HgNode> Hash for SparseEdge<N> {
 }
 
 mod tests {
-    use std::collections::{HashMap, HashSet};
-    use uuid::Uuid;
+    
+    
 
     #[test]
     fn test_complement() {

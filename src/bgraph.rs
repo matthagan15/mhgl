@@ -1,13 +1,13 @@
-use core::num;
+
 use std::collections::HashSet;
 
 use uuid::Uuid;
 
 use crate::{
     structs::{
-        bit_edge::BitEdge, bit_nodes::BitNodes, EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph,
+        bit_nodes::BitNodes, EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph,
     },
-    traits::{HgBasis, HgNode},
+    traits::{HgBasis},
     utils::PowerSetBits,
 };
 
@@ -97,8 +97,8 @@ impl<const K: usize> BGraph<K> {
 }
 
 mod test {
-    use super::BGraph;
-    use crate::structs::EdgeDirection;
+    
+    
 
     #[test]
     fn test_bit_graph_new() {

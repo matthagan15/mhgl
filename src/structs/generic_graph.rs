@@ -6,7 +6,7 @@ use crate::traits::HgBasis;
 
 use super::{
     generic_edge::GeneroEdge, generic_vec::GeneroVector, EdgeDirection, EdgeID, EdgeWeight,
-    GraphID, SparseEdge,
+    GraphID,
 };
 
 #[derive(Debug, Clone)]
@@ -271,7 +271,7 @@ impl<B: HgBasis> GeneroGraph<B> {
         ret
     }
 
-    pub fn query_edges(&self, input: &B, output: &B) -> Vec<EdgeID> {
+    pub fn query_edges(&self, _input: &B, _output: &B) -> Vec<EdgeID> {
         todo!()
         // let mut ret = Vec::new();
         // for (id, edge) in self.edges.iter() {
@@ -303,7 +303,7 @@ impl<B: HgBasis> GeneroGraph<B> {
         ret
     }
     pub fn map(&self, input: &GeneroVector<B>) -> GeneroVector<B> {
-        let mut ret = GeneroVector::new();
+        let ret = GeneroVector::new();
         for (b, w) in input.basis_to_weight.iter() {
             let mut tmp = self.map_basis(&b);
             tmp *= *w;

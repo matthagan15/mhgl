@@ -177,7 +177,7 @@ impl<N: HgNode> PGraph<N> {
 }
 
 mod test {
-    use super::PGraph;
+    
 
     #[test]
     fn test_node_creation_deletion() {
