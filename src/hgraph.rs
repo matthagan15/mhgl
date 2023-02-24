@@ -27,7 +27,7 @@ pub struct HGraph {
     // TODO: Move storage of nodes from underlying graph structure to container structures.
     pub name: String,
     nodes: HashSet<NodeID>,
-    graph: GeneroGraph<SparseBasis<NodeID>>,
+    pub graph: GeneroGraph<SparseBasis<NodeID>>,
 }
 
 impl HGraph {

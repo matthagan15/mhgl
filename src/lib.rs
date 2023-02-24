@@ -28,6 +28,11 @@
 //! 
 //! # Algorithms
 //! Under Construction.
+//! 
+//! # Alternative Hypergraph Libraries
+//! - HyperNetX (Python): focused on "blob" type hypergraphs.
+//! - HypergraphDB (Java): A database backend for storing and querying data
+//! - Hypergraph (Rust): Seems hard to use and not maintained.
 
 #![forbid(unsafe_code)]
 
