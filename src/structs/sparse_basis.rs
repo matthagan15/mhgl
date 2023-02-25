@@ -207,6 +207,10 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
 }
 
 mod test {
+    use rand::thread_rng;
+
+    use crate::{structs::{sparse_basis::binary_search, SparseBasis}, traits::HgBasis};
+
     
 
     

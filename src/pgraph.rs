@@ -177,6 +177,8 @@ impl<N: HgNode> PGraph<N> {
 }
 
 mod test {
+    use crate::PGraph;
+
     
 
     #[test]

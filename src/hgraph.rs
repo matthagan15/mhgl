@@ -202,6 +202,8 @@ impl HGraph {
 }
 
 mod test {
+    use crate::HGraph;
+
     
 
     

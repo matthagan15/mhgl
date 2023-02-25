@@ -305,6 +305,10 @@ impl<N: HgNode> MulAssign<EdgeWeight> for SparseVector<N> {
 }
 
 mod test {
+    use std::collections::HashSet;
+
+    use crate::structs::SparseVector;
+
     
 
     

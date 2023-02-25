@@ -180,6 +180,8 @@ impl<const K: usize> Serialize for BitNodes<K> {
 }
 
 mod test {
+    use super::BitNodes;
+
     
 
     

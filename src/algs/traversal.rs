@@ -80,6 +80,8 @@ pub fn compute_cut<N: HgNode>(selected_nodes: HashSet<N>, graph: &SparseGraph<N>
 }
 
 mod test {
+    use crate::{HGraph, algs::traversal::bfs_base, structs::SparseBasis};
+
     
 
     

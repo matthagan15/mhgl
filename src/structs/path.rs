@@ -65,6 +65,10 @@ impl<B: HgBasis> HgPath<B> {
 }
 
 mod test {
+    use std::collections::HashSet;
+
+    use crate::{HGraph, structs::{HgPath, SparseBasis}};
+
     
 
     

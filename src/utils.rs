@@ -220,6 +220,10 @@ impl<const M: usize> PowerSetBits<M> {
 }
 
 mod test {
+    use uuid::Uuid;
+
+    use crate::utils::{PowerSetBits, power_set};
+
     
 
     

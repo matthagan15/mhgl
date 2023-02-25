@@ -97,6 +97,8 @@ impl<const K: usize> BGraph<K> {
 }
 
 mod test {
+    use crate::{BGraph, EdgeDirection};
+
     
     
 
