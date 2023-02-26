@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use uuid::Uuid;
 
 use crate::{
-    structs::{EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis},
-    traits::HgNode,
+    structs::{EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis, EdgeID},
+    traits::{HgNode, HyperGraph},
 };
 
 #[derive(Debug, Clone)]
@@ -173,6 +173,33 @@ impl<N: HgNode> PGraph<N> {
             .into_iter()
             .map(|(b, w)| (b.to_node_set(), w))
             .collect()
+    }
+}
+
+impl<N: HgNode> HyperGraph for PGraph<N> {
+    type Basis = SparseBasis<N>;
+    fn edges(&self) -> Vec<crate::structs::EdgeID> {
+        self.graph.clone_edges()
+    }
+
+    fn get_outbound_edges(&self, node: &Self::Basis) -> Vec<EdgeID> {
+        self.graph.get_outbound_edges(node).into_iter().collect()
+    }
+
+    fn query_edges(&self, input: &Self::Basis, output: &Self::Basis) -> Vec<crate::structs::EdgeID> {
+        self.graph.query_edges(input, output)
+    }
+
+    fn query_weight(&self, input: &Self::Basis, output: &Self::Basis) -> EdgeWeight {
+        self.graph.query_weight(input, output)
+    }
+
+    fn map_basis(&self, input: &Self::Basis) -> Vec<(Self::Basis, EdgeWeight)> {
+        self.graph.map_basis(input).to_tuples()
+    }
+
+    fn map_vector(&self, input: &crate::structs::GeneroVector<Self::Basis>) -> crate::structs::GeneroVector<Self::Basis> {
+        self.graph.map(input)
     }
 }
 

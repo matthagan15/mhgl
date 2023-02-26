@@ -2,6 +2,9 @@ use std::collections::HashSet;
 
 
 
+use rand::Rng;
+use rand::thread_rng;
+
 use crate::structs::*;
 use crate::traits::*;
 
@@ -63,6 +66,22 @@ pub fn dfs_base<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> 
     completed
 }
 
+pub fn random_walk<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> B {
+    let mut rng = thread_rng();
+    let mut walker_location = start.clone();
+    for _ in 0..steps {
+        let outputs = graph.map_basis(start).to_tuples();
+        let tot = outputs.iter().fold(0., |acc, (_b, w)| acc + w);
+        for ix in 0..outputs.len() {
+            if outputs[ix].1 / tot <= rng.gen() {
+                walker_location = outputs[ix].0.clone();
+                break;
+            }
+        }
+    }
+    walker_location
+}
+
 /// Constructs a random walk graph out of a specified input graph.
 pub fn compute_probabilistic_walk_graph<N: HgNode>(_graph: &SparseGraph<N>) -> SparseGraph<N> {
     SparseGraph::<N>::new()
@@ -82,9 +101,7 @@ pub fn compute_cut<N: HgNode>(selected_nodes: HashSet<N>, graph: &SparseGraph<N>
 mod test {
     use crate::{HGraph, algs::traversal::bfs_base, structs::SparseBasis};
 
-    
-
-    
+    use super::random_walk;
 
     #[test]
     fn test_bfs() {
@@ -113,5 +130,27 @@ mod test {
                 2
             )
         );
+    }
+
+    #[test]
+    fn test_random_walk() {
+        let mut hg = HGraph::new();
+        let mut nodes = hg.create_nodes(10);
+        nodes.sort();
+        let start = &nodes[0..2];
+        let start_basis = SparseBasis::from(start.iter().cloned().collect());
+        let b1 = [nodes[0], nodes[1], nodes[2]];
+        let b2 = [nodes[0], nodes[1], nodes[3]];
+        let b3 = [nodes[3]];
+        let b4 = [nodes[4]];
+        let b5 = [nodes[5]];
+        hg.create_edge(start, &b1, 1., crate::EdgeDirection::Directed);
+        hg.create_edge(start, &b2, 1., crate::EdgeDirection::Directed);
+        hg.create_edge(&b1, &b3, 1., crate::EdgeDirection::Directed);
+        hg.create_edge(&b1, &b4, 1., crate::EdgeDirection::Directed);
+        hg.create_edge(&b2, &b3, 1., crate::EdgeDirection::Directed);
+        hg.create_edge(&b2, &b5, 1., crate::EdgeDirection::Directed);
+        println!("graph:\n{:#?}", hg);
+        println!("random_walk output: {:#?}", random_walk(&hg.graph, &start_basis, 2))
     }
 }

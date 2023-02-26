@@ -35,6 +35,10 @@ impl<B: HgBasis> GeneroGraph<B> {
         }
     }
 
+    pub fn clone_edges(&self) -> Vec<EdgeID> {
+        self.edges.keys().cloned().collect()
+    }
+
     pub fn update_edge_weight(&mut self, edge_id: &EdgeID, new_weight: EdgeWeight) {
         if new_weight.is_nan() == false {
             if let Some(e) = self.edges.get_mut(edge_id) {
@@ -271,12 +275,15 @@ impl<B: HgBasis> GeneroGraph<B> {
         ret
     }
 
-    pub fn query_edges(&self, _input: &B, _output: &B) -> Vec<EdgeID> {
-        todo!()
-        // let mut ret = Vec::new();
-        // for (id, edge) in self.edges.iter() {
-        //     if edge.can_map_basis(basis)
-        // }
+    pub fn query_edges(&self, input: &B, output: &B) -> Vec<EdgeID> {
+        let outbounds = self.get_outbound_edges(input);
+        outbounds.into_iter().filter(|e| {
+            if let Some(edge) = self.edges.get(e) {
+                edge.is_correctly_mapped(input, output)
+            } else {
+                false
+            }
+        }).collect()
     }
 
     pub fn map_basis(&self, input: &B) -> GeneroVector<B> {

@@ -5,9 +5,9 @@ use uuid::Uuid;
 
 use crate::{
     structs::{
-        bit_nodes::BitNodes, EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph,
+        bit_nodes::BitNodes, EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph, EdgeID,
     },
-    traits::{HgBasis},
+    traits::{HgBasis, HyperGraph},
     utils::PowerSetBits,
 };
 
@@ -93,6 +93,33 @@ impl<const K: usize> BGraph<K> {
         let out = self.graph.map_basis(&start_basis);
         let v = out.to_tuples();
         v.into_iter().map(|(b, w)| (b.to_u32(), w)).collect()
+    }
+}
+
+impl<const K: usize> HyperGraph for BGraph<K> {
+    type Basis = BitNodes<K>;
+    fn edges(&self) -> Vec<crate::structs::EdgeID> {
+        self.graph.clone_edges()
+    }
+
+    fn get_outbound_edges(&self, node: &Self::Basis) -> Vec<EdgeID> {
+        self.graph.get_outbound_edges(node).into_iter().collect()
+    }
+
+    fn query_edges(&self, input: &Self::Basis, output: &Self::Basis) -> Vec<crate::structs::EdgeID> {
+        self.graph.query_edges(input, output)
+    }
+
+    fn query_weight(&self, input: &Self::Basis, output: &Self::Basis) -> EdgeWeight {
+        self.graph.query_weight(input, output)
+    }
+
+    fn map_basis(&self, input: &Self::Basis) -> Vec<(Self::Basis, EdgeWeight)> {
+        self.graph.map_basis(input).to_tuples()
+    }
+
+    fn map_vector(&self, input: &crate::structs::GeneroVector<Self::Basis>) -> crate::structs::GeneroVector<Self::Basis> {
+        self.graph.map(input)
     }
 }
 

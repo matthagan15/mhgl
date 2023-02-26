@@ -4,7 +4,7 @@ use std::collections::{HashSet};
 use uuid::Uuid;
 
 use crate::structs::{
-    EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph, NodeID, SparseBasis,
+    EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph, NodeID, SparseBasis, EdgeID,
 };
 
 use crate::traits::*;
@@ -199,6 +199,33 @@ impl HGraph {
     // pub fn query_edges() {
 
     // }
+}
+
+impl HyperGraph for HGraph {
+    type Basis = SparseBasis<NodeID>;
+    fn edges(&self) -> Vec<crate::structs::EdgeID> {
+        self.graph.clone_edges()
+    }
+
+    fn get_outbound_edges(&self, node: &Self::Basis) -> Vec<EdgeID> {
+        self.graph.get_outbound_edges(node).into_iter().collect()
+    }
+
+    fn query_edges(&self, input: &Self::Basis, output: &Self::Basis) -> Vec<crate::structs::EdgeID> {
+        self.graph.query_edges(input, output)
+    }
+
+    fn query_weight(&self, input: &Self::Basis, output: &Self::Basis) -> EdgeWeight {
+        self.graph.query_weight(input, output)
+    }
+
+    fn map_basis(&self, input: &Self::Basis) -> Vec<(Self::Basis, EdgeWeight)> {
+        self.graph.map_basis(input).to_tuples()
+    }
+
+    fn map_vector(&self, input: &crate::structs::GeneroVector<Self::Basis>) -> crate::structs::GeneroVector<Self::Basis> {
+        self.graph.map(input)
+    }
 }
 
 mod test {
