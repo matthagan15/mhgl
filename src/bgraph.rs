@@ -3,13 +3,8 @@ use std::collections::HashSet;
 
 use uuid::Uuid;
 
-use crate::{
-    structs::{
-        bit_nodes::BitNodes, EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph, EdgeID,
-    },
-    traits::{HgBasis, HyperGraph},
-    utils::PowerSetBits,
-};
+use crate::{structs::{bit_nodes::BitNodes, EdgeWeight, GeneroEdge, GeneroGraph, EdgeID}, traits::{HgBasis, HyperGraph}, utils::PowerSetBits};
+use crate::structs::EdgeDirection;
 
 #[derive(Debug)]
 /// An implementation of a HyperGraph using a binary encoding of node subsets.

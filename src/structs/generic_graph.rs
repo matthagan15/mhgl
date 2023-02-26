@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::traits::HgBasis;
 
 use super::{
-    generic_edge::GeneroEdge, generic_vec::GeneroVector, EdgeDirection, EdgeID, EdgeWeight,
+    generic_edge::{GeneroEdge, EdgeDirection}, generic_vec::GeneroVector, EdgeID, EdgeWeight,
     GraphID,
 };
 

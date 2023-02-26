@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use crate::structs::GeneroGraph;
 use crate::traits::HgBasis;
 
@@ -61,6 +63,19 @@ impl<B: HgBasis> HgPath<B> {
             ret.push(tmp);
         }
         ret
+    }
+}
+
+impl<B: HgBasis> Add<(B, EdgeWeight)> for HgPath<B> {
+    type Output = HgPath<B>;
+
+    fn add(self, rhs: (B, EdgeWeight)) -> Self::Output {
+        let mut new_sites = self.sites;
+        new_sites.push(rhs.0);
+        HgPath {
+            sites: new_sites,
+            weight: self.weight + rhs.1,
+        }
     }
 }
 

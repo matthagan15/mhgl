@@ -1,10 +1,3 @@
-
-
-
-
-
-use crate::structs::{SparseGraph};
-
 use crate::{traits::*};
 
 /// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be
@@ -65,13 +58,7 @@ pub fn erdos_renyi(_num_nodes: usize, _dimension_with_probability: Vec<(usize, u
     // hg
 }
 
-pub fn uniform_undirected_erdos_renyi<N: HgNode>(num_nodes: usize, _prob: f64) -> SparseGraph<N> {
-    if num_nodes < u8::MAX as usize {
-        SparseGraph::new()
-    } else {
-        SparseGraph::new()
-    }
-}
+
 
 mod test {
     

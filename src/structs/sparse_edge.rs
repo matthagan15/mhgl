@@ -13,16 +13,6 @@ pub type EdgeWeight = f64;
 type EdgeID = Uuid;
 static EDGE_WEIGHT_DEFAULT: EdgeWeight = 1.0;
 
-// TODO: add logging
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
-pub enum EdgeDirection {
-    Directed,
-    Oriented,
-    Undirected,
-    Loop,
-    Blob,
-}
 
 /// # HyperEdge
 /// Basic unit to map a node vector to another node vector in a hypergraph. The absolute most basic

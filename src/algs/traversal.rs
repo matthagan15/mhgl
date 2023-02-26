@@ -9,20 +9,20 @@ use crate::structs::*;
 use crate::traits::*;
 
 /// Applies an input graph to an input vector a specified amount of times.
-pub fn walk<N: HgNode>(
-    start: SparseVector<N>,
-    walk_operator: &SparseGraph<N>,
+pub fn walk<B: HgBasis, H: HyperGraph<Basis = B>>(
+    start: GeneroVector<B>,
+    walk_operator: &H,
     num_steps: usize,
-) -> SparseVector<N> {
+) -> GeneroVector<B> {
     let mut ret = start;
     for _ in 0..num_steps {
-        ret = walk_operator.map_vec(ret);
+        ret = walk_operator.map_vector(&ret);
     }
     ret
 }
 
 /// first pass at basic BFS, probably something done incorrectly
-pub fn bfs_base<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> Vec<HgPath<B>> {
+pub fn bfs_base<B: HgBasis, H: HyperGraph<Basis = B>>(graph: &H, start: &B, steps: usize) -> Vec<HgPath<B>> {
     // TODO: change this to a dequeue.
     let mut visited = HashSet::new();
     let start_path = HgPath::new(start.clone());
@@ -31,8 +31,8 @@ pub fn bfs_base<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) -> 
     while frontier.len() > 0 {
         let cur_path = frontier.pop().expect("loop should not execute if empty.");
         visited.insert(cur_path.last_basis());
-        let new_paths = cur_path.extend(graph);
-        for path in new_paths.into_iter() {
+        for (b, w) in graph.map_basis(&cur_path.last_basis()) {
+            let path = cur_path.clone() + (b, w);
             if path.len() < steps && visited.contains(&path.last_basis()) == false {
                 frontier.insert(0, path);
             } else if path.len() == steps {
@@ -82,22 +82,6 @@ pub fn random_walk<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) 
     walker_location
 }
 
-/// Constructs a random walk graph out of a specified input graph.
-pub fn compute_probabilistic_walk_graph<N: HgNode>(_graph: &SparseGraph<N>) -> SparseGraph<N> {
-    SparseGraph::<N>::new()
-}
-
-/// Where cut computations would go
-pub fn compute_cut<N: HgNode>(selected_nodes: HashSet<N>, graph: &SparseGraph<N>) {
-    let mut pot_edges = HashSet::new();
-    for node in selected_nodes.iter() {
-        let new_edges = graph.get_outbound_edges(node);
-        for e in new_edges {
-            pot_edges.insert(e);
-        }
-    }
-}
-
 mod test {
     use crate::{HGraph, algs::traversal::bfs_base, structs::SparseBasis};
 
@@ -125,7 +109,7 @@ mod test {
         println!(
             "bfs: {:#?}",
             bfs_base(
-                &hg.graph,
+                &hg,
                 &SparseBasis::from(start.iter().cloned().collect()),
                 2
             )

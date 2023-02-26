@@ -1,10 +1,21 @@
 use std::{collections::HashSet};
 
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::traits::HgBasis;
 
-use super::{generic_vec::GeneroVector, EdgeDirection, EdgeID, EdgeWeight};
+use super::{generic_vec::GeneroVector, EdgeID, EdgeWeight};
+
+/// Simple enum to denote which direction an edge face
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
+pub enum EdgeDirection {
+    Directed,
+    Oriented,
+    Undirected,
+    Loop,
+    Blob,
+}
 
 /// # Edge
 /// HyperEdges constitute the main objects of a HyperGraph. The fundamental type of edge is
