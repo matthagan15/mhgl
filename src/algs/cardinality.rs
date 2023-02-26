@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::structs::{EdgeWeight, SparseVector, GeneroVector};
+use crate::structs::{EdgeWeight, GeneroVector};
 use crate::traits::*;
 /// Returns a monte carlo estimator to the average cardinality of the provided hypergraph. Essentially samples random basis vectors, applies the graph, and then takes the average of the cardinality random variable over these samples. allows you to specify the number of steps taken in the hypergraph.
 fn average_cardinality<B, H>(
