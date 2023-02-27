@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::{
     structs::{EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis, EdgeID},
-    traits::{HgNode, HyperGraph},
+    traits::{HgNode, HyperGraph, HgBasis},
 };
 
 #[derive(Debug, Clone)]
@@ -73,83 +73,32 @@ impl<N: HgNode> PGraph<N> {
         }
     }
 
-    pub fn create_directed_edge(
+    pub fn create_edge(
         &mut self,
         inputs: &[N],
         outputs: &[N],
         weight: EdgeWeight,
+        direction: EdgeDirection,
     ) -> u128 {
-        let mut e = GeneroEdge::new();
-        let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-        e.add_input_nodes(&input_basis);
-
-        let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
-        e.add_output_nodes(&output_basis);
-        e.change_direction(crate::structs::EdgeDirection::Directed);
-        e.change_weight(weight);
-        let id = e.id.clone();
-        self.graph.add_edge(e);
-        id.as_u128()
-    }
-
-    pub fn create_blob(&mut self, blob: &[N], weight: EdgeWeight) -> u128 {
-        let mut e = GeneroEdge::new();
-        let basis = SparseBasis::from(blob.iter().cloned().collect());
-        e.change_direction(EdgeDirection::Blob);
-        e.add_input_nodes(&basis);
-        e.change_weight(weight);
-        let id = e.id.clone();
-        self.graph.add_edge(e);
-        id.as_u128()
-    }
-
-    pub fn create_loop(&mut self, nodes: &[N], weight: EdgeWeight) -> u128 {
-        let mut e = GeneroEdge::new();
-        let basis = SparseBasis::from(nodes.iter().cloned().collect());
-        e.change_direction(EdgeDirection::Loop);
-        e.add_input_nodes(&basis);
-        e.change_weight(weight);
-        let id = e.id.clone();
-        self.graph.add_edge(e);
-        id.as_u128()
-    }
-
-    pub fn create_undirected_edge(
-        &mut self,
-        inputs: &[N],
-        outputs: &[N],
-        weight: EdgeWeight,
-    ) -> u128 {
-        let mut e = GeneroEdge::new();
-        let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-        e.change_direction(EdgeDirection::Undirected);
-        e.add_input_nodes(&input_basis);
-
-        let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
-        e.add_output_nodes(&output_basis);
-        e.change_weight(weight);
-        let id = e.id.clone();
-        self.graph.add_edge(e);
-        id.as_u128()
-    }
-
-    pub fn create_oriented_edge(
-        &mut self,
-        inputs: &[N],
-        outputs: &[N],
-        weight: EdgeWeight,
-    ) -> u128 {
-        let mut e = GeneroEdge::new();
-        e.change_direction(EdgeDirection::Oriented);
-        let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-        e.add_input_nodes(&input_basis);
-
-        let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
-        e.add_output_nodes(&output_basis);
-        e.change_weight(weight);
-        let id = e.id.clone();
-        self.graph.add_edge(e);
-        id.as_u128()
+        match direction {
+            EdgeDirection::Directed | EdgeDirection::Oriented | EdgeDirection::Undirected => {
+                let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
+                let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
+                let e = GeneroEdge::from(input_basis, output_basis, weight, direction);
+                let id = e.id.clone();
+                self.graph.add_edge(e);
+                id.as_u128()
+            }
+            EdgeDirection::Loop | EdgeDirection::Blob => {
+                let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
+                let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
+                input_basis.union_with(&output_basis);
+                let e = GeneroEdge::from(input_basis, SparseBasis::new_empty(), weight, direction);
+                let id = e.id.clone();
+                self.graph.add_edge(e);
+                id.as_u128()
+            }
+        }
     }
 
     pub fn remove_edge(&mut self, edge_id: u128) {
@@ -162,17 +111,6 @@ impl<N: HgNode> PGraph<N> {
                 }
             }
         }
-    }
-
-    /// Takes a single step in the graph, returning the subsets the given nodes map to with the weight.
-    pub fn step(&self, nodes: &[N]) -> Vec<(HashSet<N>, EdgeWeight)> {
-        let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
-        let out_vector = self.graph.map_basis(&start_basis);
-        out_vector
-            .to_tuples()
-            .into_iter()
-            .map(|(b, w)| (b.to_node_set(), w))
-            .collect()
     }
 }
 
@@ -205,8 +143,6 @@ impl<N: HgNode> HyperGraph for PGraph<N> {
 
 mod test {
     use crate::PGraph;
-
-    
 
     #[test]
     fn test_node_creation_deletion() {

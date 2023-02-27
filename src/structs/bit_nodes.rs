@@ -2,6 +2,7 @@ use std::{
     collections::HashSet,
     hash::Hash,
     ops::{Add, AddAssign, Mul, MulAssign},
+    mem::size_of,
 };
 
 use serde::{ser::SerializeStruct, Serialize};
@@ -11,6 +12,70 @@ use crate::{
     traits::{HgBasis},
     utils::PowerSetBits,
 };
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash)]
+pub struct BitFieldBytes {
+    bits: Vec<u8>,
+    pub is_active: bool,
+}
+
+impl BitFieldBytes {
+
+    /// Provides a new BitField initialized to the empty set
+    /// and is initially inactive.
+    pub fn new(num_nodes: usize) -> Self {
+        let num_bytes = num_nodes / 8 + 1;
+        let mut v = Vec::with_capacity(num_bytes);
+        v.resize(num_bytes, 0_u8);
+        BitFieldBytes { bits: v, is_active:  false }
+    }
+}
+
+impl HgBasis for BitFieldBytes {
+    fn new_empty() -> Self {
+        let mut bfb = BitFieldBytes::new(0);
+        bfb.is_active = true;
+        bfb
+    }
+
+    fn cardinality(&self) -> usize {
+        let mut tot = 0;
+        for ix in 0..self.bits.len() {
+            tot += self.bits[ix].count_ones();
+        }
+        tot as usize
+    }
+
+    fn intersect_with(&mut self, rhs: &Self) {
+        todo!()
+    }
+
+    fn intersection(&self, rhs: &Self) -> Self {
+        todo!()
+    }
+
+    fn union_with(&mut self, rhs: &Self) {
+        todo!()
+    }
+
+    fn union(&self, rhs: &Self) -> Self {
+        todo!()
+    }
+
+    fn remove_node(&mut self, node: &Self) {
+        todo!()
+    }
+
+    fn complement(&self, rhs: &Self) -> Self {
+        todo!()
+    }
+
+    fn nodes(&self) -> HashSet<Self> {
+        todo!()
+    }
+}
+
+
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash, PartialOrd, Ord)]
 pub struct BitNodes<const K: usize> {
@@ -180,10 +245,16 @@ impl<const K: usize> Serialize for BitNodes<K> {
 }
 
 mod test {
-    use super::BitNodes;
+    use super::{BitNodes, BitFieldBytes};
 
     
-
+    #[test]
+    fn test_size_of_structs() {
+        let og = BitNodes::<10>::new();
+        let bytes = BitFieldBytes {bits: [0_u8; 10].into(), is_active: true};
+        println!("og size: {:}", std::mem::size_of_val(&og));
+        println!("bytes size: {:}", std::mem::size_of_val(&*bytes.bits));
+    }
     
 
     #[test]

@@ -18,6 +18,10 @@ pub trait HyperGraph {
     // fn edges_with_output_cardinality(&self, cardinality: usize) -> Vec<EdgeID>;
     fn query_edges(&self, input: &Self::Basis, output: &Self::Basis) -> Vec<EdgeID>;
     fn query_weight(&self, input: &Self::Basis, output: &Self::Basis) -> EdgeWeight;
+
+    /// Maps an input basis to it's neighborhood in the hypergraph. The
+    /// neighborhood is represented as a list of tuples
+    /// (neighbor_basis, edge_weight)
     fn map_basis(&self, basis: &Self::Basis) -> Vec<(Self::Basis, EdgeWeight)>;
     fn map_vector(&self, input: &GeneroVector<Self::Basis>) -> GeneroVector<Self::Basis>;
     // fn random_basis(&self) -> SparseVector<Self::Node>;

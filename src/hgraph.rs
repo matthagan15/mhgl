@@ -89,85 +89,6 @@ impl HGraph {
         }
     }
 
-    pub fn create_directed_edge(
-        &mut self,
-        inputs: &[NodeID],
-        outputs: &[NodeID],
-        weight: EdgeWeight,
-    ) -> u128 {
-        let mut e = GeneroEdge::new();
-        let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-        e.add_input_nodes(&input_basis);
-
-        let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
-        e.add_output_nodes(&output_basis);
-        e.change_direction(crate::structs::EdgeDirection::Directed);
-        e.change_weight(weight);
-        let id = e.id.clone();
-        self.graph.add_edge(e);
-        id.as_u128()
-    }
-
-    pub fn create_blob(&mut self, blob: &[NodeID], weight: EdgeWeight) -> u128 {
-        let mut e = GeneroEdge::new();
-        let basis = SparseBasis::from(blob.iter().cloned().collect());
-        e.change_direction(EdgeDirection::Blob);
-        e.add_input_nodes(&basis);
-        e.change_weight(weight);
-        let id = e.id.clone();
-        self.graph.add_edge(e);
-        id.as_u128()
-    }
-
-    pub fn create_loop(&mut self, nodes: &[NodeID], weight: EdgeWeight) -> u128 {
-        let mut e = GeneroEdge::new();
-        let basis = SparseBasis::from(nodes.iter().cloned().collect());
-        e.change_direction(EdgeDirection::Loop);
-        e.add_input_nodes(&basis);
-        e.change_weight(weight);
-        let id = e.id.clone();
-        self.graph.add_edge(e);
-        id.as_u128()
-    }
-
-    pub fn create_undirected_edge(
-        &mut self,
-        inputs: &[NodeID],
-        outputs: &[NodeID],
-        weight: EdgeWeight,
-    ) -> u128 {
-        let mut e = GeneroEdge::new();
-        let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-        e.change_direction(EdgeDirection::Undirected);
-        e.add_input_nodes(&input_basis);
-
-        let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
-        e.add_output_nodes(&output_basis);
-        e.change_weight(weight);
-        let id = e.id.clone();
-        self.graph.add_edge(e);
-        id.as_u128()
-    }
-
-    pub fn create_oriented_edge(
-        &mut self,
-        inputs: &[NodeID],
-        outputs: &[NodeID],
-        weight: EdgeWeight,
-    ) -> u128 {
-        let mut e = GeneroEdge::new();
-        e.change_direction(EdgeDirection::Oriented);
-        let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-        e.add_input_nodes(&input_basis);
-
-        let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
-        e.add_output_nodes(&output_basis);
-        e.change_weight(weight);
-        let id = e.id.clone();
-        self.graph.add_edge(e);
-        id.as_u128()
-    }
-
     pub fn remove_edge(&mut self, edge_id: u128) {
         let id = Uuid::from_u128(edge_id);
         let e = self.graph.remove_edge(&id);
@@ -190,15 +111,6 @@ impl HGraph {
             .map(|(b, w)| (b.to_node_set(), w))
             .collect()
     }
-
-    //TODO: Implelment these!
-    // /// Returns total sum weight of all edges that map input to output.
-    // pub fn query_weight(&self, input: &[NodeID], output: &[NodeID]) -> EdgeWeight {
-    //     self.graph.query_weight(&self, SparseBasis::from_slices(input, output))
-    // }
-    // pub fn query_edges() {
-
-    // }
 }
 
 impl HyperGraph for HGraph {
@@ -229,7 +141,7 @@ impl HyperGraph for HGraph {
 }
 
 mod test {
-    use crate::HGraph;
+    use crate::{HGraph, EdgeDirection};
 
     
 
@@ -247,12 +159,12 @@ mod test {
         let mut hg = HGraph::new();
         hg.name = String::from("tester :)");
         let nodes = hg.create_nodes(10);
-        hg.create_directed_edge(&nodes[0..3], &nodes[0..=1], 1.);
+        hg.create_edge(&nodes[0..3], &nodes[0..=1], 1., EdgeDirection::Directed);
         println!("step:{:#?}", hg.step(&nodes[0..3]));
         println!("before removal:\n{:#?}", hg);
         hg.remove_node(nodes[0]);
         println!("post removal:\n{:#?}", hg);
-        let b = hg.create_blob(&nodes[5..=9], 2.2);
+        let b = hg.create_edge(&nodes[5..=9], &[], 2.2, EdgeDirection::Blob);
         println!("post blob:{:#?}", hg);
         println!("step output:\n{:?}", hg.step(&nodes[6..=8]));
         hg.remove_edge(b);
