@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, hash::Hash};
 
 use uuid::Uuid;
 
@@ -316,5 +316,11 @@ impl<B: HgBasis> GeneroGraph<B> {
             tmp *= *w;
         }
         ret
+    }
+}
+
+impl<B: HgBasis> Hash for GeneroGraph<B> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
     }
 }

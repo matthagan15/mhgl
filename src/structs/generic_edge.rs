@@ -1,4 +1,4 @@
-use std::{collections::HashSet};
+use std::{collections::HashSet, hash::Hash};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -20,19 +20,13 @@ pub enum EdgeDirection {
 /// # Edge
 /// HyperEdges constitute the main objects of a HyperGraph. The fundamental type of edge is
 /// a directed, weighted edge which maps an input subset of nodes to an output subsets of nodes
-/// with an associated number. Again, there are 3 ways to represent a directed, weighted hyperedge:
-/// 1. An input set, an output set, and a weight. This is preferred for sparse graphs.
-/// 2. An input binary number, where each "1" indicates that node is present in the input, an output
-/// binary number (similar to input), and the weight.
-/// 3. As an entry in the hypgraph adjacency matrix (input index represents a set, output index represents a
-/// set, and the value in the matrix the weight.)
-///
-/// From these different representations of a directed, weighted hyperedge many other
-/// direction types can be constructed. For example, undirected hyperedges which maps a subset in both directions,
-/// oriented hyperedges in which the weight is negated going the "opposite" direction of the orientation, loops which
-/// map a subset back to itself, or "blob"
-/// types (which are the standard "undirected" hyperedge in the literature) which will map any subset to it's complement
-/// in the "blob".
+/// with an associated number. However we provide several other edge variants:
+/// - Directed: Maps the input basis element to the output basis element with the specified weight.
+/// - Undirected: Maps two basis elements to each other with the same weight,
+/// so an undirected edge from A = {n_1, n_2, n_3} <-> B = {n_4, n_5} will map A to B and B to A with the same weight.
+/// - Oriented: Similar to Undirected but will flip the sign of the edge weight if it is being traversed opposite of the orientation. Ex: A -> B with weight +2.5 but B -> A with weight -2.5.
+/// - Loop: Maps a basis element to itself.
+/// - Blob: The traditional (in the literature) undirected hyperedge consisting of just a subset of nodes. As far as it's action, we currently think of Blobs as mapping a subset of it's basis element to the complement within the subset. For example, a blob of {a, b, c} would map {a} -> {b, c}, {a, b} -> {c}, {} -> {a, b, c}, etc. 
 #[derive(Debug, Clone)]
 pub struct GeneroEdge<B: HgBasis> {
     pub id: EdgeID,
@@ -262,16 +256,16 @@ impl<B: HgBasis> GeneroEdge<B> {
     }
 }
 
+impl<B: HgBasis> Hash for GeneroEdge<B> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
 mod test {
     use std::collections::HashSet;
 
     use crate::{structs::{SparseBasis, GeneroEdge, GeneroVector}, EdgeDirection};
-
-    
-
-    
-
-    
 
     #[test]
     fn test_sparse_map_vec() {
