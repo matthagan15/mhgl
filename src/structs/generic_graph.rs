@@ -21,6 +21,7 @@ pub struct GeneroGraph<B: HgBasis> {
     // the issue of blobs, as soon as you add blobs you have to compute power
     // sets and it becomes wasteful memory wise. Instead spend time searching
     // through acceptable edges.
+    // TODO: What about the empty set??
     node_to_outbound_edges: HashMap<B, HashSet<EdgeID>>,
 }
 
