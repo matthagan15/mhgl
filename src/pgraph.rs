@@ -19,6 +19,7 @@ use crate::{
 pub struct PGraph<N: HgNode> {
     pub name: String,
     nodes: HashSet<N>,
+    next_usable_node: N,
     reusable_nodes: Vec<N>,
     graph: GeneroGraph<SparseBasis<N>>,
 }
@@ -28,6 +29,7 @@ impl<N: HgNode> PGraph<N> {
         PGraph {
             name: "".to_string(),
             nodes: HashSet::new(),
+            next_usable_node: N::zero(),
             reusable_nodes: Vec::new(),
             graph: GeneroGraph::new(),
         }
@@ -37,7 +39,7 @@ impl<N: HgNode> PGraph<N> {
     // TODO: This is absolutely atrocious. Fix later.
     pub fn add_nodes(&mut self, num_nodes: usize) -> Option<HashSet<N>> {
         let mut ret = HashSet::with_capacity(num_nodes);
-        let mut counter = N::zero();
+        let mut counter = self.next_usable_node;
         while ret.len() < num_nodes && counter < N::max_number() {
             if self.nodes.contains(&counter) && self.reusable_nodes.len() > 0 {
                 if let Some(new_node) = self.reusable_nodes.pop() {
@@ -53,6 +55,7 @@ impl<N: HgNode> PGraph<N> {
             }
         }
         if ret.len() > 0 {
+            self.next_usable_node = counter;
             Some(ret)
         } else {
             None

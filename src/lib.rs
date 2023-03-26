@@ -5,10 +5,15 @@
 //! We provide the following three hypergraph variants:
 //! 1. HGraph - Represents nodes as UUIDs that are randomly assigned. The easiest and most straightforward to use, Assumed to not receive the same UUID twice.
 //! 2. PGraph<N> - A "performance" oriented version of HGraph that represents nodes as unsigned integers and is generic over which unsigned integer to use. (Untested) Should allow for smaller memory profiles than HGraph.
-//! 3. BGraph [Under Construction] - Represents subsets of nodes using a binary encoding. Each node is assigned to a bit, so any subset of nodes can be represented using n bits. This is advantageous for dense hypergraphs on fewer nodes.
+//! 3. BGraph - Represents subsets of nodes using a binary encoding. Utilizes const generics so number of nodes must be known at compile time. Each node is assigned to a bit, so any subset of nodes can be represented using n bits. This is advantageous for dense hypergraphs on fewer nodes.
 //!
+//! Each of these variants implement their own methods for interacting (such as
+//! create node, step, etc) but also implement a provided `HyperGraph` trait
+//! that captures basic functionality one should expect. See the trait docs
+//! for more details.
 //!
-//! The main difference between these types of graphs are the basis elements used. A hypergraph basis element is represented with the trait `HgBasis` which captures the behavior of a subset (take unions, intersections, determine subsets, etc.) that is necessary for a use in hypergraph. See `SparseBasis` and `BitBasis` for implementation details.
+//! # Basis Elements
+//! The main difference between these types of graphs are the "basis elements" used. By a "basis element" we are simply referring to a subset of the set of all nodes. There are different ways of storing such a subset that is more useful than simply using a `HashSet` (which is not amenable to storage within `HashMap`s). A hypergraph basis element is represented with the trait `HgBasis` which captures the behavior of a subset (take unions, intersections, determine subsets, etc.) that is necessary for a use in hypergraph. See `SparseBasis` and `BitBasis` for the two main implementations used, `SparseBasis` is used for `HGraph` and `PGraph` while `BitBasis` is used for `BGraph`. These are the objects returned from `HyperGraph` trait methods. 
 //!
 //! # Usage
 //! Current status is that this is a minimal product and all you can really do
@@ -33,11 +38,9 @@
 //! # Alternative Hypergraph Libraries
 //! - HyperNetX (Python): focused on "blob" type hypergraphs.
 //! - HypergraphDB (Java): A database backend for storing and querying data
-//! - Hypergraph (Rust): Seems hard to use and not maintained.
+//! - Hypergraph (Rust): Appears very limited in scope and not maintained.
 
 #![forbid(unsafe_code)]
-
-
 
 pub mod algs;
 mod bgraph;
@@ -53,15 +56,13 @@ pub use pgraph::PGraph;
 
 pub use structs::EdgeDirection;
 
+pub use structs::SparseBasis;
+pub use structs::BitBasis;
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
-
-    
-
     use crate::structs::NodeID;
-
-    // use crate::{*, structs::EdgeWeight};
 
     #[test]
     fn hgraph_works() {
@@ -69,7 +70,7 @@ mod tests {
         let mut hg = HGraph::new();
         let nodes = hg.create_nodes(10);
         hg.create_edge(&nodes[0..2], &nodes[0..3], 1.23, EdgeDirection::Undirected);
-        let expected: Vec<(HashSet<NodeID>, f64)> =
+        let expected: Vec<(HashSet<u128>, f64)> =
             vec![(nodes[0..3].iter().cloned().collect(), 1.23)];
         assert_eq!(hg.step(&nodes[0..2]), expected);
     }

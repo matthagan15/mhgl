@@ -10,9 +10,9 @@ use crate::structs::{
 use crate::traits::*;
 
 #[derive(Debug, Clone)]
-/// The simplest to use hypergraph structure. Utilizes Uuid to store nodes and
+/// The simplest to use hypergraph structure. Encodes nodes as `u128` numbers (via the `uuid` crate internally, converted to `u128` for end user) to store nodes and
 /// uses a sparse representation to store hyperedges. Creating nodes does not
-/// fail, unlike PGraph which may run out of storage, and can create and delete nodes, unlike BGraph which is fixed at compile time.
+/// fail, unlike `PGraph` which may run out of encodable nodes if small enough integer sizes are used. With `HGraph` you can also create and delete nodes, unlike `BGraph` which is fixed at compile time.
 ///
 /// ## Example Usage
 /// ```
@@ -26,8 +26,8 @@ use crate::traits::*;
 pub struct HGraph {
     // TODO: Move storage of nodes from underlying graph structure to container structures.
     pub name: String,
-    nodes: HashSet<NodeID>,
-    pub graph: GeneroGraph<SparseBasis<NodeID>>,
+    nodes: HashSet<u128>,
+    pub graph: GeneroGraph<SparseBasis<u128>>,
 }
 
 impl HGraph {
@@ -39,18 +39,18 @@ impl HGraph {
         }
     }
 
-    pub fn create_nodes(&mut self, num_nodes: usize) -> Vec<NodeID> {
+    pub fn create_nodes(&mut self, num_nodes: usize) -> Vec<u128> {
         let mut ret = Vec::with_capacity(num_nodes);
         for _ in 0..num_nodes {
             let id = Uuid::new_v4();
-            self.nodes.insert(id.clone());
-            ret.push(id);
+            self.nodes.insert(id.as_u128());
+            ret.push(id.as_u128());
         }
         ret
     }
 
-    pub fn remove_node(&mut self, node: NodeID) {
-        let node_basis = SparseBasis::from(HashSet::from([node.clone()]));
+    pub fn remove_node(&mut self, node: u128) {
+        let node_basis = SparseBasis::from(HashSet::from([node]));
         let edges = self.graph.get_containing_edges(&node_basis);
         for edge in edges {
             if let Some(mut old_edge) = self.graph.remove_edge(&edge) {
@@ -61,10 +61,24 @@ impl HGraph {
         self.nodes.remove(&node);
     }
 
+    /// Creates an edge in the hypergraph with the specified inputs, outputs,
+    /// weight, and direction. Returns a unique `u128` that can be used to reference the edge in the future for deletion. Possible edge directions:
+    /// - `EdgeDirection::Directed` the most straightforward option.
+    /// - `EdgeDirection::Undirected` basically creates two directed edges
+    /// but with one having inputs and outputs swapped relative to the other.
+    /// - `EdgeDirection::Oriented` same as undirected but the opposite
+    /// direction gets mapped with an extra minus sign (-1 * weight)
+    /// - `EdgeDirection::Loop` creates a loop that maps the union of the
+    /// `inputs`
+    /// and `outputs` to itself. To avoid unnecessary nodes being added it is
+    /// recommended to simply provid an empty outputs variable.
+    /// - `EdgeDirection::Blob` creates a "blob" type edge that maps any subset
+    /// of the provided nodes (the union of the passed in `inputs` and
+    /// `outputs`) to it's complement within the blob.
     pub fn create_edge(
         &mut self,
-        inputs: &[NodeID],
-        outputs: &[NodeID],
+        inputs: &[u128],
+        outputs: &[u128],
         weight: EdgeWeight,
         direction: EdgeDirection,
     ) -> u128 {
@@ -89,20 +103,15 @@ impl HGraph {
         }
     }
 
-    pub fn remove_edge(&mut self, edge_id: u128) {
+    /// Returns true if the edge was properly removed, false if it was not found.
+    pub fn remove_edge(&mut self, edge_id: u128) -> bool {
         let id = Uuid::from_u128(edge_id);
         let e = self.graph.remove_edge(&id);
-        if e.is_some() {
-            for node in e.unwrap().nodes() {
-                for x in node.node_set() {
-                    self.nodes.remove(&x);
-                }
-            }
-        }
+        e.is_some()
     }
 
-    /// Takes a single step in the graph, returning the subsets the given nodes map to with the weight.
-    pub fn step(&self, nodes: &[NodeID]) -> Vec<(HashSet<NodeID>, EdgeWeight)> {
+    /// Takes a single step in the graph, returning the subsets the given nodes map to with their respective edge weights.
+    pub fn step(&self, nodes: &[u128]) -> Vec<(HashSet<u128>, EdgeWeight)> {
         let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
         let out_vector = self.graph.map_basis(&start_basis);
         out_vector
@@ -114,7 +123,7 @@ impl HGraph {
 }
 
 impl HyperGraph for HGraph {
-    type Basis = SparseBasis<NodeID>;
+    type Basis = SparseBasis<u128>;
     fn edges(&self) -> Vec<crate::structs::EdgeID> {
         self.graph.clone_edges()
     }
@@ -142,10 +151,6 @@ impl HyperGraph for HGraph {
 
 mod test {
     use crate::{HGraph, EdgeDirection};
-
-    
-
-    
 
     #[test]
     fn test_hgraph_trait_ergonomics() {

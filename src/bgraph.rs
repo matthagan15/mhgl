@@ -3,19 +3,20 @@ use std::collections::HashSet;
 
 use uuid::Uuid;
 
-use crate::{structs::{bit_nodes::BitNodes, EdgeWeight, GeneroEdge, GeneroGraph, EdgeID}, traits::{HgBasis, HyperGraph}, utils::PowerSetBits};
+use crate::{structs::{BitBasis, EdgeWeight, GeneroEdge, GeneroGraph, EdgeID}, traits::{HgBasis, HyperGraph}, utils::PowerSetBits};
 use crate::structs::EdgeDirection;
 
 #[derive(Debug)]
 /// An implementation of a HyperGraph using a binary encoding of node subsets.
-/// Utilizes constant generics and there is currently an issue where the number
-/// of nodes does not match the constant provided.
-/// Ex: BGraph<10> actually encodes 80 bits, the 10 specifies the number of u8's to use as the basis of the encoding. Nodes are referenced by u32's, if
+/// Utilizes constant generics so the size of the graph **must** be known at compile time. As a result this type of graph will not be as widely useful as the other two. One nice upside to this decision though is that subsets of nodes can be represented as a single array of bytes that can be stored on the stack. 
+/// There is currently an issue where the number
+/// of nodes does not match the constant provided,
+/// ex: BGraph<10> actually encodes 80 bits, the 10 specifies the number of u8's to use as the basis of the encoding. Nodes are referenced by u32's, if
 /// a BGraph<n> is created then you can use nodes from 0..8*n (exclusive).
 ///
 /// ## Example Usage
 /// ```
-/// const n: usize = 80/8;
+/// const n: usize = 80 / 8;
 /// let mut bg = BGraph::<n>::new();
 /// bg.create_edge(&[0,1,2], &[1,2,3], 1.2, EdgeDirection::Undirected);
 /// bg.create_edge(&[0,1,2], &[], 1.3, EdgeDirection::Loop);
@@ -27,7 +28,7 @@ use crate::structs::EdgeDirection;
 /// ```
 pub struct BGraph<const K: usize> {
     pub name: String,
-    graph: GeneroGraph<BitNodes<K>>,
+    graph: GeneroGraph<BitBasis<K>>,
 }
 
 // TODO: currently has to be known at compile-time and has to be specified in a weird way... not sure how to get around this.
@@ -66,7 +67,7 @@ impl<const K: usize> BGraph<K> {
             }
             EdgeDirection::Loop | EdgeDirection::Blob => {
                 input_basis.union_with(&output_basis);
-                let e = GeneroEdge::from(input_basis, BitNodes::new(), weight, direction);
+                let e = GeneroEdge::from(input_basis, BitBasis::new(), weight, direction);
                 let id = e.id.clone();
                 self.graph.add_edge(e);
                 id.as_u128()
@@ -92,7 +93,7 @@ impl<const K: usize> BGraph<K> {
 }
 
 impl<const K: usize> HyperGraph for BGraph<K> {
-    type Basis = BitNodes<K>;
+    type Basis = BitBasis<K>;
     fn edges(&self) -> Vec<crate::structs::EdgeID> {
         self.graph.clone_edges()
     }
@@ -120,9 +121,6 @@ impl<const K: usize> HyperGraph for BGraph<K> {
 
 mod test {
     use crate::{BGraph, EdgeDirection};
-
-    
-    
 
     #[test]
     fn test_bit_graph_new() {

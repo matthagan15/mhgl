@@ -10,7 +10,7 @@ pub type GraphID = Uuid;
 pub type EdgeWeight = f64;
 
 
-pub mod bit_nodes;
+mod bit_nodes;
 mod generic_edge;
 mod generic_graph;
 mod generic_vec;
@@ -23,5 +23,6 @@ pub use generic_graph::GeneroGraph;
 pub use generic_vec::GeneroVector;
 
 pub use sparse_basis::SparseBasis;
+pub use bit_nodes::BitBasis;
 
 pub use path::HgPath;
