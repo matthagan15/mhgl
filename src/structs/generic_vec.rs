@@ -10,21 +10,11 @@ use crate::traits::{HgBasis};
 
 use super::EdgeWeight;
 
-/// A representation of a vector living in the power set module. Aka something a
+/// A representation of a vector living in the power set vector space. Aka something a
 /// hypergraph can act on in a linear fashion.
-/// The basis elements are all possible sets of NodeIDs, the basic dot product
-/// is defined as 1 if the two sets are equal, 0 otherwise. Note the empty set
-/// exists.
-/// # Invariant/Internals
-/// Although a basis vector is a set, it's easiest to work with basis vectors when the
-/// data storage is a HashMap from basis to coefficient. Unfortunately you cannot hash
-/// a hashset due to the randomness, so we use SORTED vectors as the basis
-/// # Vectors
-/// We provide a simple datastructure that can be thought of as a "vector" that
-/// a directed, weighted hypergraph acts on. All it does is store a mapping
-/// from basis elements to coefficients, as well as a set of cardinality
-/// maps for easy projections on to basis elements with a certain number of
-/// nodes.elements.
+/// Essentially a collection of basis states (subsets of the overall node set)
+/// and coefficients for each. Internally a map is stored from cardinality to
+/// basis elements for easier lookup/projection.
 #[derive(Clone, Debug, Serialize)]
 pub struct GeneroVector<B: HgBasis> {
     pub basis_to_weight: HashMap<B, EdgeWeight>,
@@ -104,20 +94,20 @@ impl<B: HgBasis> GeneroVector<B> {
     /// an empty EdgeVec is homogeneous vacuously
     /// Homogeneous in this setting means that it consists only of neighborhoods of the
     /// same size, the path stays at a constant dimension.
-    fn is_homogeneous(&self) -> bool {
-        if self.basis_to_weight.len() == 0 {
-            return true;
-        }
-        let mut first_nonempty_k = None;
-        for (k, h) in self.cardinality_to_basis_set.iter() {
-            if first_nonempty_k.is_none() && h.len() > 0 {
-                first_nonempty_k = Some(k);
-            } else if first_nonempty_k.is_some() && h.len() > 0 {
-                return false;
-            }
-        }
-        true
-    }
+    // fn is_homogeneous(&self) -> bool {
+    //     if self.basis_to_weight.len() == 0 {
+    //         return true;
+    //     }
+    //     let mut first_nonempty_k = None;
+    //     for (k, h) in self.cardinality_to_basis_set.iter() {
+    //         if first_nonempty_k.is_none() && h.len() > 0 {
+    //             first_nonempty_k = Some(k);
+    //         } else if first_nonempty_k.is_some() && h.len() > 0 {
+    //             return false;
+    //         }
+    //     }
+    //     true
+    // }
 
     pub fn cardinality(&self) -> HashMap<usize, EdgeWeight> {
         let mut ret = HashMap::new();

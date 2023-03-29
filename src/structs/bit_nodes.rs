@@ -2,22 +2,21 @@ use std::{
     collections::HashSet,
     hash::Hash,
     ops::{Add, AddAssign, Mul, MulAssign},
-    mem::size_of,
 };
 
-use bitvec::prelude as bv;
+use bitvec::prelude::*;
 
 use serde::{ser::SerializeStruct, Serialize};
 
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Eq)]
 struct NewBitNodes {
-    bv: bv::BitVec,
+    bv: BitVec,
     pub is_active: bool,
 }
 
 impl NewBitNodes {
     pub fn new(num_nodes: usize) -> Self {
-        let mut new_bits = bv::BitVec::with_capacity(num_nodes);
+        let mut new_bits = BitVec::with_capacity(num_nodes);
         for ix in 0..num_nodes {
             *new_bits.get_mut(ix).unwrap() = false;
         }
@@ -25,14 +24,23 @@ impl NewBitNodes {
     }
 
     pub fn from(num_nodes: usize, nodes_present: HashSet<usize>) -> Self {
-        let mut new_bits = bv::BitVec::with_capacity(num_nodes);
+        let mut new_bits = BitVec::with_capacity(num_nodes);
         for ix in 0..num_nodes {
             *new_bits.get_mut(ix).unwrap() = nodes_present.contains(&ix);
         }
         NewBitNodes { bv: new_bits, is_active: true }
     }
-    pub fn change_size(mut self, new_num_nodes: usize) {
-        
+
+    /// Initializes any new bits to false, removes any bits if the vec
+    /// is being strunk
+    pub fn change_size(&mut self, new_num_nodes: usize) {
+        if new_num_nodes > self.bv.len() {
+            self.bv.extend((0..(new_num_nodes - self.bv.len())).map(|_| false ));
+        } else {
+            for _ in 0..(self.bv.len() - new_num_nodes) {
+                self.bv.pop();
+            }
+        }
     }
 }
 
@@ -42,31 +50,88 @@ impl HgBasis for NewBitNodes {
     }
 
     fn cardinality(&self) -> usize {
-        todo!()
+        self.bv.count_ones()
     }
 
     fn intersect_with(&mut self, rhs: &Self) {
-        todo!()
+        if self.bv.len() == rhs.bv.len() {
+            for ix in 0..self.bv.len() {
+                let mut lhs_bit = self.bv.get_mut(ix).unwrap();
+                let rhs_bit = rhs.bv.get(ix).unwrap();
+                *lhs_bit = *lhs_bit & *rhs_bit;
+            }
+        }
     }
 
     fn intersection(&self, rhs: &Self) -> Self {
-        todo!()
+        if self.bv.len() != rhs.bv.len() {
+            NewBitNodes {
+                bv: BitVec::new(),
+                is_active: false,
+            }
+        } else {
+            let mut intersection_bv = BitVec::with_capacity(self.bv.len());
+            for ix in 0..self.bv.len() {
+                intersection_bv.push(*self.bv.get(ix).unwrap() & *rhs.bv.get(ix).unwrap());   
+            }
+            NewBitNodes {
+                bv: intersection_bv,
+                is_active: true,
+            }
+        }
     }
 
     fn union_with(&mut self, rhs: &Self) {
-        todo!()
+        if self.bv.len() == rhs.bv.len() {
+            for ix in 0..rhs.bv.len() {
+                let mut lhs = self.bv.get_mut(ix).unwrap();
+                *lhs = *lhs | *rhs.bv.get(ix).unwrap();
+            }
+        }
     }
 
     fn union(&self, rhs: &Self) -> Self {
-        todo!()
+        if self.bv.len() != rhs.bv.len() {
+            NewBitNodes {
+                bv: BitVec::new(),
+                is_active: false,
+            }
+        } else {
+            let mut intersection_bv = BitVec::with_capacity(self.bv.len());
+            for ix in 0..self.bv.len() {
+                intersection_bv.push(*self.bv.get(ix).unwrap() | *rhs.bv.get(ix).unwrap());   
+            }
+            NewBitNodes {
+                bv: intersection_bv,
+                is_active: true,
+            }
+        }
     }
 
     fn remove_node(&mut self, node: &Self) {
-        todo!()
+        if self.bv.len() == node.bv.len() && node.bv.count_ones() == 1 {
+            *self.bv.get_mut(node.bv.leading_zeros()).unwrap() = false;
+        }
     }
 
     fn complement(&self, rhs: &Self) -> Self {
-        todo!()
+        if self.bv.len() == rhs.bv.len() && self.is_active && rhs.is_active {
+            let mut comp_bv = BitVec::with_capacity(self.bv.len());
+            for ix in 0..rhs.bv.len() {
+                let lhs_bit = self.bv.get(ix).unwrap();
+                let rhs_bit = rhs.bv.get(ix).unwrap();
+                comp_bv.push(*lhs_bit ^ *rhs_bit);
+            }
+            NewBitNodes {
+                bv: comp_bv,
+                is_active: true,
+            }
+        } else {
+            NewBitNodes {
+                bv: BitVec::new(),
+                is_active: false,
+            }
+        }
     }
 
     fn nodes(&self) -> HashSet<Self> {
