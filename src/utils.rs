@@ -6,7 +6,7 @@ use std::{
 };
 
 
-use crate::{structs::BitBasis, traits::*};
+use crate::{structs::ConstGenBitBasis, traits::*};
 
 /// Returns subset of power set of given id's with the condition that each set returned has dims number
 /// of elements.
@@ -196,8 +196,8 @@ impl<const M: usize> PowerSetBits<M> {
         }
     }
 
-    pub fn to_bit_nodes(self) -> BitBasis<M> {
-        BitBasis { bits: self.bits }
+    pub fn to_bit_nodes(self) -> ConstGenBitBasis<M> {
+        ConstGenBitBasis { bits: self.bits }
     }
 
     pub fn clear(&mut self) {

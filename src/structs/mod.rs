@@ -23,6 +23,7 @@ pub use generic_graph::GeneroGraph;
 pub use generic_vec::GeneroVector;
 
 pub use sparse_basis::SparseBasis;
-pub use bit_nodes::BitBasis;
+pub use bit_nodes::ConstGenBitBasis;
+pub use bit_nodes::BitVecBasis;
 
 pub use path::HgPath;

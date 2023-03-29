@@ -82,25 +82,16 @@ impl HGraph {
         weight: EdgeWeight,
         direction: EdgeDirection,
     ) -> u128 {
-        match direction {
-            EdgeDirection::Directed | EdgeDirection::Oriented | EdgeDirection::Undirected => {
-                let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-                let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
-                let e = GeneroEdge::from(input_basis, output_basis, weight, direction);
-                let id = e.id.clone();
-                self.graph.add_edge(e);
-                id.as_u128()
-            }
-            EdgeDirection::Loop | EdgeDirection::Blob => {
-                let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-                let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
-                input_basis.union_with(&output_basis);
-                let e = GeneroEdge::from(input_basis, SparseBasis::new_empty(), weight, direction);
-                let id = e.id.clone();
-                self.graph.add_edge(e);
-                id.as_u128()
-            }
+        let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
+        let mut output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
+        if direction == EdgeDirection::Blob || direction == EdgeDirection::Loop {
+            input_basis.union_with(&output_basis);
+            output_basis = SparseBasis::new_empty();
         }
+        let e = GeneroEdge::from(input_basis, output_basis, weight, direction);
+        let id = e.id.clone();
+        self.graph.add_edge(e);
+        id.as_u128()
     }
 
     /// Returns true if the edge was properly removed, false if it was not found.
@@ -151,13 +142,6 @@ impl HyperGraph for HGraph {
 
 mod test {
     use crate::{HGraph, EdgeDirection};
-
-    #[test]
-    fn test_hgraph_trait_ergonomics() {
-        let h = HGraph::new();
-        println!("bytes? {:?}", b"testing");
-        println!("{:#?}", h);
-    }
 
     #[test]
     fn test_node_creation_deletion() {

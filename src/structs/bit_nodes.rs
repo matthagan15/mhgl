@@ -9,18 +9,18 @@ use bitvec::prelude::*;
 use serde::{ser::SerializeStruct, Serialize};
 
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Eq)]
-struct NewBitNodes {
+pub struct BitVecBasis {
     bv: BitVec,
     pub is_active: bool,
 }
 
-impl NewBitNodes {
+impl BitVecBasis {
     pub fn new(num_nodes: usize) -> Self {
         let mut new_bits = BitVec::with_capacity(num_nodes);
         for ix in 0..num_nodes {
             *new_bits.get_mut(ix).unwrap() = false;
         }
-        NewBitNodes { bv: new_bits, is_active: false }
+        BitVecBasis { bv: new_bits, is_active: false }
     }
 
     pub fn from(num_nodes: usize, nodes_present: HashSet<usize>) -> Self {
@@ -28,7 +28,7 @@ impl NewBitNodes {
         for ix in 0..num_nodes {
             *new_bits.get_mut(ix).unwrap() = nodes_present.contains(&ix);
         }
-        NewBitNodes { bv: new_bits, is_active: true }
+        BitVecBasis { bv: new_bits, is_active: true }
     }
 
     /// Initializes any new bits to false, removes any bits if the vec
@@ -42,9 +42,19 @@ impl NewBitNodes {
             }
         }
     }
+
+    pub fn to_usize_set(&self) -> HashSet<usize> {
+        let mut ret = HashSet::new();
+        for ix in 0..self.bv.len() {
+            if *self.bv.get(ix).unwrap() {
+                ret.insert(ix);
+            }
+        }
+        ret
+    }
 }
 
-impl HgBasis for NewBitNodes {
+impl HgBasis for BitVecBasis {
     fn new_empty() -> Self {
         Self::from(0, HashSet::new())
     }
@@ -65,7 +75,7 @@ impl HgBasis for NewBitNodes {
 
     fn intersection(&self, rhs: &Self) -> Self {
         if self.bv.len() != rhs.bv.len() {
-            NewBitNodes {
+            BitVecBasis {
                 bv: BitVec::new(),
                 is_active: false,
             }
@@ -74,7 +84,7 @@ impl HgBasis for NewBitNodes {
             for ix in 0..self.bv.len() {
                 intersection_bv.push(*self.bv.get(ix).unwrap() & *rhs.bv.get(ix).unwrap());   
             }
-            NewBitNodes {
+            BitVecBasis {
                 bv: intersection_bv,
                 is_active: true,
             }
@@ -92,7 +102,7 @@ impl HgBasis for NewBitNodes {
 
     fn union(&self, rhs: &Self) -> Self {
         if self.bv.len() != rhs.bv.len() {
-            NewBitNodes {
+            BitVecBasis {
                 bv: BitVec::new(),
                 is_active: false,
             }
@@ -101,7 +111,7 @@ impl HgBasis for NewBitNodes {
             for ix in 0..self.bv.len() {
                 intersection_bv.push(*self.bv.get(ix).unwrap() | *rhs.bv.get(ix).unwrap());   
             }
-            NewBitNodes {
+            BitVecBasis {
                 bv: intersection_bv,
                 is_active: true,
             }
@@ -122,12 +132,12 @@ impl HgBasis for NewBitNodes {
                 let rhs_bit = rhs.bv.get(ix).unwrap();
                 comp_bv.push(*lhs_bit ^ *rhs_bit);
             }
-            NewBitNodes {
+            BitVecBasis {
                 bv: comp_bv,
                 is_active: true,
             }
         } else {
-            NewBitNodes {
+            BitVecBasis {
                 bv: BitVec::new(),
                 is_active: false,
             }
@@ -135,7 +145,16 @@ impl HgBasis for NewBitNodes {
     }
 
     fn nodes(&self) -> HashSet<Self> {
-        todo!()
+        let mut ret = HashSet::new();
+        let all_zeros = BitVec::from_iter((0..self.bv.len()).map(|_| false));
+        for ix in 0..self.bv.len() {
+            if *self.bv.get(ix).unwrap() {
+                let mut tmp = all_zeros.clone();
+                *tmp.get_mut(ix).unwrap() = true;
+                ret.insert(BitVecBasis { bv: tmp, is_active: true });
+            }
+        }
+        ret
     }
 }
 
@@ -143,69 +162,6 @@ use crate::{
     traits::{HgBasis},
     utils::PowerSetBits,
 };
-
-/// # HEAVY CONSTRUCTION
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash)]
-struct BitFieldBytes {
-    bits: Vec<u8>,
-    pub is_active: bool,
-}
-
-impl BitFieldBytes {
-    /// Provides a new BitField initialized to the empty set
-    /// and is initially inactive.
-    pub fn new(num_nodes: usize) -> Self {
-        let num_bytes = num_nodes / 8 + 1;
-        let mut v = Vec::with_capacity(num_bytes);
-        v.resize(num_bytes, 0_u8);
-        BitFieldBytes { bits: v, is_active:  false }
-    }
-}
-
-impl HgBasis for BitFieldBytes {
-    fn new_empty() -> Self {
-        let mut bfb = BitFieldBytes::new(0);
-        bfb.is_active = true;
-        bfb
-    }
-
-    fn cardinality(&self) -> usize {
-        let mut tot = 0;
-        for ix in 0..self.bits.len() {
-            tot += self.bits[ix].count_ones();
-        }
-        tot as usize
-    }
-
-    fn intersect_with(&mut self, rhs: &Self) {
-        todo!()
-    }
-
-    fn intersection(&self, rhs: &Self) -> Self {
-        todo!()
-    }
-
-    fn union_with(&mut self, rhs: &Self) {
-        todo!()
-    }
-
-    fn union(&self, rhs: &Self) -> Self {
-        todo!()
-    }
-
-    fn remove_node(&mut self, node: &Self) {
-        todo!()
-    }
-
-    fn complement(&self, rhs: &Self) -> Self {
-        todo!()
-    }
-
-    fn nodes(&self) -> HashSet<Self> {
-        todo!()
-    }
-}
-
 
 /// ## Under Construction
 /// Binary encoding of a subset of nodes for a hypergraph. 
@@ -216,20 +172,20 @@ impl HgBasis for BitFieldBytes {
 /// the bits that are 1 indicate that node is present in the subset.
 /// This allows for more compact edge storage for smaller graphs. 
 #[derive(PartialEq, Eq, Debug, Clone, Hash, PartialOrd, Ord)]
-pub struct BitBasis<const K: usize> {
+pub struct ConstGenBitBasis<const K: usize> {
     pub bits: [u8; K],
     // TODO: Change BitNodes API to have this.
     // is_empty: bool,
 }
 
-impl<const K: usize> BitBasis<K> {
+impl<const K: usize> ConstGenBitBasis<K> {
     /// Gives the zero aka empty element.
-    pub fn new() -> BitBasis<K> {
-        BitBasis { bits: [0; K] }
+    pub fn new() -> ConstGenBitBasis<K> {
+        ConstGenBitBasis { bits: [0; K] }
     }
 
-    pub fn from(bits: [u8; K]) -> BitBasis<K> {
-        BitBasis { bits: bits }
+    pub fn from(bits: [u8; K]) -> ConstGenBitBasis<K> {
+        ConstGenBitBasis { bits: bits }
     }
 
     pub fn is_node(&self) -> bool {
@@ -258,8 +214,8 @@ impl<const K: usize> BitBasis<K> {
     /// When shrinking the current behavior is to literally throw
     /// out the data being cut. Might be nice to give an option to
     /// indicate that data was lost.
-    pub fn resize<const M: usize>(self) -> BitBasis<M> {
-        let mut new_basis = BitBasis::<M>::new();
+    pub fn resize<const M: usize>(self) -> ConstGenBitBasis<M> {
+        let mut new_basis = ConstGenBitBasis::<M>::new();
         for ix in 0.. (M.min(K)) {
             // Direct index is fine due to min above
             new_basis.bits[ix] = self.bits[ix];
@@ -269,8 +225,8 @@ impl<const K: usize> BitBasis<K> {
 }
 
 
-impl<const K: usize> Add for BitBasis<K> {
-    type Output = BitBasis<K>;
+impl<const K: usize> Add for ConstGenBitBasis<K> {
+    type Output = ConstGenBitBasis<K>;
 
     /// Returns the union of the two neighborhoods.
     fn add(self, rhs: Self) -> Self::Output {
@@ -278,11 +234,11 @@ impl<const K: usize> Add for BitBasis<K> {
         for ix in 0..K {
             new_bits[ix] = self.bits[ix] | rhs.bits[ix];
         }
-        BitBasis::from(new_bits)
+        ConstGenBitBasis::from(new_bits)
     }
 }
 
-impl<const K: usize> AddAssign for BitBasis<K> {
+impl<const K: usize> AddAssign for ConstGenBitBasis<K> {
     fn add_assign(&mut self, rhs: Self) {
         for ix in 0..K {
             self.bits[ix] = self.bits[ix] | rhs.bits[ix];
@@ -290,8 +246,8 @@ impl<const K: usize> AddAssign for BitBasis<K> {
     }
 }
 
-impl<const K: usize> Mul for BitBasis<K> {
-    type Output = BitBasis<K>;
+impl<const K: usize> Mul for ConstGenBitBasis<K> {
+    type Output = ConstGenBitBasis<K>;
 
     /// Returns the intersection of the two neighborhoods.
     fn mul(self, rhs: Self) -> Self::Output {
@@ -299,11 +255,11 @@ impl<const K: usize> Mul for BitBasis<K> {
         for ix in 0..K {
             new_bits[ix] = self.bits[ix] & rhs.bits[ix];
         }
-        BitBasis::from(new_bits)
+        ConstGenBitBasis::from(new_bits)
     }
 }
 
-impl<const K: usize> MulAssign for BitBasis<K> {
+impl<const K: usize> MulAssign for ConstGenBitBasis<K> {
     fn mul_assign(&mut self, rhs: Self) {
         for ix in 0..K {
             self.bits[ix] = self.bits[ix] & rhs.bits[ix];
@@ -313,9 +269,9 @@ impl<const K: usize> MulAssign for BitBasis<K> {
 
 // impl<const K: usize> HgNode for BitNodes<K> {}
 
-impl<const K: usize> HgBasis for BitBasis<K> {
+impl<const K: usize> HgBasis for ConstGenBitBasis<K> {
     fn new_empty() -> Self {
-        BitBasis::<K>::new()
+        ConstGenBitBasis::<K>::new()
     }
     fn cardinality(&self) -> usize {
         let mut num_ones = 0;
@@ -331,8 +287,8 @@ impl<const K: usize> HgBasis for BitBasis<K> {
         }
     }
 
-    fn intersection(&self, rhs: &Self) -> BitBasis<K> {
-        let mut ret = BitBasis::new();
+    fn intersection(&self, rhs: &Self) -> ConstGenBitBasis<K> {
+        let mut ret = ConstGenBitBasis::new();
         for ix in 0..K {
             ret.bits[ix] = self.bits[ix] & rhs.bits[ix];
         }
@@ -345,8 +301,8 @@ impl<const K: usize> HgBasis for BitBasis<K> {
         }
     }
 
-    fn union(&self, rhs: &Self) -> BitBasis<K> {
-        let mut ret = BitBasis::new();
+    fn union(&self, rhs: &Self) -> ConstGenBitBasis<K> {
+        let mut ret = ConstGenBitBasis::new();
         for ix in 0..K {
             ret.bits[ix] = self.bits[ix] | rhs.bits[ix];
         }
@@ -369,7 +325,7 @@ impl<const K: usize> HgBasis for BitBasis<K> {
             // Then make sure that one is self.
             new_bits[ix] = new_bits[ix] & self.bits[ix];
         }
-        BitBasis { bits: new_bits }
+        ConstGenBitBasis { bits: new_bits }
     }
 
     fn nodes(&self) -> std::collections::HashSet<Self> {
@@ -378,12 +334,12 @@ impl<const K: usize> HgBasis for BitBasis<K> {
         };
         pb.get_nodes_set()
             .into_iter()
-            .map(|array| BitBasis { bits: array })
+            .map(|array| ConstGenBitBasis { bits: array })
             .collect()
     }
 }
 
-impl<const K: usize> Serialize for BitBasis<K> {
+impl<const K: usize> Serialize for ConstGenBitBasis<K> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -398,21 +354,11 @@ impl<const K: usize> Serialize for BitBasis<K> {
 mod test {
     use crate::traits::HgBasis;
 
-    use super::{BitBasis, BitFieldBytes};
-
+    use super::{ConstGenBitBasis};
     
-    #[test]
-    fn test_size_of_structs() {
-        let og = BitBasis::<10>::new();
-        let bytes = BitFieldBytes {bits: [0_u8; 10].into(), is_active: true};
-        println!("og size: {:}", std::mem::size_of_val(&og));
-        println!("bytes size: {:}", std::mem::size_of_val(&*bytes.bits));
-    }
-    
-
     #[test]
     fn test_bit_nodes_serialization() {
-        let bn = BitBasis::from([0, 1, 2]);
+        let bn = ConstGenBitBasis::from([0, 1, 2]);
         if let Ok(s) = serde_json::to_string(&bn) {
             println!("serde output: {:}", s);
         }
@@ -420,10 +366,10 @@ mod test {
 
     #[test]
     fn test_resize() {
-        let mut og = BitBasis::<10>::new();
+        let mut og = ConstGenBitBasis::<10>::new();
         og.bits[0] = 0b1010_0000_u8;
         println!("og: {:?}", og);
-        let new: BitBasis<5> = og.resize();
+        let new: ConstGenBitBasis<5> = og.resize();
         println!("new: {:?}", new);
     }
 }

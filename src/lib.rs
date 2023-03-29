@@ -43,21 +43,22 @@
 #![forbid(unsafe_code)]
 
 pub mod algs;
-mod bgraph;
+mod stackgraph;
 mod hgraph;
 mod pgraph;
+mod bgraph;
 mod structs;
 mod traits;
 mod utils;
 
-pub use bgraph::BGraph;
+pub use stackgraph::StackGraph;
 pub use hgraph::HGraph;
 pub use pgraph::PGraph;
 
 pub use structs::EdgeDirection;
 
 pub use structs::SparseBasis;
-pub use structs::BitBasis;
+pub use structs::ConstGenBitBasis;
 
 #[cfg(test)]
 mod tests {
