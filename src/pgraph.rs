@@ -11,10 +11,10 @@ use crate::{
 /// A hypergraph type that simply counts nodes as they are created,
 /// as opposed to HGraph which utilizes Uuid's random generation.
 /// This allows for smaller data types to store nodes, which
-/// theoretically can significantly reduce memory footprint for smaller,
-/// denser hypergraphs. Since we use smaller integer types however, this means
+/// theoretically can reduce memory footprint. Since we use smaller 
+/// integer types however, this means
 /// that adding nodes could possibly fail. Due to this we also will re-use
-/// previously deleted nodes. Intended more for network analytics as opposed to
+/// previously deleted nodes. Intended more for analytics as opposed to
 /// production environments.
 pub struct PGraph<N: HgNode> {
     pub name: String,
@@ -35,7 +35,7 @@ impl<N: HgNode> PGraph<N> {
         }
     }
 
-    /// May return no nodes if they cannot be created. For example, using u8 as the underlying storage method means only 255 nodes can be created. If you try adding more nodes after this then you get nothing back. Also it will reuse nodes, as this structure is intended more for analysis than production environments.
+    /// May return no nodes if they cannot be created. For example, using u8 as the underlying storage method means only 255 nodes can be created. If you try adding more nodes after this then you get nothing back. Also it will reuse nodes if they are deleted.
     // TODO: This is absolutely atrocious. Fix later.
     pub fn add_nodes(&mut self, num_nodes: usize) -> Option<HashSet<N>> {
         let mut ret = HashSet::with_capacity(num_nodes);

@@ -83,7 +83,9 @@ impl<B: HgBasis> GeneroEdge<B> {
     }
 
     pub fn change_output(&mut self, new_output: B) {
-        self.out_nodes = new_output;
+        if self.direction != EdgeDirection::Blob || self.direction != EdgeDirection::Loop {
+            self.out_nodes = new_output;
+        }
     }
 
     /// For blobs this returns the size of the blob
@@ -179,16 +181,10 @@ impl<B: HgBasis> GeneroEdge<B> {
         }
     }
 
-    /// Returns true if input correctly maps to output from this edge, false
-    /// otherwise.
-    pub fn is_correctly_mapped(&self, _input: &B, _output: &B) -> bool {
-        match self.direction {
-            EdgeDirection::Directed => todo!(),
-            EdgeDirection::Undirected | EdgeDirection::Oriented => todo!(),
-            EdgeDirection::Loop => todo!(),
-            EdgeDirection::Blob => todo!(),
-        }
-        false
+    /// Returns true if the edge is a blob consisting of the given
+    /// input basis, false otherwise
+    pub fn matches_blob(&self, basis: &B) -> bool {
+        self.direction == EdgeDirection::Blob && self.in_nodes == *basis
     }
 
     /// Returns true if output and input unioned cover the provided basis

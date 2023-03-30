@@ -9,26 +9,26 @@ use bitvec::prelude::*;
 use serde::{ser::SerializeStruct, Serialize};
 
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Eq)]
-pub struct BitVecBasis {
+pub struct BitBasis {
     bv: BitVec,
     pub is_active: bool,
 }
 
-impl BitVecBasis {
+impl BitBasis {
     pub fn new(num_nodes: usize) -> Self {
         let mut new_bits = BitVec::with_capacity(num_nodes);
         for ix in 0..num_nodes {
             *new_bits.get_mut(ix).unwrap() = false;
         }
-        BitVecBasis { bv: new_bits, is_active: false }
+        BitBasis { bv: new_bits, is_active: false }
     }
 
     pub fn from(num_nodes: usize, nodes_present: HashSet<usize>) -> Self {
-        let mut new_bits = BitVec::with_capacity(num_nodes);
+        let mut new_bits = BitVec::from_iter((0..num_nodes).map(|_| false));
         for ix in 0..num_nodes {
             *new_bits.get_mut(ix).unwrap() = nodes_present.contains(&ix);
         }
-        BitVecBasis { bv: new_bits, is_active: true }
+        BitBasis { bv: new_bits, is_active: true }
     }
 
     /// Initializes any new bits to false, removes any bits if the vec
@@ -54,7 +54,8 @@ impl BitVecBasis {
     }
 }
 
-impl HgBasis for BitVecBasis {
+// TODO: Handle situations with inactive inputs/self.
+impl HgBasis for BitBasis {
     fn new_empty() -> Self {
         Self::from(0, HashSet::new())
     }
@@ -75,7 +76,7 @@ impl HgBasis for BitVecBasis {
 
     fn intersection(&self, rhs: &Self) -> Self {
         if self.bv.len() != rhs.bv.len() {
-            BitVecBasis {
+            BitBasis {
                 bv: BitVec::new(),
                 is_active: false,
             }
@@ -84,7 +85,7 @@ impl HgBasis for BitVecBasis {
             for ix in 0..self.bv.len() {
                 intersection_bv.push(*self.bv.get(ix).unwrap() & *rhs.bv.get(ix).unwrap());   
             }
-            BitVecBasis {
+            BitBasis {
                 bv: intersection_bv,
                 is_active: true,
             }
@@ -102,7 +103,7 @@ impl HgBasis for BitVecBasis {
 
     fn union(&self, rhs: &Self) -> Self {
         if self.bv.len() != rhs.bv.len() {
-            BitVecBasis {
+            BitBasis {
                 bv: BitVec::new(),
                 is_active: false,
             }
@@ -111,7 +112,7 @@ impl HgBasis for BitVecBasis {
             for ix in 0..self.bv.len() {
                 intersection_bv.push(*self.bv.get(ix).unwrap() | *rhs.bv.get(ix).unwrap());   
             }
-            BitVecBasis {
+            BitBasis {
                 bv: intersection_bv,
                 is_active: true,
             }
@@ -132,12 +133,12 @@ impl HgBasis for BitVecBasis {
                 let rhs_bit = rhs.bv.get(ix).unwrap();
                 comp_bv.push(*lhs_bit ^ *rhs_bit);
             }
-            BitVecBasis {
+            BitBasis {
                 bv: comp_bv,
                 is_active: true,
             }
         } else {
-            BitVecBasis {
+            BitBasis {
                 bv: BitVec::new(),
                 is_active: false,
             }
@@ -151,7 +152,7 @@ impl HgBasis for BitVecBasis {
             if *self.bv.get(ix).unwrap() {
                 let mut tmp = all_zeros.clone();
                 *tmp.get_mut(ix).unwrap() = true;
-                ret.insert(BitVecBasis { bv: tmp, is_active: true });
+                ret.insert(BitBasis { bv: tmp, is_active: true });
             }
         }
         ret

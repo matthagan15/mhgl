@@ -249,16 +249,21 @@ impl<B: HgBasis> GeneroGraph<B> {
     /// simply replace the blob basis with the new basis, keeping the ID
     /// the same.
     pub fn change_edge_input(&mut self, edge_id: &EdgeID, new_input: B) {
-        // TODO: Might be easier for blobs to simply create a new edge,
-        // remove the old one, and insert the new one?
+        // Due to blobs it is simply easier to remove the edge and reinsert
+        // the modified edge.
         if let Some(mut e) = self.remove_edge(edge_id) {
             e.change_input(new_input);
             self.add_edge(e);
         }
     }
 
+    /// Change the output of the provided edge_id to the new basis. If edge
+    /// is a blob or loop then nothing is done, use `change_edge_input` instead.
     pub fn change_edge_output(&mut self, edge_id: &EdgeID, new_output: B) {
-        // TODO: wrong because changing output of an undirected edge affects input maps.
+        // Edge is removed and re-added to avoid duplicating logic of undirected
+        // or blob style edges. For example changing output of an undirected 
+        // edge requires changing all of the inputs/outgoing edges from the 
+        // outbound map.
         if let Some(mut e) = self.remove_edge(edge_id) {
             e.change_output(new_output);
             self.add_edge(e);
@@ -285,6 +290,27 @@ impl<B: HgBasis> GeneroGraph<B> {
                 false
             }
         }).collect()
+    }
+
+    /// Returns true if a blob exists consisting of the provided basis, false
+    /// otherwise.
+    pub fn query_blob(&self, input: &B) -> bool {
+        let mut potential_edges = HashSet::new();
+        for node in input.nodes() {
+            if potential_edges.len() == 0 && self.node_to_outbound_edges.contains_key(&node) {
+                potential_edges = potential_edges.union(self.node_to_outbound_edges.get(&node).unwrap()).cloned().collect();
+            } else if potential_edges.len() > 0 && self.node_to_outbound_edges.contains_key(&node) {
+                potential_edges = potential_edges.intersection(self.node_to_outbound_edges.get(&node).unwrap()).cloned().collect();
+            }
+        }
+        for edge_id in potential_edges {
+            if let Some(e) = self.edges.get(&edge_id) {
+                if e.matches_blob(input) {
+                    return true;
+                }
+            }
+        }
+        false
     }
 
     pub fn map_basis(&self, input: &B) -> GeneroVector<B> {
