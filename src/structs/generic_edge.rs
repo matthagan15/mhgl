@@ -155,7 +155,7 @@ impl<B: HgBasis> GeneroEdge<B> {
         tot.nodes()
     }
 
-    // TODO: need to handle undirected, oriented, and blob edges
+    // Returns true if the provided basis can be mapped by this hyperedge, false otherwise.
     pub fn can_map_basis(&self, basis: &B) -> bool {
         match self.direction {
             EdgeDirection::Directed | EdgeDirection::Loop => self.in_nodes == *basis,
@@ -163,11 +163,11 @@ impl<B: HgBasis> GeneroEdge<B> {
                 self.in_nodes == *basis || self.out_nodes == *basis
             }
             EdgeDirection::Blob => {
-                // TODO: add a "contains nodes" function to avoid this stuff
                 self.in_nodes.intersection(basis) == *basis
             }
         }
     }
+    /// Returns true if the provided basis is an output of this edge.
     pub fn matches_output(&self, basis: &B) -> bool {
         match self.direction {
             EdgeDirection::Directed | EdgeDirection::Loop => self.out_nodes == *basis,
@@ -175,8 +175,26 @@ impl<B: HgBasis> GeneroEdge<B> {
                 self.in_nodes == *basis || self.out_nodes == *basis
             }
             EdgeDirection::Blob => {
-                // TODO: add a "contains nodes" function to avoid this stuff
                 self.in_nodes.intersection(basis) == *basis
+            }
+        }
+    }
+
+    pub fn is_correctly_mapped(&self, input: &B, output: &B) -> bool {
+        match self.direction {
+            EdgeDirection::Directed => {
+                self.in_nodes == *input && self.out_nodes == *output
+            },
+            EdgeDirection::Loop => {
+                self.in_nodes == *input && *output == *input
+            },
+            EdgeDirection::Oriented | EdgeDirection::Undirected => {
+                let og_dir = self.in_nodes == *input && self.out_nodes == *output;
+                let opposite_dir = self.in_nodes == *output && self.out_nodes == *input;
+                og_dir || opposite_dir
+            },
+            EdgeDirection::Blob => {
+                self.in_nodes.complement(input) == *output
             }
         }
     }

@@ -193,6 +193,7 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
                 ret.push(self.nodes[ix].clone());
             }
         }
+        // self.nodes.clone().into_iter().filter(|x| rhs.contains_node(x) == false).collect();
         SparseBasis { nodes: ret }
     }
 

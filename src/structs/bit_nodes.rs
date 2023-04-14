@@ -15,12 +15,13 @@ pub struct BitBasis {
 }
 
 impl BitBasis {
+    /// Returns a new empty set basis that is active.
     pub fn new(num_nodes: usize) -> Self {
         let mut new_bits = BitVec::with_capacity(num_nodes);
         for ix in 0..num_nodes {
-            *new_bits.get_mut(ix).unwrap() = false;
+            new_bits.push(false);
         }
-        BitBasis { bv: new_bits, is_active: false }
+        BitBasis { bv: new_bits, is_active: true }
     }
 
     pub fn from(num_nodes: usize, nodes_present: HashSet<usize>) -> Self {
@@ -51,6 +52,19 @@ impl BitBasis {
             }
         }
         ret
+    }
+
+    pub fn flip_node(&mut self, node_index: usize) {
+        if let Some(mut x) = self.bv.get_mut(node_index) {
+            *x = *x ^ true;
+        }
+    }
+
+    pub fn make_active(&mut self) {
+        self.is_active = true;
+    }
+    pub fn make_inactive(&mut self) {
+        self.is_active = false;
     }
 }
 
@@ -355,8 +369,16 @@ impl<const K: usize> Serialize for ConstGenBitBasis<K> {
 mod test {
     use crate::traits::HgBasis;
 
-    use super::{ConstGenBitBasis};
+    use super::{ConstGenBitBasis, BitBasis};
     
+    #[test]
+    fn test_bit_basis() {
+        let mut b = BitBasis::new(5);
+        b.flip_node(0);
+        b.flip_node(4);
+        dbg!(b);
+    }
+
     #[test]
     fn test_bit_nodes_serialization() {
         let bn = ConstGenBitBasis::from([0, 1, 2]);

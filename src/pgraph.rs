@@ -36,7 +36,6 @@ impl<N: HgNode> PGraph<N> {
     }
 
     /// May return no nodes if they cannot be created. For example, using u8 as the underlying storage method means only 255 nodes can be created. If you try adding more nodes after this then you get nothing back. Also it will reuse nodes if they are deleted.
-    // TODO: This is absolutely atrocious. Fix later.
     pub fn add_nodes(&mut self, num_nodes: usize) -> Option<HashSet<N>> {
         let mut ret = HashSet::with_capacity(num_nodes);
         let mut counter = self.next_usable_node;

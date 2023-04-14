@@ -93,5 +93,7 @@ mod tests {
         bg.create_edge(&[0,1,2,3], &[1,2,3,4], 1., crate::EdgeDirection::Directed);
         let output = bg.step(&[0,1,2,3]);
         println!("output:\n{:?}", output);
+
+        dbg!(bg);
     }
 }
