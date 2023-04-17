@@ -7,7 +7,7 @@ use crate::{structs::{GeneroGraph, BitBasis, EdgeWeight, GeneroEdge}, EdgeDirect
 /// A directed, weighted hypergraph utilizing a binary encoding of subsets.
 /// Should be advantageous for dense hypergraphs over a small number of nodes.
 #[derive(Debug, Clone)]
-struct BGraph {
+pub struct BGraph {
     pub name: String,
     num_nodes: usize,
     graph: GeneroGraph<BitBasis>,

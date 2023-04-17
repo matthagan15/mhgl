@@ -124,7 +124,7 @@ impl<const K: usize> HyperGraph for StackGraph<K> {
 }
 
 mod test {
-    use crate::{StackGraph, EdgeDirection};
+    use crate::{stackgraph::StackGraph, EdgeDirection};
 
     #[test]
     fn test_bit_graph_new() {
