@@ -19,7 +19,7 @@
 //! Current status is that this is a minimal product and all you can really do
 //! is create a graph, create nodes/edges, remove nodes/edges, query the graph,
 //! and take steps starting from a specified basis. More useful behavior is
-//! in progress. Here is an example of the API as is:
+//! in progress. Here is an example of the API using `HGraph`:
 //! ```
 //! use mhgl::{HGraph, EdgeDirection};
 //! 
@@ -33,6 +33,24 @@
 //!    (nodes[0..3].iter().cloned().collect(), 1.23)
 //! ];
 //! assert_eq!(hg.step(&nodes[0..2]), expected);
+//! ```
+//! 
+//! And similar example with `PGraph` and `BGraph`
+//! 
+//! ```
+//! use mhgl::{PGraph, EdgeDirection};
+//! 
+//! let mut hg = PGraph::<u8>::new();
+//! let nodes = hg.create_nodes(255).expect("Still space left.");
+//! assert_eq!(hg.create_nodes(1), None);
+//! assert!(nodes.contains(42));
+//! 
+//! // Currently requires the number of nodes to stay fixed due to resizing
+//! // of bitvecs.
+//! let mut bin_hg = BGraph::new(20);
+//! 
+//! // Nodes accessed with zero-indexing simply by number (usize).
+//! bin_hg.create_edge(&[1,2,3], &[], 3., EdgeDirection::Loop);
 //! ```
 //!
 //! # Algorithms

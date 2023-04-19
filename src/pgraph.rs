@@ -36,7 +36,7 @@ impl<N: HgNode> PGraph<N> {
     }
 
     /// May return no nodes if they cannot be created. For example, using u8 as the underlying storage method means only 255 nodes can be created. If you try adding more nodes after this then you get nothing back. Also it will reuse nodes if they are deleted.
-    pub fn add_nodes(&mut self, num_nodes: usize) -> Option<HashSet<N>> {
+    pub fn create_nodes(&mut self, num_nodes: usize) -> Option<HashSet<N>> {
         let mut ret = HashSet::with_capacity(num_nodes);
         let mut counter = self.next_usable_node;
         while ret.len() < num_nodes && counter < N::max_number() {
@@ -149,9 +149,9 @@ mod test {
     #[test]
     fn test_node_creation_deletion() {
         let mut pg = PGraph::<u8>::new();
-        let mut nodes: Vec<_> = pg.add_nodes(1000).expect("no nodes?").into_iter().collect();
+        let mut nodes: Vec<_> = pg.create_nodes(1000).expect("no nodes?").into_iter().collect();
         nodes.sort();
         println!("nodes! {:?}", nodes);
-        assert!(pg.add_nodes(1).is_none())
+        assert!(pg.create_nodes(1).is_none())
     }
 }
