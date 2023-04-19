@@ -44,6 +44,12 @@ fn binary_search<N: HgNode>(sorted: &Vec<N>, node: &N) -> Option<usize> {
     }
 }
 
+
+/// A sparse representation of a subset of nodes. Empty sets provided with `new`
+/// and `from` can be used to create a a SparseBasis object from a HashSet. Can
+/// be converted to a HashSet using `to_node_set()`. Can take `union` and
+/// `intersection` with other basis to yield a new basis or `union_with` and 
+/// `intersect_with` to mutate the basis. See `HgBasis` for complete methods.
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct SparseBasis<N: HgNode> {
     nodes: Vec<N>,

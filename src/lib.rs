@@ -77,8 +77,11 @@ pub use pgraph::PGraph;
 pub use bgraph::BGraph;
 
 pub use structs::EdgeDirection;
-
 pub use structs::SparseBasis;
+pub use structs::BitBasis;
+
+pub use traits::HgBasis;
+pub use traits::HyperGraph;
 
 #[cfg(test)]
 mod tests {

@@ -8,10 +8,15 @@ use bitvec::prelude::*;
 
 use serde::{ser::SerializeStruct, Serialize};
 
+
+/// Representation of a subset of nodes using a binary
+/// encoding. Use `flip_node` to set a specific node as present
+/// or not present in the basis. `query_node` returns if 
+/// the node is present in the subset or not. Can be resized.
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Eq)]
 pub struct BitBasis {
     bv: BitVec,
-    pub is_active: bool,
+    is_active: bool,
 }
 
 impl BitBasis {
@@ -54,16 +59,24 @@ impl BitBasis {
         ret
     }
 
+    /// Flip a node from being present to not-present and vice
+    /// versa. Does nothing if index is out of bounds.
     pub fn flip_node(&mut self, node_index: usize) {
         if let Some(mut x) = self.bv.get_mut(node_index) {
             *x = *x ^ true;
         }
     }
 
-    pub fn make_active(&mut self) {
+    /// Returns true if the node at the given index is in the subset.
+    /// Panics if index is out of bounds.
+    pub fn query_node(&self, node_index: usize) -> bool {
+        *self.bv.get(node_index).expect("BitBasis query_node index out of bounds")
+    }
+
+    fn make_active(&mut self) {
         self.is_active = true;
     }
-    pub fn make_inactive(&mut self) {
+    fn make_inactive(&mut self) {
         self.is_active = false;
     }
 }
