@@ -6,7 +6,7 @@ use std::{
 
 use bitvec::prelude::*;
 
-use serde::{ser::SerializeStruct, Serialize};
+use serde::{ser::SerializeStruct, Serialize, Deserialize};
 
 
 /// Representation of a subset of nodes using a binary
