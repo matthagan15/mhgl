@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 use crate::{
@@ -7,7 +8,7 @@ use crate::{
     traits::{HgNode, HyperGraph, HgBasis},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// A hypergraph type that simply counts nodes as they are created,
 /// as opposed to HGraph which utilizes Uuid's random generation.
 /// This allows for smaller data types to store nodes, which

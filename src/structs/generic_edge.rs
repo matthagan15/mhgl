@@ -27,7 +27,7 @@ pub enum EdgeDirection {
 /// - Oriented: Similar to Undirected but will flip the sign of the edge weight if it is being traversed opposite of the orientation. Ex: A -> B with weight +2.5 but B -> A with weight -2.5.
 /// - Loop: Maps a basis element to itself.
 /// - Blob: The traditional (in the literature) undirected hyperedge consisting of just a subset of nodes. As far as it's action, we currently think of Blobs as mapping a subset of it's basis element to the complement within the subset. For example, a blob of {a, b, c} would map {a} -> {b, c}, {a, b} -> {c}, {} -> {a, b, c}, etc. 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GeneroEdge<B: HgBasis> {
     pub id: EdgeID,
     pub weight: EdgeWeight,

@@ -13,7 +13,7 @@ use serde::{ser::SerializeStruct, Serialize, Deserialize};
 /// encoding. Use `flip_node` to set a specific node as present
 /// or not present in the basis. `query_node` returns if 
 /// the node is present in the subset or not. Can be resized.
-#[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, Hash, PartialEq, PartialOrd, Eq)]
 pub struct BitBasis {
     bv: BitVec,
     is_active: bool,

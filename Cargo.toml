@@ -10,7 +10,7 @@ repository = "https://github.com/matthagan15/mhgl"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bitvec = "1.0.1"
+bitvec = { version = "1.0.1", features = ["serde"] }
 num-integer = "0.1.45"
 rand = "0.8.5"
 serde = { version = "1.0.152", features = ["derive"] }

@@ -1,5 +1,6 @@
 use std::{collections::{HashMap, HashSet}, hash::Hash};
 
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::traits::HgBasis;
@@ -9,7 +10,7 @@ use super::{
     GraphID,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GeneroGraph<B: HgBasis> {
     pub id: GraphID,
     edges: HashMap<EdgeID, GeneroEdge<B>>,

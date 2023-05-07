@@ -1,5 +1,7 @@
 use std::{collections::HashSet, fmt::Debug};
 
+use serde::{Serialize, Deserialize};
+
 use crate::traits::{HgBasis, HgNode};
 
 /// Searches a sorted vector (does not check if it is sorted) and returns
@@ -50,7 +52,7 @@ fn binary_search<N: HgNode>(sorted: &Vec<N>, node: &N) -> Option<usize> {
 /// be converted to a HashSet using `to_node_set()`. Can take `union` and
 /// `intersection` with other basis to yield a new basis or `union_with` and 
 /// `intersect_with` to mutate the basis. See `HgBasis` for complete methods.
-#[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize)]
 pub struct SparseBasis<N: HgNode> {
     nodes: Vec<N>,
 }

@@ -1,6 +1,7 @@
 
 use std::collections::{HashSet};
 
+use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 use crate::structs::{
@@ -9,7 +10,7 @@ use crate::structs::{
 
 use crate::traits::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// The simplest to use hypergraph structure. Encodes nodes as `u128` numbers (via the `uuid` crate internally, converted to `u128` for end user)  and
 /// uses a sparse representation to store hyperedges. Creating nodes does not
 /// fail, unlike `PGraph<N>` which may run out of encodable nodes if small enough integer sizes are used. With `HGraph` you can also create and delete nodes, unlike `BGraph` which is fixed at compile time.
