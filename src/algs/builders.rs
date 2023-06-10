@@ -1,4 +1,4 @@
-use crate::{traits::*};
+use crate::traits::*;
 
 /// A basic erdos_renyi hypergraph where the probability for each dimension of input and output edge can be
 /// specified. For example, an erdos_renyi hypergraph with only the probability (1,1,p) specified is equivalent
@@ -58,10 +58,7 @@ pub fn erdos_renyi(_num_nodes: usize, _dimension_with_probability: Vec<(usize, u
     // hg
 }
 
-
-
 mod test {
-    
 
     #[test]
     fn test_erdos_renyi() {

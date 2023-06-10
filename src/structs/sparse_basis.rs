@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Debug};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::traits::{HgBasis, HgNode};
 
@@ -46,11 +46,10 @@ fn binary_search<N: HgNode>(sorted: &Vec<N>, node: &N) -> Option<usize> {
     }
 }
 
-
 /// A sparse representation of a subset of nodes. Empty sets provided with `new`
 /// and `from` can be used to create a a SparseBasis object from a HashSet. Can
 /// be converted to a HashSet using `to_node_set()`. Can take `union` and
-/// `intersection` with other basis to yield a new basis or `union_with` and 
+/// `intersection` with other basis to yield a new basis or `union_with` and
 /// `intersect_with` to mutate the basis. See `HgBasis` for complete methods.
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize)]
 pub struct SparseBasis<N: HgNode> {
@@ -218,13 +217,10 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
 mod test {
     use rand::thread_rng;
 
-    use crate::{structs::{sparse_basis::binary_search, SparseBasis}, traits::HgBasis};
-
-    
-
-    
-
-    
+    use crate::{
+        structs::{sparse_basis::binary_search, SparseBasis},
+        traits::HgBasis,
+    };
 
     #[test]
     fn test_bin_search() {

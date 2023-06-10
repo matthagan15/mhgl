@@ -1,11 +1,10 @@
+use std::collections::HashSet;
 
-use std::collections::{HashSet};
-
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::structs::{
-    EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph, NodeID, SparseBasis, EdgeID,
+    EdgeDirection, EdgeID, EdgeWeight, GeneroEdge, GeneroGraph, NodeID, SparseBasis,
 };
 
 use crate::traits::*;
@@ -85,7 +84,7 @@ impl HGraph {
     ) -> u128 {
         let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
         let mut output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
-        if direction == EdgeDirection::Blob || direction == EdgeDirection::Loop {
+        if direction == EdgeDirection::Undirected || direction == EdgeDirection::Loop {
             input_basis.union_with(&output_basis);
             output_basis = SparseBasis::new_empty();
         }
@@ -124,7 +123,11 @@ impl HyperGraph for HGraph {
         self.graph.get_outbound_edges(node).into_iter().collect()
     }
 
-    fn query_edges(&self, input: &Self::Basis, output: &Self::Basis) -> Vec<crate::structs::EdgeID> {
+    fn query_edges(
+        &self,
+        input: &Self::Basis,
+        output: &Self::Basis,
+    ) -> Vec<crate::structs::EdgeID> {
         self.graph.query_edges(input, output)
     }
 
@@ -136,13 +139,16 @@ impl HyperGraph for HGraph {
         self.graph.map_basis(input).to_tuples()
     }
 
-    fn map_vector(&self, input: &crate::structs::GeneroVector<Self::Basis>) -> crate::structs::GeneroVector<Self::Basis> {
+    fn map_vector(
+        &self,
+        input: &crate::structs::GeneroVector<Self::Basis>,
+    ) -> crate::structs::GeneroVector<Self::Basis> {
         self.graph.map(input)
     }
 }
 
 mod test {
-    use crate::{HGraph, EdgeDirection};
+    use crate::{EdgeDirection, HGraph};
 
     #[test]
     fn test_node_creation_deletion() {
@@ -154,7 +160,7 @@ mod test {
         println!("before removal:\n{:#?}", hg);
         hg.remove_node(nodes[0]);
         println!("post removal:\n{:#?}", hg);
-        let b = hg.create_edge(&nodes[5..=9], &[], 2.2, EdgeDirection::Blob);
+        let b = hg.create_edge(&nodes[5..=9], &[], 2.2, EdgeDirection::Undirected);
         println!("post blob:{:#?}", hg);
         println!("step output:\n{:?}", hg.step(&nodes[6..=8]));
         hg.remove_edge(b);

@@ -1,18 +1,18 @@
 use std::collections::HashSet;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    structs::{EdgeDirection, EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis, EdgeID},
-    traits::{HgNode, HyperGraph, HgBasis},
+    structs::{EdgeDirection, EdgeID, EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis},
+    traits::{HgBasis, HgNode, HyperGraph},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// A hypergraph type that simply counts nodes as they are created,
 /// as opposed to HGraph which utilizes Uuid's random generation.
 /// This allows for smaller data types to store nodes, which
-/// theoretically can reduce memory footprint. Since we use smaller 
+/// theoretically can reduce memory footprint. Since we use smaller
 /// integer types however, this means
 /// that adding nodes could possibly fail. Due to this we also will re-use
 /// previously deleted nodes. Intended more for analytics as opposed to
@@ -84,7 +84,7 @@ impl<N: HgNode> PGraph<N> {
         direction: EdgeDirection,
     ) -> u128 {
         match direction {
-            EdgeDirection::Directed | EdgeDirection::Oriented | EdgeDirection::Undirected => {
+            EdgeDirection::Directed | EdgeDirection::Oriented | EdgeDirection::Symmetric => {
                 let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
                 let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
                 let e = GeneroEdge::from(input_basis, output_basis, weight, direction);
@@ -92,7 +92,7 @@ impl<N: HgNode> PGraph<N> {
                 self.graph.add_edge(e);
                 id.as_u128()
             }
-            EdgeDirection::Loop | EdgeDirection::Blob => {
+            EdgeDirection::Loop | EdgeDirection::Undirected => {
                 let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
                 let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
                 input_basis.union_with(&output_basis);
@@ -127,7 +127,11 @@ impl<N: HgNode> HyperGraph for PGraph<N> {
         self.graph.get_outbound_edges(node).into_iter().collect()
     }
 
-    fn query_edges(&self, input: &Self::Basis, output: &Self::Basis) -> Vec<crate::structs::EdgeID> {
+    fn query_edges(
+        &self,
+        input: &Self::Basis,
+        output: &Self::Basis,
+    ) -> Vec<crate::structs::EdgeID> {
         self.graph.query_edges(input, output)
     }
 
@@ -139,7 +143,10 @@ impl<N: HgNode> HyperGraph for PGraph<N> {
         self.graph.map_basis(input).to_tuples()
     }
 
-    fn map_vector(&self, input: &crate::structs::GeneroVector<Self::Basis>) -> crate::structs::GeneroVector<Self::Basis> {
+    fn map_vector(
+        &self,
+        input: &crate::structs::GeneroVector<Self::Basis>,
+    ) -> crate::structs::GeneroVector<Self::Basis> {
         self.graph.map(input)
     }
 }
@@ -150,7 +157,11 @@ mod test {
     #[test]
     fn test_node_creation_deletion() {
         let mut pg = PGraph::<u8>::new();
-        let mut nodes: Vec<_> = pg.create_nodes(1000).expect("no nodes?").into_iter().collect();
+        let mut nodes: Vec<_> = pg
+            .create_nodes(1000)
+            .expect("no nodes?")
+            .into_iter()
+            .collect();
         nodes.sort();
         println!("nodes! {:?}", nodes);
         assert!(pg.create_nodes(1).is_none())

@@ -1,9 +1,7 @@
 use std::collections::HashSet;
 
-
-
-use rand::Rng;
 use rand::thread_rng;
+use rand::Rng;
 
 use crate::structs::*;
 use crate::traits::*;
@@ -22,7 +20,11 @@ pub fn walk<B: HgBasis, H: HyperGraph<Basis = B>>(
 }
 
 /// first pass at basic BFS, probably something done incorrectly
-pub fn bfs_base<B: HgBasis, H: HyperGraph<Basis = B>>(graph: &H, start: &B, steps: usize) -> Vec<HgPath<B>> {
+pub fn bfs_base<B: HgBasis, H: HyperGraph<Basis = B>>(
+    graph: &H,
+    start: &B,
+    steps: usize,
+) -> Vec<HgPath<B>> {
     // TODO: change this to a dequeue.
     let mut visited = HashSet::new();
     let start_path = HgPath::new(start.clone());
@@ -83,7 +85,7 @@ pub fn random_walk<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) 
 }
 
 mod test {
-    use crate::{HGraph, algs::traversal::bfs_base, structs::SparseBasis};
+    use crate::{algs::traversal::bfs_base, structs::SparseBasis, HGraph};
 
     use super::random_walk;
 
@@ -108,11 +110,7 @@ mod test {
         println!("graph: {:#?}", hg.graph);
         println!(
             "bfs: {:#?}",
-            bfs_base(
-                &hg,
-                &SparseBasis::from(start.iter().cloned().collect()),
-                2
-            )
+            bfs_base(&hg, &SparseBasis::from(start.iter().cloned().collect()), 2)
         );
     }
 
@@ -135,6 +133,9 @@ mod test {
         hg.create_edge(&b2, &b3, 1., crate::EdgeDirection::Directed);
         hg.create_edge(&b2, &b5, 1., crate::EdgeDirection::Directed);
         println!("graph:\n{:#?}", hg);
-        println!("random_walk output: {:#?}", random_walk(&hg.graph, &start_basis, 2))
+        println!(
+            "random_walk output: {:#?}",
+            random_walk(&hg.graph, &start_basis, 5)
+        )
     }
 }

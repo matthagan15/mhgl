@@ -2,7 +2,11 @@ use std::collections::HashSet;
 
 use uuid::Uuid;
 
-use crate::{structs::{GeneroGraph, BitBasis, EdgeWeight, GeneroEdge}, EdgeDirection, traits::{HgBasis, HyperGraph}};
+use crate::{
+    structs::{BitBasis, EdgeWeight, GeneroEdge, GeneroGraph},
+    traits::{HgBasis, HyperGraph},
+    EdgeDirection,
+};
 
 /// A directed, weighted hypergraph utilizing a binary encoding of subsets.
 /// Should be advantageous for dense hypergraphs over a small number of nodes.
@@ -22,10 +26,16 @@ impl BGraph {
         }
     }
 
-    pub fn create_edge(&mut self, inputs: &[usize], outputs: &[usize], weight: EdgeWeight, direction: EdgeDirection) -> u128 {
+    pub fn create_edge(
+        &mut self,
+        inputs: &[usize],
+        outputs: &[usize],
+        weight: EdgeWeight,
+        direction: EdgeDirection,
+    ) -> u128 {
         let mut input_basis = BitBasis::from(self.num_nodes, inputs.iter().cloned().collect());
         let mut output_basis = BitBasis::from(self.num_nodes, outputs.iter().cloned().collect());
-        if direction == EdgeDirection::Loop || direction == EdgeDirection::Blob {
+        if direction == EdgeDirection::Loop || direction == EdgeDirection::Undirected {
             input_basis.union_with(&output_basis);
             output_basis = BitBasis::new(0);
         }
@@ -42,17 +52,15 @@ impl BGraph {
     }
 
     /// Takes a step from the given subset of nodes, returning an output `Vec`
-    /// consisting of tuples of node subsets and their corresponding weights. 
+    /// consisting of tuples of node subsets and their corresponding weights.
     pub fn step(&self, nodes: &[usize]) -> Vec<(HashSet<usize>, EdgeWeight)> {
         let start_basis = BitBasis::from(self.num_nodes, nodes.iter().cloned().collect());
         let out_vector = self.graph.map_basis(&start_basis);
         out_vector
-        .to_tuples()
-        .into_iter()
-        .map(|(b, w)| {
-            (b.to_usize_set(), w)
-        })
-        .collect()
+            .to_tuples()
+            .into_iter()
+            .map(|(b, w)| (b.to_usize_set(), w))
+            .collect()
     }
 }
 
@@ -67,7 +75,11 @@ impl HyperGraph for BGraph {
         self.graph.get_outbound_edges(node).into_iter().collect()
     }
 
-    fn query_edges(&self, input: &Self::Basis, output: &Self::Basis) -> Vec<crate::structs::EdgeID> {
+    fn query_edges(
+        &self,
+        input: &Self::Basis,
+        output: &Self::Basis,
+    ) -> Vec<crate::structs::EdgeID> {
         self.graph.query_edges(input, output)
     }
 
@@ -79,7 +91,10 @@ impl HyperGraph for BGraph {
         self.graph.map_basis(input).to_tuples()
     }
 
-    fn map_vector(&self, input: &crate::structs::GeneroVector<Self::Basis>) -> crate::structs::GeneroVector<Self::Basis> {
+    fn map_vector(
+        &self,
+        input: &crate::structs::GeneroVector<Self::Basis>,
+    ) -> crate::structs::GeneroVector<Self::Basis> {
         self.graph.map(input)
     }
 }
@@ -90,8 +105,13 @@ mod tests {
     #[test]
     fn basic_step_test() {
         let mut bg = BGraph::new(5);
-        bg.create_edge(&[0,1,2,3], &[1,2,3,4], 1., crate::EdgeDirection::Directed);
-        let output = bg.step(&[0,1,2,3]);
+        bg.create_edge(
+            &[0, 1, 2, 3],
+            &[1, 2, 3, 4],
+            1.,
+            crate::EdgeDirection::Directed,
+        );
+        let output = bg.step(&[0, 1, 2, 3]);
         println!("output:\n{:?}", output);
 
         dbg!(bg);

@@ -6,12 +6,11 @@ use std::{
 
 use bitvec::prelude::*;
 
-use serde::{ser::SerializeStruct, Serialize, Deserialize};
-
+use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
 /// Representation of a subset of nodes using a binary
 /// encoding. Use `flip_node` to set a specific node as present
-/// or not present in the basis. `query_node` returns if 
+/// or not present in the basis. `query_node` returns if
 /// the node is present in the subset or not. Can be resized.
 #[derive(Debug, Clone, Deserialize, Serialize, Hash, PartialEq, PartialOrd, Eq)]
 pub struct BitBasis {
@@ -26,7 +25,10 @@ impl BitBasis {
         for ix in 0..num_nodes {
             new_bits.push(false);
         }
-        BitBasis { bv: new_bits, is_active: true }
+        BitBasis {
+            bv: new_bits,
+            is_active: true,
+        }
     }
 
     pub fn from(num_nodes: usize, nodes_present: HashSet<usize>) -> Self {
@@ -34,14 +36,18 @@ impl BitBasis {
         for ix in 0..num_nodes {
             *new_bits.get_mut(ix).unwrap() = nodes_present.contains(&ix);
         }
-        BitBasis { bv: new_bits, is_active: true }
+        BitBasis {
+            bv: new_bits,
+            is_active: true,
+        }
     }
 
     /// Initializes any new bits to false, removes any bits if the vec
     /// is being strunk
     pub fn change_size(&mut self, new_num_nodes: usize) {
         if new_num_nodes > self.bv.len() {
-            self.bv.extend((0..(new_num_nodes - self.bv.len())).map(|_| false ));
+            self.bv
+                .extend((0..(new_num_nodes - self.bv.len())).map(|_| false));
         } else {
             for _ in 0..(self.bv.len() - new_num_nodes) {
                 self.bv.pop();
@@ -70,7 +76,10 @@ impl BitBasis {
     /// Returns true if the node at the given index is in the subset.
     /// Panics if index is out of bounds.
     pub fn query_node(&self, node_index: usize) -> bool {
-        *self.bv.get(node_index).expect("BitBasis query_node index out of bounds")
+        *self
+            .bv
+            .get(node_index)
+            .expect("BitBasis query_node index out of bounds")
     }
 
     fn make_active(&mut self) {
@@ -110,7 +119,7 @@ impl HgBasis for BitBasis {
         } else {
             let mut intersection_bv = BitVec::with_capacity(self.bv.len());
             for ix in 0..self.bv.len() {
-                intersection_bv.push(*self.bv.get(ix).unwrap() & *rhs.bv.get(ix).unwrap());   
+                intersection_bv.push(*self.bv.get(ix).unwrap() & *rhs.bv.get(ix).unwrap());
             }
             BitBasis {
                 bv: intersection_bv,
@@ -137,7 +146,7 @@ impl HgBasis for BitBasis {
         } else {
             let mut intersection_bv = BitVec::with_capacity(self.bv.len());
             for ix in 0..self.bv.len() {
-                intersection_bv.push(*self.bv.get(ix).unwrap() | *rhs.bv.get(ix).unwrap());   
+                intersection_bv.push(*self.bv.get(ix).unwrap() | *rhs.bv.get(ix).unwrap());
             }
             BitBasis {
                 bv: intersection_bv,
@@ -179,24 +188,23 @@ impl HgBasis for BitBasis {
             if *self.bv.get(ix).unwrap() {
                 let mut tmp = all_zeros.clone();
                 *tmp.get_mut(ix).unwrap() = true;
-                ret.insert(BitBasis { bv: tmp, is_active: true });
+                ret.insert(BitBasis {
+                    bv: tmp,
+                    is_active: true,
+                });
             }
         }
         ret
     }
 }
 
-use crate::{
-    traits::{HgBasis},
-    utils::PowerSetBits,
-};
-
+use crate::{traits::HgBasis, utils::PowerSetBits};
 
 mod test {
     use crate::traits::HgBasis;
 
-    use super::{BitBasis};
-    
+    use super::BitBasis;
+
     #[test]
     fn test_bit_basis() {
         let mut b = BitBasis::new(5);
@@ -204,7 +212,4 @@ mod test {
         b.flip_node(4);
         dbg!(b);
     }
-
-
 }
- 

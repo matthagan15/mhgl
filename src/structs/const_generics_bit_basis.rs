@@ -1,18 +1,20 @@
-use std::{collections::HashSet, ops::{Add, AddAssign, Mul, MulAssign}};
+use std::{
+    collections::HashSet,
+    ops::{Add, AddAssign, Mul, MulAssign},
+};
 
-use serde::{Serialize, ser::SerializeStruct};
+use serde::{ser::SerializeStruct, Serialize};
 
-use crate::{utils::PowerSetBits, traits::HgBasis};
-
+use crate::{traits::HgBasis, utils::PowerSetBits};
 
 /// ## Under Construction
-/// Binary encoding of a subset of nodes for a hypergraph. 
+/// Binary encoding of a subset of nodes for a hypergraph.
 /// Utilizes constant generics so that bitstrings can be stored
 /// on the stack as opposed to heap. The key concept is that you
 /// arbitrarily order your nodes and assign each node to a single bit
 /// in the bit string. Then a given binary string represents a subset,
 /// the bits that are 1 indicate that node is present in the subset.
-/// This allows for more compact edge storage for smaller graphs. 
+/// This allows for more compact edge storage for smaller graphs.
 #[derive(PartialEq, Eq, Debug, Clone, Hash, PartialOrd, Ord)]
 pub struct ConstGenBitBasis<const K: usize> {
     pub bits: [u8; K],
@@ -58,14 +60,13 @@ impl<const K: usize> ConstGenBitBasis<K> {
     /// indicate that data was lost.
     pub fn resize<const M: usize>(self) -> ConstGenBitBasis<M> {
         let mut new_basis = ConstGenBitBasis::<M>::new();
-        for ix in 0.. (M.min(K)) {
+        for ix in 0..(M.min(K)) {
             // Direct index is fine due to min above
             new_basis.bits[ix] = self.bits[ix];
         }
         new_basis
     }
 }
-
 
 impl<const K: usize> Add for ConstGenBitBasis<K> {
     type Output = ConstGenBitBasis<K>;

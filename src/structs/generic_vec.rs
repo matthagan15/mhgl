@@ -6,7 +6,7 @@ use std::{
 use rand::*;
 use serde::Serialize;
 
-use crate::traits::{HgBasis};
+use crate::traits::HgBasis;
 
 use super::EdgeWeight;
 

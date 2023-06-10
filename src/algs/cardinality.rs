@@ -7,8 +7,10 @@ fn average_cardinality<B, H>(
     hg: &H,
     num_samples: usize,
     num_steps: usize,
-) -> HashMap<usize, EdgeWeight> 
-where B: HgBasis, H: HyperGraph<Basis = B>
+) -> HashMap<usize, EdgeWeight>
+where
+    B: HgBasis,
+    H: HyperGraph<Basis = B>,
 {
     let mut avg_card: HashMap<usize, EdgeWeight> = HashMap::new();
     for _ in 0..num_samples {

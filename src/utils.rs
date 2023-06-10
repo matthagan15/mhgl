@@ -1,10 +1,8 @@
-
 use std::{
     collections::{HashMap, HashSet},
     fmt::Write,
     u8,
 };
-
 
 use crate::{structs::ConstGenBitBasis, traits::*};
 
@@ -222,11 +220,7 @@ impl<const M: usize> PowerSetBits<M> {
 mod test {
     use uuid::Uuid;
 
-    use crate::utils::{PowerSetBits, power_set};
-
-    
-
-    
+    use crate::utils::{power_set, PowerSetBits};
 
     #[test]
     fn test_leading_ones() {
