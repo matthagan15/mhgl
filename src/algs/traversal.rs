@@ -85,13 +85,13 @@ pub fn random_walk<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) 
 }
 
 mod test {
-    use crate::{algs::traversal::bfs_base, structs::SparseBasis, HGraph};
+    use crate::{algs::traversal::bfs_base, structs::SparseBasis, DGraph};
 
     use super::random_walk;
 
     #[test]
     fn test_bfs() {
-        let mut hg = HGraph::new();
+        let mut hg = DGraph::new();
         let mut nodes = hg.create_nodes(10);
         nodes.sort();
         let start = &nodes[0..2];
@@ -116,7 +116,7 @@ mod test {
 
     #[test]
     fn test_random_walk() {
-        let mut hg = HGraph::new();
+        let mut hg = DGraph::new();
         let mut nodes = hg.create_nodes(10);
         nodes.sort();
         let start = &nodes[0..2];

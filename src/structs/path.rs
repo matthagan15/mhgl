@@ -84,12 +84,12 @@ mod test {
 
     use crate::{
         structs::{HgPath, SparseBasis},
-        HGraph,
+        DGraph,
     };
 
     #[test]
     fn test_simple_extension() {
-        let mut hg = HGraph::new();
+        let mut hg = DGraph::new();
         let mut nodes = hg.create_nodes(10);
         nodes.sort();
         for ix in 0..9 {

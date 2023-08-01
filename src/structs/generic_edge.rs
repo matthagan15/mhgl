@@ -306,12 +306,6 @@ mod test {
     }
 
     #[test]
-    fn test_map() {
-        let e = basic_edge();
-        // e.
-    }
-
-    #[test]
     fn test_sparse_map_vec() {
         let _nodes: Vec<u16> = vec![11, 23, 492, 493, 203];
         let b1 = SparseBasis::from(HashSet::from([11_u16, 23, 492, 493]));

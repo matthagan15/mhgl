@@ -65,17 +65,18 @@
 
 pub mod algs;
 mod bgraph;
-mod hgraph;
+mod dgraph;
 mod pgraph;
+mod hgraph;
 mod stackgraph;
 mod structs;
 mod traits;
 mod utils;
 
 pub use bgraph::BGraph;
-pub use hgraph::HGraph;
+pub use dgraph::DGraph;
 pub use pgraph::PGraph;
-
+pub use hgraph::HGraph;
 pub use structs::BitBasis;
 pub use structs::EdgeDirection;
 pub use structs::SparseBasis;
@@ -90,8 +91,8 @@ mod tests {
 
     #[test]
     fn hgraph_works() {
-        use crate::{EdgeDirection, HGraph};
-        let mut hg = HGraph::new();
+        use crate::{EdgeDirection, DGraph};
+        let mut hg = DGraph::new();
         let nodes = hg.create_nodes(10);
         hg.create_edge(&nodes[0..2], &nodes[0..3], 1.23, EdgeDirection::Symmetric);
         let expected: Vec<(HashSet<u128>, f64)> =

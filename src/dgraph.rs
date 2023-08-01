@@ -10,30 +10,29 @@ use crate::structs::{
 use crate::traits::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// The simplest to use hypergraph structure. An Undirected variant
-/// that utilizes UUID's for nodes. The directed variant of `HGraph` is 
-/// `DGraph`. For smaller memory footprints, use 
-/// `UGraph<N>` for undirected graphs or `PGraph<N>` for directed variants.
+/// The simplest to use Directed hyperGraph structure. Encodes nodes as `u128` numbers (via the `uuid` crate internally, converted to `u128` for end user)  and
+/// uses a sparse representation to store hyperedges. Creating nodes does not
+/// fail, unlike `PGraph<N>` which may run out of encodable nodes if small enough integer sizes are used. With `HGraph` you can also create and delete nodes, unlike `BGraph` which is fixed at compile time.
 ///
 /// ## Example Usage
 /// ```
-/// let hg = HGraph::new();
+/// let hg = DGraph::new();
 /// let nodes = hg.create_nodes(10);
 /// hg.create_directed_edge(&nodes[0..3], &nodes[0..=1], 1.2);
 /// assert_eq!(hg.step(&nodes[0..3]), vec![(HashSet::from(&nodes[0..=1]), 1.2)]);
 /// ```
 ///
 /// Currently do not support labeling nodes.
-pub struct HGraph {
+pub struct DGraph {
     // TODO: Move storage of nodes from underlying graph structure to container structures.
     pub name: String,
     nodes: HashSet<u128>,
-    graph: GeneroGraph<SparseBasis<u128>>,
+    pub graph: GeneroGraph<SparseBasis<u128>>,
 }
 
-impl HGraph {
-    pub fn new() -> HGraph {
-        HGraph {
+impl DGraph {
+    pub fn new() -> DGraph {
+        DGraph {
             name: String::new(),
             nodes: HashSet::new(),
             graph: GeneroGraph::new(),
@@ -78,11 +77,18 @@ impl HGraph {
     /// `outputs`) to it's complement within the blob.
     pub fn create_edge(
         &mut self,
-        nodes: &[u128],
-        weight: EdgeWeight
+        inputs: &[u128],
+        outputs: &[u128],
+        weight: EdgeWeight,
+        direction: EdgeDirection,
     ) -> u128 {
-        let input_basis = SparseBasis::from(nodes.into_iter().cloned().collect());
-        let e = GeneroEdge::from(input_basis, SparseBasis::new_empty(), weight, EdgeDirection::Undirected);
+        let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
+        let mut output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
+        if direction == EdgeDirection::Undirected || direction == EdgeDirection::Loop {
+            input_basis.union_with(&output_basis);
+            output_basis = SparseBasis::new_empty();
+        }
+        let e = GeneroEdge::from(input_basis, output_basis, weight, direction);
         let id = e.id.clone();
         self.graph.add_edge(e);
         id.as_u128()
@@ -107,7 +113,7 @@ impl HGraph {
     }
 }
 
-impl HyperGraph for HGraph {
+impl HyperGraph for DGraph {
     type Basis = SparseBasis<u128>;
     fn edges(&self) -> Vec<crate::structs::EdgeID> {
         self.graph.clone_edges()
@@ -142,6 +148,22 @@ impl HyperGraph for HGraph {
 }
 
 mod test {
-    use crate::{EdgeDirection, HGraph};
+    use crate::{EdgeDirection, DGraph};
 
+    #[test]
+    fn test_node_creation_deletion() {
+        let mut hg = DGraph::new();
+        hg.name = String::from("tester :)");
+        let nodes = hg.create_nodes(10);
+        hg.create_edge(&nodes[0..3], &nodes[0..=1], 1., EdgeDirection::Directed);
+        println!("step:{:#?}", hg.step(&nodes[0..3]));
+        println!("before removal:\n{:#?}", hg);
+        hg.remove_node(nodes[0]);
+        println!("post removal:\n{:#?}", hg);
+        let b = hg.create_edge(&nodes[5..=9], &[], 2.2, EdgeDirection::Undirected);
+        println!("post blob:{:#?}", hg);
+        println!("step output:\n{:?}", hg.step(&nodes[6..=8]));
+        hg.remove_edge(b);
+        println!("post blob removal:{:#?}", hg);
+    }
 }

@@ -14,19 +14,16 @@ use super::{
     EdgeID, EdgeWeight, GraphID,
 };
 
+/// The underlying structure for the directed graph types. Generic over
+/// the basis type provided. Utilizes three hash maps to support faster
+/// queries, a map from the input/output cardinality to possible edges and 
+/// one that gets possible neighbors for a single node. This is much 
+/// cheaper memory wisethan storing the neighbors for each possible subset.
+/// 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GeneroGraph<B: HgBasis> {
     pub id: GraphID,
     edges: HashMap<EdgeID, GeneroEdge<B>>,
-    input_cardinality_to_edges: HashMap<usize, HashSet<EdgeID>>,
-    output_cardinality_to_edges: HashMap<usize, HashSet<EdgeID>>,
-
-    // Decision made: if a node is present in an edges input basis
-    // it should map here. Decided to not use the whole basis due to
-    // the issue of undirecteds, as soon as you add undirecteds you have to compute power
-    // sets and it becomes wasteful memory wise. Instead spend time searching
-    // through acceptable edges.
-    // TODO: What about the empty set??
     node_to_outbound_edges: HashMap<B, HashSet<EdgeID>>,
 }
 
@@ -35,8 +32,6 @@ impl<B: HgBasis> GeneroGraph<B> {
         GeneroGraph {
             id: Uuid::new_v4(),
             edges: HashMap::new(),
-            input_cardinality_to_edges: HashMap::new(),
-            output_cardinality_to_edges: HashMap::new(),
             node_to_outbound_edges: HashMap::new(),
         }
     }
@@ -53,6 +48,7 @@ impl<B: HgBasis> GeneroGraph<B> {
         }
     }
 
+    /// Returns all EdgeIDs that map from this basis to another.
     pub fn get_outbound_edges(&self, basis: &B) -> HashSet<EdgeID> {
         let mut ret = HashSet::new();
         for node in basis.nodes() {
@@ -69,6 +65,8 @@ impl<B: HgBasis> GeneroGraph<B> {
         ret
     }
 
+    /// Gets all edges such that the basis is contained in the union
+    /// of the edges input and output
     pub fn get_containing_edges(&self, basis: &B) -> HashSet<EdgeID> {
         let mut ret = HashSet::new();
         for (id, edge) in self.edges.iter() {
@@ -82,14 +80,6 @@ impl<B: HgBasis> GeneroGraph<B> {
     pub fn add_edge(&mut self, new_edge: GeneroEdge<B>) {
         match new_edge.direction {
             EdgeDirection::Directed => {
-                self.input_cardinality_to_edges
-                    .entry(new_edge.input_cardinality())
-                    .or_default()
-                    .insert(new_edge.id.clone());
-                self.output_cardinality_to_edges
-                    .entry(new_edge.output_cardinality())
-                    .or_default()
-                    .insert(new_edge.id.clone());
                 for node in new_edge.in_nodes.nodes() {
                     self.node_to_outbound_edges
                         .entry(node)
@@ -99,14 +89,6 @@ impl<B: HgBasis> GeneroGraph<B> {
                 self.edges.insert(new_edge.id.clone(), new_edge);
             }
             EdgeDirection::Loop => {
-                self.input_cardinality_to_edges
-                    .entry(new_edge.input_cardinality())
-                    .or_default()
-                    .insert(new_edge.id.clone());
-                self.output_cardinality_to_edges
-                    .entry(new_edge.input_cardinality())
-                    .or_default()
-                    .insert(new_edge.id.clone());
                 for node in new_edge.in_nodes.nodes() {
                     self.node_to_outbound_edges
                         .entry(node)
@@ -116,22 +98,6 @@ impl<B: HgBasis> GeneroGraph<B> {
                 self.edges.insert(new_edge.id.clone(), new_edge);
             }
             EdgeDirection::Oriented | EdgeDirection::Symmetric => {
-                self.input_cardinality_to_edges
-                    .entry(new_edge.input_cardinality())
-                    .or_default()
-                    .insert(new_edge.id.clone());
-                self.input_cardinality_to_edges
-                    .entry(new_edge.output_cardinality())
-                    .or_default()
-                    .insert(new_edge.id.clone());
-                self.output_cardinality_to_edges
-                    .entry(new_edge.input_cardinality())
-                    .or_default()
-                    .insert(new_edge.id.clone());
-                self.output_cardinality_to_edges
-                    .entry(new_edge.output_cardinality())
-                    .or_default()
-                    .insert(new_edge.id.clone());
                 for node in new_edge.in_nodes.nodes() {
                     self.node_to_outbound_edges
                         .entry(node)
@@ -147,16 +113,6 @@ impl<B: HgBasis> GeneroGraph<B> {
                 self.edges.insert(new_edge.id.clone(), new_edge);
             }
             EdgeDirection::Undirected => {
-                for ix in 0..(new_edge.input_cardinality() + 1) {
-                    self.input_cardinality_to_edges
-                        .entry(ix)
-                        .or_default()
-                        .insert(new_edge.id.clone());
-                    self.output_cardinality_to_edges
-                        .entry(ix)
-                        .or_default()
-                        .insert(new_edge.id.clone());
-                }
                 for node in new_edge.in_nodes.nodes() {
                     self.node_to_outbound_edges
                         .entry(node)
@@ -172,18 +128,6 @@ impl<B: HgBasis> GeneroGraph<B> {
         if let Some(edge) = self.edges.remove(edge_id) {
             match edge.direction {
                 EdgeDirection::Directed | EdgeDirection::Loop => {
-                    if let Some(set) = self
-                        .input_cardinality_to_edges
-                        .get_mut(&edge.input_cardinality())
-                    {
-                        set.remove(edge_id);
-                    }
-                    if let Some(set) = self
-                        .output_cardinality_to_edges
-                        .get_mut(&edge.output_cardinality())
-                    {
-                        set.remove(edge_id);
-                    }
                     for node in edge.in_nodes.nodes() {
                         if let Some(set) = self.node_to_outbound_edges.get_mut(&node) {
                             set.remove(edge_id);
@@ -192,30 +136,6 @@ impl<B: HgBasis> GeneroGraph<B> {
                     Some(edge)
                 }
                 EdgeDirection::Oriented | EdgeDirection::Symmetric => {
-                    if let Some(set) = self
-                        .input_cardinality_to_edges
-                        .get_mut(&edge.input_cardinality())
-                    {
-                        set.remove(edge_id);
-                    }
-                    if let Some(set) = self
-                        .input_cardinality_to_edges
-                        .get_mut(&edge.output_cardinality())
-                    {
-                        set.remove(edge_id);
-                    }
-                    if let Some(set) = self
-                        .output_cardinality_to_edges
-                        .get_mut(&edge.output_cardinality())
-                    {
-                        set.remove(edge_id);
-                    }
-                    if let Some(set) = self
-                        .output_cardinality_to_edges
-                        .get_mut(&edge.input_cardinality())
-                    {
-                        set.remove(edge_id);
-                    }
                     for node in edge.in_nodes.nodes() {
                         if let Some(set) = self.node_to_outbound_edges.get_mut(&node) {
                             set.remove(edge_id);
@@ -229,14 +149,6 @@ impl<B: HgBasis> GeneroGraph<B> {
                     Some(edge)
                 }
                 EdgeDirection::Undirected => {
-                    for ix in 0..=edge.input_cardinality() {
-                        if let Some(set) = self.input_cardinality_to_edges.get_mut(&ix) {
-                            set.remove(edge_id);
-                        }
-                        if let Some(set) = self.output_cardinality_to_edges.get_mut(&ix) {
-                            set.remove(edge_id);
-                        }
-                    }
                     for node in edge.in_nodes.nodes() {
                         if let Some(set) = self.node_to_outbound_edges.get_mut(&node) {
                             set.remove(edge_id);

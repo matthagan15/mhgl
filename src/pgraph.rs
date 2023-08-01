@@ -12,7 +12,7 @@ use crate::{
 /// A hypergraph type that simply counts nodes as they are created,
 /// as opposed to HGraph which utilizes Uuid's random generation.
 /// This allows for smaller data types to store nodes, which
-/// theoretically can reduce memory footprint. Since we use smaller
+/// reduces memory footprint. Since we use smaller
 /// integer types however, this means
 /// that adding nodes could possibly fail. Due to this we also will re-use
 /// previously deleted nodes. Intended more for analytics as opposed to
