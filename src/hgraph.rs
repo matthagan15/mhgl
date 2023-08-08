@@ -25,7 +25,6 @@ use crate::traits::*;
 ///
 /// Currently do not support labeling nodes.
 pub struct HGraph {
-    // TODO: Move storage of nodes from underlying graph structure to container structures.
     pub name: String,
     nodes: HashSet<u128>,
     graph: GeneroGraph<SparseBasis<u128>>,

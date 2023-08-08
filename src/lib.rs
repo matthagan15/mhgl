@@ -3,7 +3,7 @@
 //! with them. The datastructures provided are based on the most general possible hypergraph mathematically, that is a directed, weighted hypergraph. Directed and weighted hypergraphs are fairly different than the usually studied "undirected" hypergraph, in which case an edge is simply a subset of nodes. A directed and weighted hypergraph maps a subset of nodes to another subset of nodes with a specified edge weight. We also provide options for traditional "undirected" hypergraphs, which we refer to as "blob" type hyperedges, and prefer to use the term undirected to refer to a hyperedge which maps an input subset to an output subset and in addition can map the output subset to the input susbset.
 //!
 //! We provide the following three hypergraph variants with slightly different APIs:
-//! 1. HGraph - Represents nodes as UUIDs that are randomly assigned. The easiest and most straightforward to use.
+//! 1. [`HGraph`](crate::hgraph::HGraph) HGraph - Represents nodes as UUIDs that are randomly assigned. The easiest and most straightforward to use.
 //! 2. PGraph<N> - A "performance" oriented version of HGraph that represents nodes as unsigned integers and is generic over which unsigned integer to use. Due to smaller encoding of node IDs adding nodes may fail.
 //! 3. BGraph - Represents subsets of nodes using a binary encoding. Each node is assigned to a bit, so any subset of nodes can be represented using an n bit string. This is advantageous for dense hypergraphs on fewer nodes.
 //!
@@ -64,6 +64,7 @@
 #![forbid(unsafe_code)]
 
 pub mod algs;
+mod graph;
 mod bgraph;
 mod dgraph;
 mod pgraph;
@@ -73,6 +74,7 @@ mod structs;
 mod traits;
 mod utils;
 
+pub use graph::Graph;
 pub use bgraph::BGraph;
 pub use dgraph::DGraph;
 pub use pgraph::PGraph;
