@@ -115,6 +115,7 @@ impl<N: HgNode> PGraph<N> {
             }
         }
     }
+    // TODO: There is no neighbors function? No Walk?
 }
 
 impl<N: HgNode> HyperGraph for PGraph<N> {
