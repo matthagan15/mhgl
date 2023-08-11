@@ -25,11 +25,17 @@ impl<N: HgNode> SparseBasis<N> {
         SparseBasis { nodes: nodes }
     }
 
+    pub fn from_node(node: &N) -> Self {
+        SparseBasis {
+            nodes: vec![node.clone()],
+        }
+    }
+
     pub fn from_slice(nodes: &[N]) -> Self {
         let mut basis = nodes.to_vec();
         basis.sort();
         basis.dedup();
-        SparseBasis { nodes: basis}
+        SparseBasis { nodes: basis }
     }
 
     pub fn node_set(&self) -> HashSet<N> {
@@ -48,7 +54,6 @@ impl<N: HgNode> SparseBasis<N> {
         self.nodes
     }
 
-    /// 
     pub fn add_node(&mut self, node: N) {
         if let Err(ix) = self.nodes.binary_search(&node) {
             self.nodes.insert(ix, node);
@@ -165,10 +170,7 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
 mod test {
     use rand::thread_rng;
 
-    use crate::{
-        structs::{SparseBasis},
-        traits::HgBasis,
-    };
+    use crate::{structs::SparseBasis, traits::HgBasis};
 
     #[test]
     fn test_intersect_with() {

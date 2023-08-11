@@ -16,10 +16,10 @@ use super::{
 
 /// The underlying structure for the directed graph types. Generic over
 /// the basis type provided. Utilizes three hash maps to support faster
-/// queries, a map from the input/output cardinality to possible edges and 
-/// one that gets possible neighbors for a single node. This is much 
+/// queries, a map from the input/output cardinality to possible edges and
+/// one that gets possible neighbors for a single node. This is much
 /// cheaper memory wisethan storing the neighbors for each possible subset.
-/// 
+///
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GeneroGraph<B: HgBasis> {
     pub id: GraphID,
@@ -276,4 +276,9 @@ impl<B: HgBasis> Hash for GeneroGraph<B> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }
+}
+
+
+mod tests {
+    
 }

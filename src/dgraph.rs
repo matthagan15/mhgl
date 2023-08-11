@@ -148,7 +148,7 @@ impl HyperGraph for DGraph {
 }
 
 mod test {
-    use crate::{EdgeDirection, DGraph};
+    use crate::{DGraph, EdgeDirection};
 
     #[test]
     fn test_node_creation_deletion() {

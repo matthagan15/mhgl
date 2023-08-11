@@ -64,21 +64,21 @@
 #![forbid(unsafe_code)]
 
 pub mod algs;
-mod graph;
 mod bgraph;
 mod dgraph;
-mod pgraph;
+mod graph;
 mod hgraph;
+mod pgraph;
 mod stackgraph;
 mod structs;
 mod traits;
 mod utils;
 
-pub use graph::Graph;
 pub use bgraph::BGraph;
 pub use dgraph::DGraph;
-pub use pgraph::PGraph;
+pub use graph::Graph;
 pub use hgraph::HGraph;
+pub use pgraph::PGraph;
 pub use structs::BitBasis;
 pub use structs::EdgeDirection;
 pub use structs::SparseBasis;
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn hgraph_works() {
-        use crate::{EdgeDirection, DGraph};
+        use crate::{DGraph, EdgeDirection};
         let mut hg = DGraph::new();
         let nodes = hg.create_nodes(10);
         hg.create_edge(&nodes[0..2], &nodes[0..3], 1.23, EdgeDirection::Symmetric);

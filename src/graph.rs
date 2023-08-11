@@ -2,7 +2,11 @@ use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{SparseBasis, structs::{GeneroGraph, GeneroEdge}, traits::HgNode, EdgeDirection};
+use crate::{
+    structs::{EdgeWeight, GeneroEdge, GeneroGraph},
+    traits::HgNode,
+    EdgeDirection, SparseBasis,
+};
 
 /// A basic Undirected Graph. Uses a sparse representation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,6 +57,31 @@ impl<N: HgNode> Graph<N> {
         g
     }
 
+    pub fn from_weights(edges: Vec<(N, N, EdgeWeight)>) -> Self {
+        let mut g = Graph::new();
+        for (u, v, w) in edges {
+            g.reusable_nodes.remove(&u);
+            g.reusable_nodes.remove(&v);
+            g.nodes.insert(u);
+            g.nodes.insert(v);
+            // Do this twice because could have v = u + 1.
+            if g.next_usable_node == u || g.next_usable_node == v {
+                g.next_usable_node.plus_one();
+            }
+            if g.next_usable_node == u || g.next_usable_node == v {
+                g.next_usable_node.plus_one();
+            }
+            let e = GeneroEdge::from(
+                SparseBasis::from_slice(&[u]),
+                SparseBasis::from_slice(&[v]),
+                w,
+                EdgeDirection::Symmetric,
+            );
+            g.graph.add_edge(e);
+        }
+        g
+    }
+
     pub fn add_edge(&mut self, u: N, v: N) {
         if self.nodes.contains(&u) == false {
             self.add_node(u);
@@ -62,21 +91,27 @@ impl<N: HgNode> Graph<N> {
         }
         let u_basis = SparseBasis::from([u].into());
         let v_basis = SparseBasis::from([v].into());
-        self.graph.add_edge(GeneroEdge::from(u_basis, v_basis, 1.0, EdgeDirection::Symmetric));
+        self.graph.add_edge(GeneroEdge::from(
+            u_basis,
+            v_basis,
+            1.0,
+            EdgeDirection::Symmetric,
+        ));
     }
 
+    /// Returns the neighbors of a node.
     pub fn neighbors(&self, node: N) -> Vec<N> {
         let b = SparseBasis::from([node].into());
         self.graph
-        .map_basis(&b)
-        .basis()
-        .into_iter()
-        .map(|(b, _)| {
-            let v: Vec<N> = b.node_set().into_iter().collect();
-            v[0] // TODO: This may badly panic?
-        })
-        .collect()
+            .map_basis(&b)
+            .basis()
+            .into_iter()
+            .map(|(b, _)| {
+                let v: Vec<N> = b.node_set().into_iter().collect();
+                v[0] // TODO: This may badly panic?
+            })
+            .collect()
     }
 
-    
+    pub fn minimum_weight_perfect_match(&self) {}
 }

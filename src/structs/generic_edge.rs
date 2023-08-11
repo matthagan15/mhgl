@@ -160,7 +160,7 @@ impl<B: HgBasis> GeneroEdge<B> {
         tot.nodes()
     }
 
-    /// Returns true if the provided basis matches an input of the 
+    /// Returns true if the provided basis matches an input of the
     /// edge (Undirected, Oriented, and Symmetric edges have more than
     /// one possible input)
     pub fn can_map_basis(&self, basis: &B) -> bool {
@@ -182,7 +182,7 @@ impl<B: HgBasis> GeneroEdge<B> {
             EdgeDirection::Undirected => self.in_nodes.intersection(basis) == *basis,
         }
     }
-    
+
     /// Returns true if this edge maps the input set to the output set
     pub fn is_correctly_mapped(&self, input: &B, output: &B) -> bool {
         match self.direction {

@@ -11,8 +11,8 @@ use crate::traits::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// The simplest to use hypergraph structure. An Undirected variant
-/// that utilizes UUID's for nodes. The directed variant of `HGraph` is 
-/// `DGraph`. For smaller memory footprints, use 
+/// that utilizes UUID's for nodes. The directed variant of `HGraph` is
+/// `DGraph`. For smaller memory footprints, use
 /// `UGraph<N>` for undirected graphs or `PGraph<N>` for directed variants.
 ///
 /// ## Example Usage
@@ -75,13 +75,14 @@ impl HGraph {
     /// - `EdgeDirection::Blob` creates a "blob" type edge that maps any subset
     /// of the provided nodes (the union of the passed in `inputs` and
     /// `outputs`) to it's complement within the blob.
-    pub fn create_edge(
-        &mut self,
-        nodes: &[u128],
-        weight: EdgeWeight
-    ) -> u128 {
+    pub fn create_edge(&mut self, nodes: &[u128], weight: EdgeWeight) -> u128 {
         let input_basis = SparseBasis::from(nodes.into_iter().cloned().collect());
-        let e = GeneroEdge::from(input_basis, SparseBasis::new_empty(), weight, EdgeDirection::Undirected);
+        let e = GeneroEdge::from(
+            input_basis,
+            SparseBasis::new_empty(),
+            weight,
+            EdgeDirection::Undirected,
+        );
         let id = e.id.clone();
         self.graph.add_edge(e);
         id.as_u128()
@@ -142,5 +143,4 @@ impl HyperGraph for HGraph {
 
 mod test {
     use crate::{EdgeDirection, HGraph};
-
 }
