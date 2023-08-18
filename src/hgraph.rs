@@ -61,8 +61,15 @@ impl HGraph {
         self.nodes.remove(&node);
     }
 
+    pub fn nodes(&self) -> Vec<u128> {
+        self.nodes.clone().into_iter().collect()
+    }
+
     /// Creates an edge in the hypergraph with the specified inputs, outputs,
-    /// weight, and direction. Returns a unique `u128` that can be used to reference the edge in the future for deletion. Possible edge directions:
+    /// weight, and direction. Returns a unique `u128` that can be used to reference the edge in the future for deletion. 
+    /// ### Warning: Currently does not add duplicate edges! Will return 0 if an edge exists.
+    ///
+    /// Possible edge directions:
     /// - `EdgeDirection::Directed` the most straightforward option.
     /// - `EdgeDirection::Undirected` basically creates two directed edges
     /// but with one having inputs and outputs swapped relative to the other.
@@ -77,6 +84,9 @@ impl HGraph {
     /// `outputs`) to it's complement within the blob.
     pub fn create_edge(&mut self, nodes: &[u128], weight: EdgeWeight) -> u128 {
         let input_basis = SparseBasis::from(nodes.into_iter().cloned().collect());
+        if self.graph.query_undirected(&input_basis) {
+            return 0;
+        }
         let e = GeneroEdge::from(
             input_basis,
             SparseBasis::new_empty(),
