@@ -65,6 +65,10 @@ impl<B: HgBasis> GeneroGraph<B> {
         ret
     }
 
+    pub fn query_edge(&self, edge_id: &EdgeID) -> Option<GeneroEdge<B>> {
+        self.edges.get(edge_id).cloned()
+    }
+
     /// Gets all edges such that the basis is contained in the union
     /// of the edges input and output
     pub fn get_containing_edges(&self, basis: &B) -> HashSet<EdgeID> {
@@ -160,6 +164,20 @@ impl<B: HgBasis> GeneroGraph<B> {
         } else {
             None
         }
+    }
+
+    pub fn edges_of_size(&self, size: usize) -> Vec<EdgeID> {
+        self.edges
+            .iter()
+            .filter_map(|(k, v)| {
+                if v.input_cardinality() == size {
+                    Some(k)
+                } else {
+                    None
+                }
+            })
+            .cloned()
+            .collect()
     }
 
     /// Change the input of an existing edge. If edge is a undirected type it will
@@ -278,7 +296,4 @@ impl<B: HgBasis> Hash for GeneroGraph<B> {
     }
 }
 
-
-mod tests {
-    
-}
+mod tests {}

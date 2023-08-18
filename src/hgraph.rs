@@ -66,7 +66,7 @@ impl HGraph {
     }
 
     /// Creates an edge in the hypergraph with the specified inputs, outputs,
-    /// weight, and direction. Returns a unique `u128` that can be used to reference the edge in the future for deletion. 
+    /// weight, and direction. Returns a unique `u128` that can be used to reference the edge in the future for deletion.
     /// ### Warning: Currently does not add duplicate edges! Will return 0 if an edge exists.
     ///
     /// Possible edge directions:
@@ -114,6 +114,23 @@ impl HGraph {
             .into_iter()
             .map(|(b, w)| (b.to_node_set(), w))
             .collect()
+    }
+
+    pub fn edges_of_size(&self, card: usize) -> Vec<u128> {
+        self.graph
+            .edges_of_size(card)
+            .into_iter()
+            .map(|x| x.as_u128())
+            .collect()
+    }
+
+    pub fn query_edge(&self, edge_id: u128) -> Vec<u128> {
+        let e = self.graph.query_edge(&Uuid::from_u128(edge_id));
+        if e.is_none() {
+            return Vec::new();
+        } else {
+            e.unwrap().nodes().into_iter().map(|b| b.to_node_vec().pop().unwrap()).collect()
+        }
     }
 }
 
