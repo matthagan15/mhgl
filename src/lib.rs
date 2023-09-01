@@ -61,7 +61,22 @@
 //! - HypergraphDB (Java): A database backend for storing and querying data
 //! - Hypergraph (Rust): Appears very limited in scope and not maintained.
 
-#![forbid(unsafe_code)]
+// TODO:
+// API:
+// Undirected Graph: (Do we want it generic or not? This impacts API.)
+// Generic Undirected Graph
+
+/// Use Mul to implement union: s * &t = union(s, t);
+#[forbid(unsafe_code)]
+trait Set<'a, E>
+where
+    E: Mul<&'a E> + 'a,
+{
+    fn insert(&mut self, e: E);
+    fn check(&self, e: &E);
+    fn union(&self, t: &dyn Set<E>) -> dyn Set<E>;
+    fn intersection(&self, t: &dyn Set<E>) -> dyn Set<E>;
+}
 
 pub mod algs;
 mod bgraph;
@@ -73,6 +88,8 @@ mod stackgraph;
 mod structs;
 mod traits;
 mod utils;
+
+use std::ops::Mul;
 
 pub use bgraph::BGraph;
 pub use dgraph::DGraph;

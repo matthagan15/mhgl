@@ -46,7 +46,7 @@ impl<const K: usize> ConstGenBitBasis<K> {
     }
 
     pub fn to_u32(self) -> HashSet<u32> {
-        let mut ret = HashSet::with_capacity(self.cardinality());
+        let mut ret = HashSet::with_capacity(self.len());
         let mut pb = PowerSetBits { bits: self.bits };
         while pb.is_zero() == false {
             ret.insert(pb.leading_zeros());
@@ -116,7 +116,7 @@ impl<const K: usize> HgBasis for ConstGenBitBasis<K> {
     fn new_empty() -> Self {
         ConstGenBitBasis::<K>::new()
     }
-    fn cardinality(&self) -> usize {
+    fn len(&self) -> usize {
         let mut num_ones = 0;
         for ix in 0..K {
             num_ones += self.bits[ix].count_ones();
@@ -153,7 +153,7 @@ impl<const K: usize> HgBasis for ConstGenBitBasis<K> {
     }
 
     fn remove_node(&mut self, node: &Self) {
-        if node.cardinality() == 1 {
+        if node.len() == 1 {
             for ix in 0..K {
                 self.bits[ix] = self.bits[ix] ^ node.bits[ix];
             }

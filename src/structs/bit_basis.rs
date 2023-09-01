@@ -96,7 +96,7 @@ impl HgBasis for BitBasis {
         Self::from(0, HashSet::new())
     }
 
-    fn cardinality(&self) -> usize {
+    fn len(&self) -> usize {
         self.bv.count_ones()
     }
 

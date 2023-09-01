@@ -22,7 +22,7 @@ impl<N: HgNode> SparseBasis<N> {
     pub fn from(subset: HashSet<N>) -> Self {
         let mut nodes: Vec<N> = subset.into_iter().collect();
         nodes.sort();
-        SparseBasis { nodes: nodes }
+        SparseBasis { nodes }
     }
 
     pub fn from_node(node: &N) -> Self {
@@ -79,7 +79,7 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
         SparseBasis::<N>::new()
     }
 
-    fn cardinality(&self) -> usize {
+    fn len(&self) -> usize {
         self.nodes.len()
     }
 

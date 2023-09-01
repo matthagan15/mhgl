@@ -35,9 +35,7 @@ impl<B: HgBasis> GeneroVector<B> {
         for (basis, weight) in input.into_iter() {
             let cur_weight = basis_map.entry(basis.clone()).or_insert(0.);
             *cur_weight += weight;
-            let card_basis_set = card_map
-                .entry(basis.cardinality())
-                .or_insert(HashSet::new());
+            let card_basis_set = card_map.entry(basis.len()).or_insert(HashSet::new());
             card_basis_set.insert(basis);
         }
         GeneroVector {
@@ -57,7 +55,7 @@ impl<B: HgBasis> GeneroVector<B> {
     pub fn from_basis(b: B, w: EdgeWeight) -> GeneroVector<B> {
         GeneroVector {
             basis_to_weight: HashMap::from([(b.clone(), w)]),
-            cardinality_to_basis_set: HashMap::from([(b.cardinality(), HashSet::from([b]))]),
+            cardinality_to_basis_set: HashMap::from([(b.len(), HashSet::from([b]))]),
         }
     }
 
@@ -114,7 +112,7 @@ impl<B: HgBasis> GeneroVector<B> {
         let mut tot = 0.0;
         for (b, v) in self.basis_to_weight.iter() {
             tot += v.abs();
-            let card_val = ret.entry(b.cardinality()).or_insert(0.0);
+            let card_val = ret.entry(b.len()).or_insert(0.0);
             *card_val = *card_val + v.abs();
         }
         for (_k, v) in ret.iter_mut() {
@@ -162,7 +160,7 @@ impl<B: HgBasis> GeneroVector<B> {
     /// coefficient or 0. if it was not present.
     pub fn remove_basis(&mut self, basis: &B) -> EdgeWeight {
         if let Some(w) = self.basis_to_weight.remove(basis) {
-            if let Some(card_set) = self.cardinality_to_basis_set.get_mut(&basis.cardinality()) {
+            if let Some(card_set) = self.cardinality_to_basis_set.get_mut(&basis.len()) {
                 card_set.remove(basis);
             }
             w
@@ -175,7 +173,7 @@ impl<B: HgBasis> GeneroVector<B> {
         *old_weight = *old_weight + weight;
         let card_set = self
             .cardinality_to_basis_set
-            .entry(basis.cardinality())
+            .entry(basis.len())
             .or_default();
         card_set.insert(basis);
     }
@@ -205,10 +203,7 @@ impl<'a, B: HgBasis> AddAssign<&'a GeneroVector<B>> for GeneroVector<B> {
                 *x = *x + *w;
             } else {
                 self.basis_to_weight.insert(b.clone(), *w);
-                let hs = self
-                    .cardinality_to_basis_set
-                    .entry(b.cardinality())
-                    .or_default();
+                let hs = self.cardinality_to_basis_set.entry(b.len()).or_default();
                 hs.insert(b.clone());
             }
         }

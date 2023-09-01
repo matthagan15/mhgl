@@ -93,15 +93,15 @@ impl<B: HgBasis> GeneroEdge<B> {
 
     /// For Undirecteds this returns the size of the Undirected
     pub fn input_cardinality(&self) -> usize {
-        self.in_nodes.cardinality()
+        self.in_nodes.len()
     }
 
     /// For Undirecteds this returns the size of the Undirected.
     pub fn output_cardinality(&self) -> usize {
         if self.direction == EdgeDirection::Undirected || self.direction == EdgeDirection::Loop {
-            self.in_nodes.cardinality()
+            self.in_nodes.len()
         } else {
-            self.out_nodes.cardinality()
+            self.out_nodes.len()
         }
     }
 

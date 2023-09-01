@@ -15,11 +15,7 @@ use super::{
 };
 
 /// The underlying structure for the directed graph types. Generic over
-/// the basis type provided. Utilizes three hash maps to support faster
-/// queries, a map from the input/output cardinality to possible edges and
-/// one that gets possible neighbors for a single node. This is much
-/// cheaper memory wisethan storing the neighbors for each possible subset.
-///
+/// the basis type provided. 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GeneroGraph<B: HgBasis> {
     pub id: GraphID,
@@ -50,6 +46,9 @@ impl<B: HgBasis> GeneroGraph<B> {
 
     /// Returns all EdgeIDs that map from this basis to another.
     pub fn get_outbound_edges(&self, basis: &B) -> HashSet<EdgeID> {
+        // TODO: This is inefficient. Take the intersection of edge_ids
+        // from node_to_outbound_edges before checking if they can map the
+        // given basis.
         let mut ret = HashSet::new();
         for node in basis.nodes() {
             if let Some(potentials) = self.node_to_outbound_edges.get(&node) {
@@ -230,9 +229,8 @@ impl<B: HgBasis> GeneroGraph<B> {
             .collect()
     }
 
-    /// Returns true if a undirected exists consisting of the provided basis, false
-    /// otherwise.
-    pub fn query_undirected(&self, input: &B) -> bool {
+    /// Returns edge_id of undirected edges on the input basis.
+    pub fn query_undirected(&self, input: &B) -> Vec<EdgeID> {
         let mut potential_edges = HashSet::new();
         for node in input.nodes() {
             if potential_edges.len() == 0 && self.node_to_outbound_edges.contains_key(&node) {
@@ -247,14 +245,30 @@ impl<B: HgBasis> GeneroGraph<B> {
                     .collect();
             }
         }
-        for edge_id in potential_edges {
-            if let Some(e) = self.edges.get(&edge_id) {
-                if e.matches_undirected(input) {
-                    return true;
+        potential_edges
+            .into_iter()
+            .filter(|potential_edge| {
+                if let Some(e) = self.edges.get(&potential_edge) {
+                    e.matches_undirected(input)
+                } else {
+                    false
                 }
-            }
-        }
-        false
+            })
+            .collect()
+    }
+
+    pub fn query_loop(&self, input: &B) -> Vec<Uuid> {
+        let possible_loops = self.get_outbound_edges(input);
+        possible_loops
+            .into_iter()
+            .filter(|id| {
+                if let Some(e) = self.edges.get(id) {
+                    e.is_correctly_mapped(input, input)
+                } else {
+                    false
+                }
+            })
+            .collect()
     }
 
     pub fn map_basis(&self, input: &B) -> GeneroVector<B> {
