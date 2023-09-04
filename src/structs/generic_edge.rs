@@ -322,4 +322,11 @@ mod test {
         let out = e.map_vector(v);
         println!("output vector: {:#?}", out);
     }
+
+    #[test]
+    fn test_serialization() {
+        let e = basic_edge();
+        let s = serde_json::to_string(&e).expect("could not serialize edge");
+        dbg!(s);
+    }
 }

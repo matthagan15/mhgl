@@ -201,4 +201,11 @@ mod test {
         b1.remove_node(&six);
         println!("post removal: {:?}", b1);
     }
+
+    #[test]
+    fn test_serialization() {
+        let b: SparseBasis<u32> = SparseBasis::from_slice(&[1,2,3]);
+        let s = serde_json::to_string(&b).expect("could not serialize basis");
+        dbg!(s);
+    }
 }

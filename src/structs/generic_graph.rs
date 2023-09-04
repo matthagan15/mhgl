@@ -310,4 +310,17 @@ impl<B: HgBasis> Hash for GeneroGraph<B> {
     }
 }
 
-mod tests {}
+mod tests {
+    use crate::{structs::GeneroEdge, SparseBasis};
+
+    use super::GeneroGraph;
+
+    #[test]
+    fn test_serialization() {
+        let mut g: GeneroGraph<SparseBasis<u32>> = GeneroGraph::new();
+        let e = GeneroEdge::from(SparseBasis::<u32>::from_node(&1), SparseBasis::from_node(&2), 1., crate::EdgeDirection::Symmetric);
+        g.add_edge(e);
+        let s = serde_json::to_string(&g).expect("could not serialize graph");
+        dbg!(s);
+    }
+}

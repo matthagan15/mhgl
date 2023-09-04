@@ -163,6 +163,13 @@ impl HGraph {
         e.first().map(|id| id.as_u128())
     }
 
+    pub fn query_nodes_in_edge(&self, edge_id: &u128) -> Vec<u32> {
+        let e = self.graph.query_edge(&Uuid::from_u128(*edge_id));
+        e.map_or(Vec::new(), |e| e.nodes().into_iter()
+            .map(|b| {b.node_vec()[0]})
+            .collect())
+    }
+
     /// Takes a single step in the graph, returning the subsets the given nodes map to with their respective edge weights.
     pub fn step(&self, nodes: &[u32]) -> Vec<(HashSet<u32>, EdgeWeight)> {
         let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
@@ -198,6 +205,8 @@ impl HGraph {
 }
 
 mod test {
+    use std::collections::{VecDeque, HashMap};
+
     use crate::{EdgeDirection, HGraph};
 
     #[test]
@@ -223,5 +232,27 @@ mod test {
         hg.create_edge(&nodes[0..5]);
         hg.create_edge(&nodes[0..6]);
         hg.remove_edge(&nodes[0..5]);
+    }
+
+    #[test]
+    fn test_serialization() {
+        let mut hg = HGraph::new();
+        hg.add_nodes(10);
+        hg.create_edge(&[0, 1]);
+
+        let g = hg.graph.clone();
+        dbg!(serde_json::to_string(&g));
+        dbg!(&hg.graph);
+        let s1 = serde_json::to_string(&hg.name).expect("could not serialize name");
+        let s2 = serde_json::to_string(&hg.nodes).expect("could not serialize nodes");
+        let s3 = serde_json::to_string(&hg.next_usable_node).expect("could not serialize next_usable_node");
+        let s4 = serde_json::to_string(&hg.reusable_nodes).expect("could not serialize reusable_nodes");
+        let s5 = serde_json::to_string(&hg.graph).expect("could not serialize graph");
+
+        dbg!(s1);
+        dbg!(s2);
+        dbg!(s3);
+        dbg!(s4);
+        dbg!(s5);
     }
 }
