@@ -1,6 +1,7 @@
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::str::FromStr;
 
 use uuid::Uuid;
 
@@ -19,7 +20,7 @@ use uuid::Uuid;
 /// There is currently no traits or other generalizations to make this easier to work with. We do
 /// not yet support adding labels to nodes either, and that must be done by hand by the end user.
 pub trait HgNode:
-    Debug + Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize
+    Debug + Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize + FromStr
 {
     fn max_number() -> Self;
     fn zero() -> Self;

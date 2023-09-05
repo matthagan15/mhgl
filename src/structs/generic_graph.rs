@@ -3,7 +3,9 @@ use std::{
     hash::Hash,
 };
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, ser::SerializeStruct};
+use serde_with::serde_as;
+use serde_json_any_key::*;
 use uuid::Uuid;
 
 use crate::traits::HgBasis;
@@ -16,7 +18,7 @@ use super::{
 
 /// The underlying structure for the directed graph types. Generic over
 /// the basis type provided. 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneroGraph<B: HgBasis> {
     pub id: GraphID,
     edges: HashMap<EdgeID, GeneroEdge<B>>,

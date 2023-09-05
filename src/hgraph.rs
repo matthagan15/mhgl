@@ -1,4 +1,5 @@
 use std::collections::{HashSet, VecDeque};
+use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -36,7 +37,6 @@ use crate::traits::*;
 /// ```
 /// Then data can be accessed by querying `hm[id]`.
 pub struct HGraph {
-    pub name: String,
     nodes: HashSet<u32>,
     next_usable_node: u32,
     reusable_nodes: VecDeque<u32>,
@@ -46,7 +46,6 @@ pub struct HGraph {
 impl HGraph {
     pub fn new() -> HGraph {
         HGraph {
-            name: String::new(),
             nodes: HashSet::new(),
             next_usable_node: 0,
             reusable_nodes: VecDeque::new(),
@@ -204,6 +203,27 @@ impl HGraph {
     pub fn cut(&self, cut_nodes: &[u32]) {}
 }
 
+impl Display for HGraph {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+        s.push_str("nodes: [");
+        let x: Vec<String> = self.nodes.clone().into_iter().map(|n| n.to_string()).collect();
+        for ix in 0..x.len() - 1 {
+            s.push_str(&x[ix]);
+            s.push_str(", ");
+        }
+        s.push_str(x.last().unwrap());
+        s.push_str("]\n");
+        s.push_str("edges:\n");
+        for e in self.graph.clone_edges() {
+            let e = self.graph.query_edge(&e).unwrap();
+            s.push_str(&e.in_nodes.to_string());
+            s.push_str("\n");
+        }
+        f.write_str(&s)
+    }
+}
+
 mod test {
     use std::collections::{VecDeque, HashMap};
 
@@ -239,17 +259,15 @@ mod test {
         let mut hg = HGraph::new();
         hg.add_nodes(10);
         hg.create_edge(&[0, 1]);
-
+        println!("hg:\n{:}", hg);
         let g = hg.graph.clone();
         dbg!(serde_json::to_string(&g));
         dbg!(&hg.graph);
-        let s1 = serde_json::to_string(&hg.name).expect("could not serialize name");
         let s2 = serde_json::to_string(&hg.nodes).expect("could not serialize nodes");
         let s3 = serde_json::to_string(&hg.next_usable_node).expect("could not serialize next_usable_node");
         let s4 = serde_json::to_string(&hg.reusable_nodes).expect("could not serialize reusable_nodes");
         let s5 = serde_json::to_string(&hg.graph).expect("could not serialize graph");
 
-        dbg!(s1);
         dbg!(s2);
         dbg!(s3);
         dbg!(s4);

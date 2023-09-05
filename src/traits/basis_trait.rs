@@ -1,8 +1,10 @@
 use std::{collections::HashSet, hash::Hash};
 
+use serde::{Serialize, Deserialize};
+
 /// The basic trait that "subsets" of nodes, which correspond to basis states
 /// of our vector space, need to follow to be represented in hyperedges.
-pub trait HgBasis: PartialEq + Eq + Hash + Clone {
+pub trait HgBasis: PartialEq + Eq + Hash + Clone + Serialize {
     fn new_empty() -> Self;
     fn len(&self) -> usize;
     fn intersect_with(&mut self, rhs: &Self);

@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::Debug};
+use std::{collections::HashSet, fmt::{Debug, Display}};
 
 use serde::{Deserialize, Serialize};
 
@@ -9,7 +9,7 @@ use crate::traits::{HgBasis, HgNode};
 /// be converted to a HashSet using `to_node_set()`. Can take `union` and
 /// `intersection` with other basis to yield a new basis or `union_with` and
 /// `intersect_with` to mutate the basis. See `HgBasis` for complete methods.
-#[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct SparseBasis<N: HgNode> {
     nodes: Vec<N>,
 }
@@ -71,6 +71,53 @@ impl<N: HgNode> SparseBasis<N> {
             }
         }
         ret
+    }
+}
+
+impl<N: HgNode> Serialize for SparseBasis<N> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer {
+            let mut s = String::new();
+            s.push_str("[");
+            for node in self.nodes.iter() {
+                s.push_str(&format!("{:?},", node));
+            }
+            s.truncate(s.len() - 1);
+            s.push_str("]");
+        serializer.serialize_str(&s)
+    }
+}
+
+impl<'de, N: HgNode> Deserialize<'de> for SparseBasis<N> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de> {
+        let mut data = <String>::deserialize(deserializer)?;
+        println!("data: {:}", data);
+        data.remove(0);
+        data.remove(data.len() - 1);
+        let v: Vec<N> = data.split(',').filter_map(|x| -> Option<N> {
+            if let Ok(number) = x.parse() {
+                Some(number)
+            } else {
+                None
+            }
+        }).collect();
+        Ok(SparseBasis {nodes: v})
+    }
+}
+
+impl<N: HgNode> Display for SparseBasis<N> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+            s.push_str("{");
+            for node in self.nodes.iter() {
+                s.push_str(&format!("{:?},", node));
+            }
+            s.truncate(s.len() - 1);
+            s.push_str("}");
+            f.write_str(&s)
     }
 }
 
@@ -168,6 +215,8 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
 }
 
 mod test {
+    use std::collections::HashMap;
+
     use rand::thread_rng;
 
     use crate::{structs::SparseBasis, traits::HgBasis};
@@ -206,6 +255,11 @@ mod test {
     fn test_serialization() {
         let b: SparseBasis<u32> = SparseBasis::from_slice(&[1,2,3]);
         let s = serde_json::to_string(&b).expect("could not serialize basis");
-        dbg!(s);
+        dbg!(&s);
+        let hm = HashMap::from([(b, 2)]);
+        let s_hm = serde_json::to_string(&hm);
+        dbg!(&s_hm);
+        let vec: SparseBasis<u32> = serde_json::from_str(&s).unwrap();
+        dbg!(vec);
     }
 }

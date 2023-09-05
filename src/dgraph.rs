@@ -9,7 +9,7 @@ use crate::structs::{
 
 use crate::traits::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 /// The simplest to use Directed hyperGraph structure. Encodes nodes as `u128` numbers (via the `uuid` crate internally, converted to `u128` for end user)  and
 /// uses a sparse representation to store hyperedges. Creating nodes does not
 /// fail, unlike `PGraph<N>` which may run out of encodable nodes if small enough integer sizes are used. With `HGraph` you can also create and delete nodes, unlike `BGraph` which is fixed at compile time.

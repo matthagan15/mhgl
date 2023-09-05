@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// A basic Undirected Graph. Uses a sparse representation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Graph<N: HgNode> {
     nodes: HashSet<N>,
     next_usable_node: N,

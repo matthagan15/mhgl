@@ -8,7 +8,7 @@ use crate::{
     traits::{HgBasis, HgNode, HyperGraph},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 /// A hypergraph type that simply counts nodes as they are created,
 /// as opposed to HGraph which utilizes Uuid's random generation.
 /// This allows for smaller data types to store nodes, which
