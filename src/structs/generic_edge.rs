@@ -36,6 +36,17 @@ pub struct GeneroEdge<B: HgBasis> {
     pub direction: EdgeDirection,
 }
 
+impl<B: HgBasis> From<B> for GeneroEdge<B> {
+    fn from(value: B) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            weight: 1.,
+            in_nodes: value,
+            out_nodes: B::new_empty(value.len()),
+        }
+    }
+}
+
 impl<B: HgBasis> GeneroEdge<B> {
     /// Creates a new Directed edge with weight 1. from
     /// the empty set to the empty set

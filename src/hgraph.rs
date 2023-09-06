@@ -203,6 +203,8 @@ impl HGraph {
     pub fn cut(&self, cut_nodes: &[u32]) {}
 }
 
+
+
 impl Display for HGraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = String::new();
