@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -10,9 +10,8 @@ use crate::structs::{
 use crate::traits::*;
 
 #[derive(Debug, Clone, Serialize)]
-/// The simplest to use Directed hyperGraph structure. Encodes nodes as `u128` numbers (via the `uuid` crate internally, converted to `u128` for end user)  and
-/// uses a sparse representation to store hyperedges. Creating nodes does not
-/// fail, unlike `PGraph<N>` which may run out of encodable nodes if small enough integer sizes are used. With `HGraph` you can also create and delete nodes, unlike `BGraph` which is fixed at compile time.
+/// The simplest to use Directed hyperGraph structure. Encodes nodes as `u32` numbers and
+/// uses a sparse representation to store hyperedges.
 ///
 /// ## Example Usage
 /// ```
@@ -25,31 +24,70 @@ use crate::traits::*;
 /// Currently do not support labeling nodes.
 pub struct DGraph {
     // TODO: Move storage of nodes from underlying graph structure to container structures.
-    pub name: String,
-    nodes: HashSet<u128>,
-    pub graph: GeneroGraph<SparseBasis<u128>>,
+    nodes: HashSet<u32>,
+    next_usable_node: u32,
+    reusable_nodes: VecDeque<u32>,
+    graph: GeneroGraph<SparseBasis<u32>>,
 }
 
 impl DGraph {
     pub fn new() -> DGraph {
         DGraph {
-            name: String::new(),
             nodes: HashSet::new(),
+            next_usable_node: 0,
+            reusable_nodes: VecDeque::new(),
             graph: GeneroGraph::new(),
         }
     }
 
-    pub fn create_nodes(&mut self, num_nodes: usize) -> Vec<u128> {
+    /// Adds `num_nodes` nodes to the graph, returning a vector containing
+    /// the nodes created. The number of nodes returned may be less than
+    /// the number of nodes requested due to the use of u32 to store nodes.
+    /// Nodes that get deleted are reused in a First In First Out (FIFO) format.
+    pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<u32> {
         let mut ret = Vec::with_capacity(num_nodes);
-        for _ in 0..num_nodes {
-            let id = Uuid::new_v4();
-            self.nodes.insert(id.as_u128());
-            ret.push(id.as_u128());
+        let mut counter = self.next_usable_node;
+        let mut nodes_available = counter < u32::max_number() || self.reusable_nodes.len() > 0;
+        while nodes_available && ret.len() < num_nodes {
+            // Prefer adding never before seen nodes.
+            if counter < u32::max_number() {
+                if self.nodes.contains(&counter) == false
+                    && self.reusable_nodes.contains(&counter) == false
+                {
+                    self.nodes.insert(counter);
+                    ret.push(counter);
+                }
+                counter += 1;
+            } else {
+                // If the counter has reached the max, then we start reusing nodes
+                // TODO: This is rather inefficient, can just cache a boolean
+                // if we already added the max value or not.
+                if self.nodes.contains(&counter) == false
+                    && self.reusable_nodes.contains(&counter) == false
+                {
+                    self.nodes.insert(counter);
+                    ret.push(counter);
+                } else {
+                    if let Some(old_node) = self.reusable_nodes.pop_front() {
+                        if self.nodes.contains(&old_node) == false {
+                            self.nodes.insert(old_node);
+                            ret.push(old_node);
+                        }
+                    }
+                }
+            }
+            nodes_available = counter < u32::max_number() || self.reusable_nodes.len() > 0;
         }
+        self.next_usable_node = counter;
         ret
     }
 
-    pub fn remove_node(&mut self, node: u128) {
+    /// Removes a node from the node set. The deleted node will be added to a
+    /// dequeue to be reused later once all possible nodes have been created.
+    pub fn remove_node(&mut self, node: u32) {
+        if self.nodes.contains(&node) == false {
+            return;
+        }
         let node_basis = SparseBasis::from(HashSet::from([node]));
         let edges = self.graph.get_containing_edges(&node_basis);
         for edge in edges {
@@ -59,6 +97,19 @@ impl DGraph {
             }
         }
         self.nodes.remove(&node);
+        self.reusable_nodes.push_back(node);
+    }
+
+    /// Removes a collection of nodes. The deleted nodes will be added
+    /// to a dequeue to be reused later once all possible nodes have been created
+    pub fn remove_nodes(&mut self, nodes: Vec<u32>) {
+        for node in nodes {
+            self.remove_node(node);
+        }
+    }
+
+    pub fn nodes(&self) -> Vec<u32> {
+        self.nodes.clone().into_iter().collect()
     }
 
     /// Creates an edge in the hypergraph with the specified inputs, outputs,
@@ -77,11 +128,11 @@ impl DGraph {
     /// `outputs`) to it's complement within the blob.
     pub fn create_edge(
         &mut self,
-        inputs: &[u128],
-        outputs: &[u128],
+        inputs: &[u32],
+        outputs: &[u32],
         weight: EdgeWeight,
         direction: EdgeDirection,
-    ) -> u128 {
+    ) -> Uuid {
         let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
         let mut output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
         if direction == EdgeDirection::Undirected || direction == EdgeDirection::Loop {
@@ -91,18 +142,17 @@ impl DGraph {
         let e = GeneroEdge::from(input_basis, output_basis, weight, direction);
         let id = e.id.clone();
         self.graph.add_edge(e);
-        id.as_u128()
+        id
     }
 
     /// Returns true if the edge was properly removed, false if it was not found.
-    pub fn remove_edge(&mut self, edge_id: u128) -> bool {
-        let id = Uuid::from_u128(edge_id);
-        let e = self.graph.remove_edge(&id);
+    pub fn remove_edge(&mut self, edge_id: &Uuid) -> bool {
+        let e = self.graph.remove_edge(edge_id);
         e.is_some()
     }
 
     /// Takes a single step in the graph, returning the subsets the given nodes map to with their respective edge weights.
-    pub fn step(&self, nodes: &[u128]) -> Vec<(HashSet<u128>, EdgeWeight)> {
+    pub fn step(&self, nodes: &[u32]) -> Vec<(HashSet<u32>, EdgeWeight)> {
         let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
         let out_vector = self.graph.map_basis(&start_basis);
         out_vector
@@ -114,7 +164,7 @@ impl DGraph {
 }
 
 impl HyperGraph for DGraph {
-    type Basis = SparseBasis<u128>;
+    type Basis = SparseBasis<u32>;
     fn edges(&self) -> Vec<crate::structs::EdgeID> {
         self.graph.clone_edges()
     }
@@ -153,8 +203,7 @@ mod test {
     #[test]
     fn test_node_creation_deletion() {
         let mut hg = DGraph::new();
-        hg.name = String::from("tester :)");
-        let nodes = hg.create_nodes(10);
+        let nodes = hg.add_nodes(10);
         hg.create_edge(&nodes[0..3], &nodes[0..=1], 1., EdgeDirection::Directed);
         println!("step:{:#?}", hg.step(&nodes[0..3]));
         println!("before removal:\n{:#?}", hg);
@@ -163,7 +212,7 @@ mod test {
         let b = hg.create_edge(&nodes[5..=9], &[], 2.2, EdgeDirection::Undirected);
         println!("post blob:{:#?}", hg);
         println!("step output:\n{:?}", hg.step(&nodes[6..=8]));
-        hg.remove_edge(b);
+        hg.remove_edge(&b);
         println!("post blob removal:{:#?}", hg);
     }
 }

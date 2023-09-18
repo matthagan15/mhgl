@@ -10,6 +10,7 @@ use crate::{
 };
 
 #[derive(Debug)]
+/// # UNDER CONSTRUCTION
 /// An implementation of a HyperGraph using a binary encoding of node subsets.
 /// Utilizes constant generics so the size of the graph **must** be known at compile time. As a result this type of graph will not be as widely useful as the other two. One nice upside to this decision though is that subsets of nodes can be represented as a single array of bytes that can be stored on the stack.
 /// There is currently an issue where the number

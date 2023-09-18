@@ -125,21 +125,16 @@ impl HGraph {
         self.nodes.clone().into_iter().collect()
     }
 
-    /// Creates an undirected edge among the given nodes. Duplicate inputs are removed.
-    pub fn create_edge(&mut self, nodes: &[u32]) {
+    /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Allows for duplicate edges. Returns the Uuid of the created edge.
+    pub fn create_edge(&mut self, nodes: &[u32]) -> Uuid {
         // TODO: This can be made much faster for HGraph if we
         // take a memory hit by storing a HashSet of each
         // subset/edge we have seen.
         let input_basis = SparseBasis::from_slice(nodes);
-        if self.graph.query_undirected(&input_basis).len() == 0 {
-            let e = GeneroEdge::from(
-                input_basis,
-                SparseBasis::new_empty(),
-                1.0,
-                EdgeDirection::Undirected,
-            );
-            self.graph.add_edge(e);
-        }
+        let e: GeneroEdge<SparseBasis<u32>> = input_basis.into();
+        let id = e.id.clone();
+        self.graph.add_edge(e);
+        id
     }
 
     pub fn remove_edge(&mut self, nodes: &[u32]) {
@@ -157,19 +152,24 @@ impl HGraph {
         self.graph.query_undirected(&input_basis).len() > 0
     }
 
-    pub fn query_edge_id(&self, nodes: &[u32]) -> Option<u128> {
+    pub fn query_edge_id(&self, id: &Uuid) -> Option<Vec<u32>> {
+        if let Some(e) = self.graph.query_edge(id) {
+            Some(e.in_nodes.to_node_vec())
+        } else {
+            None
+        }
+    }
+
+    pub fn get_edge_id(&self, nodes: &[u32]) -> Option<Uuid> {
         let e = self.graph.query_undirected(&SparseBasis::from_slice(nodes));
-        e.first().map(|id| id.as_u128())
+        e.first().copied()
     }
 
-    pub fn query_nodes_in_edge(&self, edge_id: &u128) -> Vec<u32> {
-        let e = self.graph.query_edge(&Uuid::from_u128(*edge_id));
-        e.map_or(Vec::new(), |e| e.nodes().into_iter()
-            .map(|b| {b.node_vec()[0]})
-            .collect())
-    }
-
-    /// Takes a single step in the graph, returning the subsets the given nodes map to with their respective edge weights.
+    /// Takes a single step in the graph using the complement action. For example, an edge of nodes {a, b} should be thought of as a normal 
+    /// undirected graph edge that can map a -> b and b -> a. For larger
+    /// edges this maps them accordingly, {a, b, c} maps {a, b} to {c} and 
+    /// so on. Note we do not map the empty set: for example {a, b, c} could
+    /// map {} -> {a, b, c} but we disallow this (I think). 
     pub fn step(&self, nodes: &[u32]) -> Vec<(HashSet<u32>, EdgeWeight)> {
         let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
         let out_vector = self.graph.map_basis(&start_basis);
@@ -180,19 +180,17 @@ impl HGraph {
             .collect()
     }
 
-    pub fn edges_of_size(&self, card: usize) -> Vec<u128> {
+    pub fn edges_of_size(&self, card: usize) -> Vec<Uuid> {
         self.graph
             .edges_of_size(card)
             .into_iter()
-            .map(|x| x.as_u128())
             .collect()
     }
 
-    pub fn get_containing_edges(&self, nodes: &[u32]) -> Vec<u128> {
+    pub fn get_containing_edges(&self, nodes: &[u32]) -> Vec<Uuid> {
         self.graph
             .get_containing_edges(&SparseBasis::from_slice(nodes))
             .into_iter()
-            .map(|id| id.as_u128())
             .collect()
     }
 
@@ -202,8 +200,6 @@ impl HGraph {
     /// would an edge without any nodes in `cut_nodes`.
     pub fn cut(&self, cut_nodes: &[u32]) {}
 }
-
-
 
 impl Display for HGraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

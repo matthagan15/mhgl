@@ -9,14 +9,14 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Serialize)]
-/// A hypergraph type that simply counts nodes as they are created,
-/// as opposed to HGraph which utilizes Uuid's random generation.
-/// This allows for smaller data types to store nodes, which
-/// reduces memory footprint. Since we use smaller
+/// # UNDER CONSTRUCTION
+/// Hypergraph variant that allows for other integer types to store
+/// nodes, which allows for either smaller memory footprints for smaller
+/// graphs or for more nodes in larger graphs.
+/// This functionality is pulled into a different type (PGraph) since we use smaller
 /// integer types however, this means
-/// that adding nodes could possibly fail. Due to this we also will re-use
-/// previously deleted nodes. Intended more for analytics as opposed to
-/// production environments.
+/// that adding nodes could possibly fail. This results in a different API than
+/// a generic 
 pub struct PGraph<N: HgNode> {
     pub name: String,
     nodes: HashSet<N>,

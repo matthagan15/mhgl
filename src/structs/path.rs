@@ -90,7 +90,7 @@ mod test {
     #[test]
     fn test_simple_extension() {
         let mut hg = DGraph::new();
-        let mut nodes = hg.create_nodes(10);
+        let mut nodes = hg.add_nodes(10);
         nodes.sort();
         for ix in 0..9 {
             hg.create_edge(
@@ -102,6 +102,5 @@ mod test {
         }
         let p = HgPath::new(SparseBasis::from(HashSet::from([nodes[0]])));
         println!("nodes: {:#?}", nodes);
-        println!("path extension:\n{:#?}", p.extend(&hg.graph));
     }
 }

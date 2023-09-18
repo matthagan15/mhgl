@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 /// The basic trait that "subsets" of nodes, which correspond to basis states
 /// of our vector space, need to follow to be represented in hyperedges.
 pub trait HgBasis: PartialEq + Eq + Hash + Clone + Serialize {
-    fn new_empty(len: usize) -> Self;
+    fn new_empty() -> Self;
     fn len(&self) -> usize;
     fn intersect_with(&mut self, rhs: &Self);
     fn intersection(&self, rhs: &Self) -> Self;

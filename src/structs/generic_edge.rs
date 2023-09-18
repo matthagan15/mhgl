@@ -7,13 +7,19 @@ use crate::traits::HgBasis;
 
 use super::{generic_vec::GeneroVector, EdgeID, EdgeWeight};
 
-/// Simple enum to denote which direction an edge face
+/// Simple enum to denote which direction an edge faces
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
 pub enum EdgeDirection {
+    /// A set A that maps to a set B
     Directed,
+    /// Set of nodes that map to another set and have the opposite sign going
+    /// the other way A -> B with weight 1., B -> A with weight -1.
     Oriented,
+    /// Set of nodes that map to another set and vice versa
     Symmetric,
+    /// Set of nodes that map to themselves
     Loop,
+    /// A set of nodes
     Undirected,
 }
 
@@ -42,7 +48,20 @@ impl<B: HgBasis> From<B> for GeneroEdge<B> {
             id: Uuid::new_v4(),
             weight: 1.,
             in_nodes: value,
-            out_nodes: B::new_empty(value.len()),
+            out_nodes: B::new_empty(),
+            direction: EdgeDirection::Undirected,
+        }
+    }
+}
+
+impl<B: HgBasis> From<(B, B)> for GeneroEdge<B> {
+    fn from(value: (B, B)) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            weight: 1.,
+            in_nodes: value.0,
+            out_nodes: value.1,
+            direction: EdgeDirection::Directed,
         }
     }
 }

@@ -57,26 +57,12 @@
 //! Under Construction.
 //!
 //! # Alternative Hypergraph Libraries
-//! - HyperNetX (Python): focused on "blob" type hypergraphs.
+//! - HyperNetX (Python): Only undirected hypergraphs. Nice visualization and good amount of algorithms implemented.
 //! - HypergraphDB (Java): A database backend for storing and querying data
 //! - Hypergraph (Rust): Appears very limited in scope and not maintained.
 
-// TODO:
-// API:
-// Undirected Graph: (Do we want it generic or not? This impacts API.)
-// Generic Undirected Graph
-
-/// Use Mul to implement union: s * &t = union(s, t);
 #[forbid(unsafe_code)]
-trait Set<'a, E>
-where
-    E: Mul<&'a E> + 'a,
-{
-    fn insert(&mut self, e: E);
-    fn check(&self, e: &E);
-    fn union(&self, t: &dyn Set<E>) -> dyn Set<E>;
-    fn intersection(&self, t: &dyn Set<E>) -> dyn Set<E>;
-}
+
 
 pub mod algs;
 mod bgraph;
@@ -112,9 +98,9 @@ mod tests {
     fn hgraph_works() {
         use crate::{DGraph, EdgeDirection};
         let mut hg = DGraph::new();
-        let nodes = hg.create_nodes(10);
+        let nodes = hg.add_nodes(10);
         hg.create_edge(&nodes[0..2], &nodes[0..3], 1.23, EdgeDirection::Symmetric);
-        let expected: Vec<(HashSet<u128>, f64)> =
+        let expected: Vec<(HashSet<u32>, f64)> =
             vec![(nodes[0..3].iter().cloned().collect(), 1.23)];
         assert_eq!(hg.step(&nodes[0..2]), expected);
     }

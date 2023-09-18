@@ -92,7 +92,7 @@ mod test {
     #[test]
     fn test_bfs() {
         let mut hg = DGraph::new();
-        let mut nodes = hg.create_nodes(10);
+        let mut nodes = hg.add_nodes(10);
         nodes.sort();
         let start = &nodes[0..2];
         let b1 = [nodes[0], nodes[1], nodes[2]];
@@ -107,7 +107,6 @@ mod test {
         hg.create_edge(&b2, &b3, 1., crate::EdgeDirection::Directed);
         hg.create_edge(&b2, &b5, 1., crate::EdgeDirection::Directed);
         println!("nodes: {:#?}", nodes);
-        println!("graph: {:#?}", hg.graph);
         println!(
             "bfs: {:#?}",
             bfs_base(&hg, &SparseBasis::from(start.iter().cloned().collect()), 2)
@@ -117,7 +116,7 @@ mod test {
     #[test]
     fn test_random_walk() {
         let mut hg = DGraph::new();
-        let mut nodes = hg.create_nodes(10);
+        let mut nodes = hg.add_nodes(10);
         nodes.sort();
         let start = &nodes[0..2];
         let start_basis = SparseBasis::from(start.iter().cloned().collect());
@@ -133,9 +132,5 @@ mod test {
         hg.create_edge(&b2, &b3, 1., crate::EdgeDirection::Directed);
         hg.create_edge(&b2, &b5, 1., crate::EdgeDirection::Directed);
         println!("graph:\n{:#?}", hg);
-        println!(
-            "random_walk output: {:#?}",
-            random_walk(&hg.graph, &start_basis, 5)
-        )
     }
 }
