@@ -139,9 +139,7 @@ impl HGraph {
 
     pub fn remove_edge(&mut self, nodes: &[u32]) {
         let input_basis = SparseBasis::from_slice(nodes);
-        let e = self
-            .graph
-            .query_undirected(&input_basis);
+        let e = self.graph.query_undirected(&input_basis);
         if let Some(id) = e.first() {
             self.graph.remove_edge(id);
         }
@@ -165,11 +163,11 @@ impl HGraph {
         e.first().copied()
     }
 
-    /// Takes a single step in the graph using the complement action. For example, an edge of nodes {a, b} should be thought of as a normal 
+    /// Takes a single step in the graph using the complement action. For example, an edge of nodes {a, b} should be thought of as a normal
     /// undirected graph edge that can map a -> b and b -> a. For larger
-    /// edges this maps them accordingly, {a, b, c} maps {a, b} to {c} and 
+    /// edges this maps them accordingly, {a, b, c} maps {a, b} to {c} and
     /// so on. Note we do not map the empty set: for example {a, b, c} could
-    /// map {} -> {a, b, c} but we disallow this (I think). 
+    /// map {} -> {a, b, c} but we disallow this (I think).
     pub fn step(&self, nodes: &[u32]) -> Vec<(HashSet<u32>, EdgeWeight)> {
         let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
         let out_vector = self.graph.map_basis(&start_basis);
@@ -181,10 +179,7 @@ impl HGraph {
     }
 
     pub fn edges_of_size(&self, card: usize) -> Vec<Uuid> {
-        self.graph
-            .edges_of_size(card)
-            .into_iter()
-            .collect()
+        self.graph.edges_of_size(card).into_iter().collect()
     }
 
     pub fn get_containing_edges(&self, nodes: &[u32]) -> Vec<Uuid> {
@@ -194,7 +189,19 @@ impl HGraph {
             .collect()
     }
 
-    /// Computes the number of edges that have one vertex in the 
+    pub fn get_edges(&self) -> Vec<(Uuid, HashSet<u32>)> {
+        let edge_ids = self.graph.clone_edges();
+        edge_ids
+            .into_iter()
+            .filter_map(|id| {
+                self.graph
+                    .query_edge(&id)
+                    .map(|edge| (edge.id, edge.in_nodes.to_node_set()))
+            })
+            .collect()
+    }
+
+    /// Computes the number of edges that have one vertex in the
     /// provided `cut_nodes` and one in the remaining set. For example,
     /// an edge with only support on the `cut_nodes` would not count. Neither
     /// would an edge without any nodes in `cut_nodes`.
@@ -205,7 +212,12 @@ impl Display for HGraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = String::new();
         s.push_str("nodes: [");
-        let x: Vec<String> = self.nodes.clone().into_iter().map(|n| n.to_string()).collect();
+        let x: Vec<String> = self
+            .nodes
+            .clone()
+            .into_iter()
+            .map(|n| n.to_string())
+            .collect();
         for ix in 0..x.len() - 1 {
             s.push_str(&x[ix]);
             s.push_str(", ");
@@ -223,7 +235,7 @@ impl Display for HGraph {
 }
 
 mod test {
-    use std::collections::{VecDeque, HashMap};
+    use std::collections::{HashMap, VecDeque};
 
     use crate::{EdgeDirection, HGraph};
 
@@ -259,11 +271,13 @@ mod test {
         hg.create_edge(&[0, 1]);
         println!("hg:\n{:}", hg);
         let g = hg.graph.clone();
-        dbg!(serde_json::to_string(&g));
+        dbg!(serde_json::to_string(&g).unwrap());
         dbg!(&hg.graph);
         let s2 = serde_json::to_string(&hg.nodes).expect("could not serialize nodes");
-        let s3 = serde_json::to_string(&hg.next_usable_node).expect("could not serialize next_usable_node");
-        let s4 = serde_json::to_string(&hg.reusable_nodes).expect("could not serialize reusable_nodes");
+        let s3 = serde_json::to_string(&hg.next_usable_node)
+            .expect("could not serialize next_usable_node");
+        let s4 =
+            serde_json::to_string(&hg.reusable_nodes).expect("could not serialize reusable_nodes");
         let s5 = serde_json::to_string(&hg.graph).expect("could not serialize graph");
 
         dbg!(s2);

@@ -16,7 +16,7 @@ use crate::{
 /// This functionality is pulled into a different type (PGraph) since we use smaller
 /// integer types however, this means
 /// that adding nodes could possibly fail. This results in a different API than
-/// a generic 
+/// a generic
 pub struct PGraph<N: HgNode> {
     pub name: String,
     nodes: HashSet<N>,

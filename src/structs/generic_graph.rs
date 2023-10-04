@@ -3,9 +3,9 @@ use std::{
     hash::Hash,
 };
 
-use serde::{Deserialize, Serialize, ser::SerializeStruct};
-use serde_with::serde_as;
+use serde::{ser::SerializeStruct, Deserialize, Serialize};
 use serde_json_any_key::*;
+use serde_with::serde_as;
 use uuid::Uuid;
 
 use crate::traits::HgBasis;
@@ -17,7 +17,7 @@ use super::{
 };
 
 /// The underlying structure for the directed graph types. Generic over
-/// the basis type provided. 
+/// the basis type provided.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneroGraph<B: HgBasis> {
     pub id: GraphID,
@@ -320,7 +320,12 @@ mod tests {
     #[test]
     fn test_serialization() {
         let mut g: GeneroGraph<SparseBasis<u32>> = GeneroGraph::new();
-        let e = GeneroEdge::from(SparseBasis::<u32>::from_node(&1), SparseBasis::from_node(&2), 1., crate::EdgeDirection::Symmetric);
+        let e = GeneroEdge::from(
+            SparseBasis::<u32>::from_node(&1),
+            SparseBasis::from_node(&2),
+            1.,
+            crate::EdgeDirection::Symmetric,
+        );
         g.add_edge(e);
         let s = serde_json::to_string(&g).expect("could not serialize graph");
         dbg!(s);
