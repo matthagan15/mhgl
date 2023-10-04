@@ -79,7 +79,8 @@ impl<const K: usize> StackGraph<K> {
                 let id = e.id.clone();
                 self.graph.add_edge(e);
                 id.as_u128()
-            }
+            },
+            EdgeDirection::Simplex => todo!(),
         }
     }
 

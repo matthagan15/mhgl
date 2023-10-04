@@ -125,7 +125,8 @@ impl<B: HgBasis> GeneroGraph<B> {
                         .insert(new_edge.id.clone());
                 }
                 self.edges.insert(new_edge.id.clone(), new_edge);
-            }
+            },
+            EdgeDirection::Simplex => todo!(),
         }
     }
 
@@ -160,7 +161,8 @@ impl<B: HgBasis> GeneroGraph<B> {
                         }
                     }
                     Some(edge)
-                }
+                },
+                EdgeDirection::Simplex => todo!(),
             }
         } else {
             None

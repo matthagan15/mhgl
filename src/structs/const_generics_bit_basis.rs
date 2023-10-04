@@ -180,6 +180,10 @@ impl<const K: usize> HgBasis for ConstGenBitBasis<K> {
             .map(|array| ConstGenBitBasis { bits: array })
             .collect()
     }
+
+    fn power_set(&self) -> HashSet<Self> {
+        todo!()
+    }
 }
 
 impl<const K: usize> Serialize for ConstGenBitBasis<K> {

@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 
 /// The basic trait that "subsets" of nodes, which correspond to basis states
 /// of our vector space, need to follow to be represented in hyperedges.
-pub trait HgBasis: PartialEq + Eq + Hash + Clone + Serialize {
+pub trait HgBasis: PartialEq + Eq + Hash + Clone + Serialize + Ord {
+    // TODO: Need to add an associated type here right? A basis over what?
     fn new_empty() -> Self;
     fn len(&self) -> usize;
     fn intersect_with(&mut self, rhs: &Self);
@@ -24,9 +25,11 @@ pub trait HgBasis: PartialEq + Eq + Hash + Clone + Serialize {
     }
     fn remove_node(&mut self, node: &Self);
     fn complement(&self, rhs: &Self) -> Self;
+    /// Returns true if basis is contained in self, false otherwise.
     fn covers_basis(&self, basis: &Self) -> bool {
         let intersection = self.intersection(basis);
         intersection == *basis
     }
     fn nodes(&self) -> HashSet<Self>;
+    fn power_set(&self) -> HashSet<Self>;
 }

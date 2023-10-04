@@ -100,7 +100,8 @@ impl<N: HgNode> PGraph<N> {
                 let id = e.id.clone();
                 self.graph.add_edge(e);
                 id.as_u128()
-            }
+            },
+            EdgeDirection::Simplex => todo!(),
         }
     }
 

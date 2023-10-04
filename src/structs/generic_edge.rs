@@ -1,9 +1,9 @@
-use std::{collections::HashSet, hash::Hash};
+use std::{collections::HashSet, hash::Hash, ops::Add};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::traits::HgBasis;
+use crate::{traits::HgBasis, utils::power_set};
 
 use super::{generic_vec::GeneroVector, EdgeID, EdgeWeight};
 
@@ -21,6 +21,8 @@ pub enum EdgeDirection {
     Loop,
     /// A set of nodes
     Undirected,
+    /// A simplex (for use in a simplicial complex)
+    Simplex,
 }
 
 /// # Edge
@@ -173,8 +175,14 @@ impl<B: HgBasis> GeneroEdge<B> {
             }
             EdgeDirection::Loop => {
                 self.out_nodes = B::new_empty();
-                self.direction = new_direction
-            }
+                self.direction = new_direction;
+            },
+            EdgeDirection::Simplex => {
+                let u = self.in_nodes.union(&self.out_nodes);
+                self.out_nodes = B::new_empty();
+                self.in_nodes = u;
+                self.direction = new_direction;
+            },
         }
     }
 
@@ -199,7 +207,7 @@ impl<B: HgBasis> GeneroEdge<B> {
             EdgeDirection::Oriented | EdgeDirection::Symmetric => {
                 self.in_nodes == *basis || self.out_nodes == *basis
             }
-            EdgeDirection::Undirected => self.in_nodes.intersection(basis) == *basis,
+            EdgeDirection::Undirected | EdgeDirection::Simplex => self.in_nodes.intersection(basis) == *basis,
         }
     }
     /// Returns true if the provided basis is an output of this edge.
@@ -209,7 +217,7 @@ impl<B: HgBasis> GeneroEdge<B> {
             EdgeDirection::Oriented | EdgeDirection::Symmetric => {
                 self.in_nodes == *basis || self.out_nodes == *basis
             }
-            EdgeDirection::Undirected => self.in_nodes.intersection(basis) == *basis,
+            EdgeDirection::Undirected | EdgeDirection::Simplex => self.in_nodes.intersection(basis) == *basis,
         }
     }
 
@@ -224,6 +232,10 @@ impl<B: HgBasis> GeneroEdge<B> {
                 og_dir || opposite_dir
             }
             EdgeDirection::Undirected => self.in_nodes.complement(input) == *output,
+            EdgeDirection::Simplex => {
+                let complement = self.in_nodes.complement(input);
+                complement.covers_basis(output)
+            },
         }
     }
 
@@ -308,7 +320,20 @@ impl<B: HgBasis> GeneroEdge<B> {
                     }
                 }
                 v = ret;
-            }
+            },
+            EdgeDirection::Simplex => {
+                let mut ret = GeneroVector::new();
+                for (b, w) in v.basis_to_weight.drain() {
+                    if self.in_nodes.covers_basis(&b) {
+                        let complement_set = self.in_nodes.complement(&b);
+                        let pow_set = complement_set.power_set();
+                        for new_b in pow_set {
+                            ret.add_basis(new_b, w * self.weight);
+                        }
+                    }
+                }
+                v = ret;
+            },
         }
         v
     }

@@ -5,7 +5,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::traits::{HgBasis, HgNode};
+use crate::{traits::{HgBasis, HgNode}, utils::power_set};
 
 /// A sparse representation of a subset of nodes. Empty sets provided with `new`
 /// and `from` can be used to create a a SparseBasis object from a HashSet. Can
@@ -219,6 +219,14 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
                 nodes: vec![n.clone()],
             })
             .collect()
+    }
+
+    fn power_set(&self) -> HashSet<Self> {
+        power_set(self.nodes.clone(), self.nodes.len()).into_iter()
+        .map(|b| {
+            SparseBasis { nodes: b }
+        })
+        .collect()
     }
 }
 

@@ -196,6 +196,33 @@ impl HgBasis for BitBasis {
         }
         ret
     }
+
+    fn power_set(&self) -> HashSet<Self> {
+        todo!()
+    }
+}
+
+impl Ord for BitBasis {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self.len() < other.len() {
+            std::cmp::Ordering::Less
+        } else if self.len() > other.len() {
+            std::cmp::Ordering::Greater
+        } else {
+            for ix in 0..self.bv.len() {
+                if self.bv[ix] && other.bv[ix] {
+                    continue;
+                }
+                if self.bv[ix] && other.bv[ix] == false {
+                    return std::cmp::Ordering::Less;
+                }
+                if self.bv[ix] == false && other.bv[ix] {
+                    return std::cmp::Ordering::Greater;
+                }
+            }
+            std::cmp::Ordering::Equal
+        }
+    }
 }
 
 use crate::{traits::HgBasis, utils::PowerSetBits};
@@ -211,5 +238,19 @@ mod test {
         b.flip_node(0);
         b.flip_node(4);
         dbg!(b);
+    }
+
+    #[test]
+    fn test_ord() {
+        let mut a = BitBasis::new(3);
+        let mut b = BitBasis::new(2);
+        let mut c = BitBasis::new(3);
+        a.flip_node(0);
+        assert!(a > b);
+        assert!(a > c);
+        c.flip_node(0);
+        assert!(a == c);
+        c.flip_node(1);
+        assert!(a < c);
     }
 }

@@ -8,7 +8,9 @@ use crate::{structs::ConstGenBitBasis, traits::*};
 
 /// Returns subset of power set of given id's with the condition that each set returned has dims number
 /// of elements.
-pub fn power_set<N: HgNode>(v: Vec<N>, dims: usize) -> HashSet<Vec<N>> {
+pub fn power_set<N>(v: Vec<N>, dims: usize) -> HashSet<Vec<N>> 
+where N: Clone + Eq + Ord + std::hash::Hash
+{
     if dims == 0 {
         return HashSet::new();
     }
