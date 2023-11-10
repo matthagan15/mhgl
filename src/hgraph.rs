@@ -1,3 +1,4 @@
+use core::prelude::v1;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Display;
 
@@ -163,12 +164,9 @@ impl HGraph {
         e.first().copied()
     }
 
-    /// Takes a single step in the graph using the complement action. For example, an edge of nodes {a, b} should be thought of as a normal
-    /// undirected graph edge that can map a -> b and b -> a. For larger
-    /// edges this maps them accordingly, {a, b, c} maps {a, b} to {c} and
-    /// so on. Note we do not map the empty set: for example {a, b, c} could
-    /// map {} -> {a, b, c} but we disallow this (I think).
-    pub fn step(&self, nodes: &[u32]) -> Vec<(HashSet<u32>, EdgeWeight)> {
+    /// Computes the link of the provided nodes in the HyperGraph but returns a 
+    /// list of sets as opposed to a new HyperGraph.
+    pub fn link_as_vec(&self, nodes: &[u32]) -> Vec<(HashSet<u32>, EdgeWeight)> {
         let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
         let out_vector = self.graph.map_basis(&start_basis);
         out_vector
@@ -205,7 +203,41 @@ impl HGraph {
     /// provided `cut_nodes` and one in the remaining set. For example,
     /// an edge with only support on the `cut_nodes` would not count. Neither
     /// would an edge without any nodes in `cut_nodes`.
-    pub fn cut(&self, cut_nodes: &[u32]) {}
+    pub fn cut(&self, cut_nodes: &[u32]) -> f64 {
+        let mut counted_edges: HashSet<Uuid> = HashSet::new();
+        for node in cut_nodes {
+            let out_edges = self.graph.get_outbound_edges(&SparseBasis::from_node(node));
+            for edge_id in out_edges {
+                if let Some(e) = self.graph.query_edge(&edge_id) {}
+            }
+        }
+        0.0
+    }
+
+    /// Computes the link of the provided set.
+    pub fn link(&self, face: HashSet<u32>) -> HGraph {
+        let v: Vec<u32> = face.clone().into_iter().collect();
+        let face_basis = SparseBasis::from_slice(&v[..]);
+        let out = self.graph.map_basis(&face_basis);
+        let mut link = HGraph {
+            nodes: self.nodes.clone(),
+            next_usable_node: self.next_usable_node,
+            reusable_nodes: self.reusable_nodes.clone(),
+            graph: GeneroGraph::new(),
+        };
+        for (b, _) in out.to_tuples() {
+            link.create_edge(&b.node_vec()[..]);
+        }
+        link
+    }
+
+    /// Computes the k-skeleton of this hypergraph and returns a new `HGraph`.
+    /// To mutate a given `HGraph` use `HGraph::project_onto`
+    pub fn k_skeleton(&self, k: usize) -> HGraph {
+        let mut ret = HGraph::new();
+
+        ret
+    }
 }
 
 impl Display for HGraph {
@@ -235,7 +267,7 @@ impl Display for HGraph {
 }
 
 mod test {
-    use std::collections::{HashMap, VecDeque};
+    use std::collections::{HashMap, VecDeque, HashSet};
 
     use crate::{EdgeDirection, HGraph};
 
@@ -284,5 +316,16 @@ mod test {
         dbg!(s3);
         dbg!(s4);
         dbg!(s5);
+    }
+
+    #[test]
+    fn test_link() {
+        let mut hg = HGraph::new();
+        let nodes = hg.add_nodes(10);
+        hg.create_edge(&nodes[0..=5]);
+        hg.create_edge(&nodes[5..]);
+        let link = hg.link(HashSet::from([nodes[5], nodes[4]]));
+        println!("hg\n{:}", hg);
+        println!("link\n{:}", link);
     }
 }
