@@ -21,7 +21,7 @@ use super::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneroGraph<B: HgBasis> {
     pub id: GraphID,
-    edges: HashMap<EdgeID, GeneroEdge<B>>,
+    pub edges: HashMap<EdgeID, GeneroEdge<B>>,
     node_to_outbound_edges: HashMap<B, HashSet<EdgeID>>,
 }
 

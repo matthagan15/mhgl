@@ -164,7 +164,7 @@ impl HGraph {
         e.first().copied()
     }
 
-    /// Computes the link of the provided nodes in the HyperGraph but returns a 
+    /// Computes the link of the provided nodes in the HyperGraph but returns a
     /// list of sets as opposed to a new HyperGraph.
     pub fn link_as_vec(&self, nodes: &[u32]) -> Vec<(HashSet<u32>, EdgeWeight)> {
         let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
@@ -235,7 +235,14 @@ impl HGraph {
     /// To mutate a given `HGraph` use `HGraph::project_onto`
     pub fn k_skeleton(&self, k: usize) -> HGraph {
         let mut ret = HGraph::new();
-
+        let mut new_graph = self.graph.clone();
+        new_graph.edges = new_graph.edges.into_iter().filter(|(_, e)| {
+            e.input_cardinality() <= k + 1
+        }).collect();
+        ret.nodes = self.nodes.clone();
+        ret.next_usable_node = self.next_usable_node;
+        ret.reusable_nodes = self.reusable_nodes.clone();
+        ret.graph = new_graph;
         ret
     }
 }
@@ -267,7 +274,7 @@ impl Display for HGraph {
 }
 
 mod test {
-    use std::collections::{HashMap, VecDeque, HashSet};
+    use std::collections::{HashMap, HashSet, VecDeque};
 
     use crate::{EdgeDirection, HGraph};
 
@@ -327,5 +334,18 @@ mod test {
         let link = hg.link(HashSet::from([nodes[5], nodes[4]]));
         println!("hg\n{:}", hg);
         println!("link\n{:}", link);
+    }
+
+    #[test]
+    fn test_skeleton() {
+        let mut hg = HGraph::new();
+        let nodes = hg.add_nodes(10);
+        for size in 0..8 {
+            hg.create_edge(&nodes[0..=size]);
+        }
+        for size in 1..10 {
+            println!("{:}-skeleton", size);
+            println!("{:}", hg.k_skeleton(size));
+        }
     }
 }

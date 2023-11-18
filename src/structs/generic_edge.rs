@@ -234,7 +234,7 @@ impl<B: HgBasis> GeneroEdge<B> {
     }
 
     /// Returns true if the provided set is contained in the union
-    /// of the input and output of the edge. For undirected edges this 
+    /// of the input and output of the edge. For undirected edges this
     /// means the given basis is a subset of `self`.
     pub fn contains(&self, basis: &B) -> bool {
         let total = self.in_nodes.union(&self.out_nodes);
