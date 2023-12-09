@@ -17,21 +17,34 @@ pub struct SparseBasis<N: HgNode> {
     nodes: Vec<N>,
 }
 
-impl<N: HgNode> SparseBasis<N> {
-    pub fn new() -> Self {
-        SparseBasis { nodes: Vec::new() }
-    }
-
-    pub fn from(subset: HashSet<N>) -> Self {
-        let mut nodes: Vec<N> = subset.into_iter().collect();
+impl<N: HgNode> From<HashSet<N>> for SparseBasis<N> {
+    fn from(value: HashSet<N>) -> Self {
+        let mut nodes: Vec<N> = value.into_iter().collect();
         nodes.sort();
         SparseBasis { nodes }
     }
+}
 
-    pub fn from_node(node: &N) -> Self {
-        SparseBasis {
-            nodes: vec![node.clone()],
-        }
+impl<N: HgNode> From<&[N]> for SparseBasis<N> {
+    /// Clones the provided nodes. 
+    fn from(value: &[N]) -> Self {
+        let mut nodes: Vec<N> = value.iter().cloned().collect();
+        nodes.sort();
+        SparseBasis { nodes }
+    }
+}
+
+impl<N: HgNode> From<&N> for SparseBasis<N> {
+    /// Clones the provided nodes. 
+    fn from(value: &N) -> Self {
+        SparseBasis {nodes: vec![*value] }
+    }
+}
+
+
+impl<N: HgNode> SparseBasis<N> {
+    pub fn new() -> Self {
+        SparseBasis { nodes: Vec::new() }
     }
 
     pub fn from_slice(nodes: &[N]) -> Self {

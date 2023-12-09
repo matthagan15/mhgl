@@ -85,16 +85,16 @@ impl<N: HgNode> PGraph<N> {
     ) -> u128 {
         match direction {
             EdgeDirection::Directed | EdgeDirection::Oriented | EdgeDirection::Symmetric => {
-                let input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-                let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
+                let input_basis = SparseBasis::from(inputs);
+                let output_basis = SparseBasis::from(outputs);
                 let e = GeneroEdge::from(input_basis, output_basis, weight, direction);
                 let id = e.id.clone();
                 self.graph.add_edge(e);
                 id.as_u128()
             }
             EdgeDirection::Loop | EdgeDirection::Undirected => {
-                let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-                let output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
+                let mut input_basis = SparseBasis::from(inputs);
+                let output_basis = SparseBasis::from(outputs);
                 input_basis.union_with(&output_basis);
                 let e = GeneroEdge::from(input_basis, SparseBasis::new_empty(), weight, direction);
                 let id = e.id.clone();

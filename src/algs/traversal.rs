@@ -109,7 +109,7 @@ mod test {
         println!("nodes: {:#?}", nodes);
         println!(
             "bfs: {:#?}",
-            bfs_base(&hg, &SparseBasis::from(start.iter().cloned().collect()), 2)
+            bfs_base(&hg, &SparseBasis::from(start), 2)
         );
     }
 
@@ -119,7 +119,7 @@ mod test {
         let mut nodes = hg.add_nodes(10);
         nodes.sort();
         let start = &nodes[0..2];
-        let start_basis = SparseBasis::from(start.iter().cloned().collect());
+        let start_basis = SparseBasis::from(start);
         let b1 = [nodes[0], nodes[1], nodes[2]];
         let b2 = [nodes[0], nodes[1], nodes[3]];
         let b3 = [nodes[3]];

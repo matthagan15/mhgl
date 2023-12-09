@@ -59,6 +59,9 @@ impl HGraph {
     /// the number of nodes requested due to the use of u32 to store nodes.
     /// Nodes that get deleted are reused in a First In First Out (FIFO) format.
     pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<u32> {
+        // TODO: Should the user control what nodes are present? We don't
+        // really care what numbers are used to store nodes, so why go through 
+        // all this hassle 
         let mut ret = Vec::with_capacity(num_nodes);
         let mut counter = self.next_usable_node;
         let mut nodes_available = counter < u32::max_number() || self.reusable_nodes.len() > 0;
@@ -167,7 +170,7 @@ impl HGraph {
     /// Computes the link of the provided nodes in the HyperGraph but returns a
     /// list of sets as opposed to a new HyperGraph.
     pub fn link_as_vec(&self, nodes: &[u32]) -> Vec<(HashSet<u32>, EdgeWeight)> {
-        let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
+        let start_basis = SparseBasis::from(nodes);
         let out_vector = self.graph.map_basis(&start_basis);
         out_vector
             .to_tuples()
@@ -203,18 +206,44 @@ impl HGraph {
     /// provided `cut_nodes` and one in the remaining set. For example,
     /// an edge with only support on the `cut_nodes` would not count. Neither
     /// would an edge without any nodes in `cut_nodes`.
-    pub fn cut(&self, cut_nodes: &[u32]) -> f64 {
+    /// The type `ToSet` is any collection that can be converted to a sparse
+    /// set representation.
+    /// 
+    /// Example
+    /// ```
+    /// let mut hg = HGraph::new();
+    /// let nodes = hg.add_nodes(10);
+    /// hg.create_edge(&nodes[..2]);
+    /// hg.create_edge(&nodes[..3]);
+    /// hg.create_edge(&nodes[..4]);
+    /// assert_eq!(hg.cut(&nodes[..2]), 2);
+    /// assert_eq!(hg.cut(&nodes[..3]), 1);
+    /// assert_eq!(hg.cut(&nodes[..4]), 0);
+    /// ```
+    pub fn cut<ToSet>(&self, cut_nodes: ToSet) -> usize
+    where ToSet: Into<SparseBasis<u32>>
+    {
         let mut counted_edges: HashSet<Uuid> = HashSet::new();
-        for node in cut_nodes {
-            let out_edges = self.graph.get_outbound_edges(&SparseBasis::from_node(node));
+        let cut_basis: SparseBasis<u32> = cut_nodes.into();
+        dbg!(&cut_basis);
+        for node in cut_basis.nodes() {
+            let out_edges: Vec<Uuid> = self.graph.get_outbound_edges(&node).into_iter().filter(|e_id| counted_edges.contains(e_id) == false).collect();
             for edge_id in out_edges {
-                if let Some(e) = self.graph.query_edge(&edge_id) {}
+                if let Some(e) = self.graph.edges.get(&edge_id) {
+                    if cut_basis.covers_basis(&e.in_nodes) {
+                        counted_edges.insert(edge_id);
+                    }
+                }
             }
         }
-        0.0
+        counted_edges.len()
     }
 
-    /// Computes the link of the provided set.
+    /// Computes the link of the provided set. The link of a single
+    /// hyperedge is computed using the complement, so a hyperedge
+    /// of nodes {a, b, c, d} and a provided `face` of {a, b} would
+    /// yield a link of {c, d}. The link of the graph is then the
+    /// union of all the links of each hyperedge. 
     pub fn link(&self, face: HashSet<u32>) -> HGraph {
         let v: Vec<u32> = face.clone().into_iter().collect();
         let face_basis = SparseBasis::from_slice(&v[..]);
@@ -231,8 +260,11 @@ impl HGraph {
         link
     }
 
-    /// Computes the k-skeleton of this hypergraph and returns a new `HGraph`.
-    /// To mutate a given `HGraph` use `HGraph::project_onto`
+    /// Computes the k-skeleton of this hypergraph and returns the 
+    /// information as a new `HGraph`.
+    /// The k-skeleton is defined as all undirected hyperedges of cardinality
+    /// less than or equal to `k`.
+    /// To mutate a given `HGraph` use `HGraph::project_onto`.
     pub fn k_skeleton(&self, k: usize) -> HGraph {
         let mut ret = HGraph::new();
         let mut new_graph = self.graph.clone();
@@ -276,7 +308,7 @@ impl Display for HGraph {
 mod test {
     use std::collections::{HashMap, HashSet, VecDeque};
 
-    use crate::{EdgeDirection, HGraph};
+    use crate::{EdgeDirection, HGraph, SparseBasis};
 
     #[test]
     fn test_creating_and_deleting_nodes() {
@@ -347,5 +379,25 @@ mod test {
             println!("{:}-skeleton", size);
             println!("{:}", hg.k_skeleton(size));
         }
+    }
+
+    fn simple_test_hg() -> HGraph {
+        let mut hg = HGraph::new();
+        let nodes = hg.add_nodes(10);
+        hg.create_edge(&nodes[0..=5]);
+        hg.create_edge(&nodes[5..]);
+        hg
+    }
+    #[test]
+    fn test_cut_with_traits() {
+        let mut hg = HGraph::new();
+        let nodes = hg.add_nodes(10);
+        hg.create_edge(&nodes[..2]);
+        hg.create_edge(&nodes[..3]);
+        hg.create_edge(&nodes[..4]);
+        println!("hg\n{:}", hg);
+        assert_eq!(hg.cut(&nodes[..2]), 2);
+        assert_eq!(hg.cut(&nodes[..3]), 1);
+        assert_eq!(hg.cut(&nodes[..4]), 0);
     }
 }

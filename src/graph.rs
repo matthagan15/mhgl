@@ -89,8 +89,8 @@ impl<N: HgNode> Graph<N> {
         if self.nodes.contains(&v) == false {
             self.add_node(v);
         }
-        let u_basis = SparseBasis::from([u].into());
-        let v_basis = SparseBasis::from([v].into());
+        let u_basis = SparseBasis::from(&u);
+        let v_basis = SparseBasis::from(&v);
         self.graph.add_edge(GeneroEdge::from(
             u_basis,
             v_basis,
@@ -101,7 +101,7 @@ impl<N: HgNode> Graph<N> {
 
     /// Returns the neighbors of a node.
     pub fn neighbors(&self, node: N) -> Vec<N> {
-        let b = SparseBasis::from([node].into());
+        let b = SparseBasis::from(&node);
         self.graph
             .map_basis(&b)
             .basis()

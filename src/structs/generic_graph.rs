@@ -321,8 +321,8 @@ mod tests {
     fn test_serialization() {
         let mut g: GeneroGraph<SparseBasis<u32>> = GeneroGraph::new();
         let e = GeneroEdge::from(
-            SparseBasis::<u32>::from_node(&1),
-            SparseBasis::from_node(&2),
+            SparseBasis::<u32>::from(&1),
+            SparseBasis::from(&2),
             1.,
             crate::EdgeDirection::Symmetric,
         );

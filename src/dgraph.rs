@@ -133,8 +133,8 @@ impl DGraph {
         weight: EdgeWeight,
         direction: EdgeDirection,
     ) -> Uuid {
-        let mut input_basis = SparseBasis::from(inputs.into_iter().cloned().collect());
-        let mut output_basis = SparseBasis::from(outputs.into_iter().cloned().collect());
+        let mut input_basis = SparseBasis::from(inputs);
+        let mut output_basis = SparseBasis::from(outputs);
         if direction == EdgeDirection::Undirected || direction == EdgeDirection::Loop {
             input_basis.union_with(&output_basis);
             output_basis = SparseBasis::new_empty();
@@ -153,7 +153,7 @@ impl DGraph {
 
     /// Takes a single step in the graph, returning the subsets the given nodes map to with their respective edge weights.
     pub fn step(&self, nodes: &[u32]) -> Vec<(HashSet<u32>, EdgeWeight)> {
-        let start_basis = SparseBasis::from(nodes.iter().cloned().collect());
+        let start_basis = SparseBasis::from(nodes);
         let out_vector = self.graph.map_basis(&start_basis);
         out_vector
             .to_tuples()
