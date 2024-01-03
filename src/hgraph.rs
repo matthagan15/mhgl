@@ -279,13 +279,13 @@ impl HGraph {
     }
 }
 
-impl std::ops::Index<dyn Into<SparseBasis<u32>>> for HGraph {
-    type Output = bool;
-
-    fn index(&self, index: dyn Into<SparseBasis<u32>>) -> &Self::Output {
-        todo!()
-    }
-}
+// impl std::ops::Index<dyn Into<SparseBasis<u32>>> for HGraph {
+  //   type Output = bool;
+// 
+  //   fn index(&self, index: dyn Into<SparseBasis<u32>>) -> &Self::Output {
+    //     todo!()
+    // }
+// }
 
 impl Display for HGraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
