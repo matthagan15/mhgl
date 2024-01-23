@@ -149,6 +149,8 @@ impl HGraph {
         }
     }
 
+    /// Returns true if the provided nodes form an existing edge in
+    /// the graph, false if they do not.
     pub fn query_edge(&self, nodes: &[u32]) -> bool {
         let input_basis = SparseBasis::from_slice(nodes);
         self.graph.query_undirected(&input_basis).len() > 0

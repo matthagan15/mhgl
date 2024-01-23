@@ -83,7 +83,7 @@ pub use pgraph::PGraph;
 pub use structs::BitBasis;
 pub use structs::EdgeDirection;
 pub use structs::SparseBasis;
-
+pub mod matrix;
 pub use traits::HgBasis;
 pub use traits::HyperGraph;
 
