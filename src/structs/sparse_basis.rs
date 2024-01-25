@@ -1,6 +1,5 @@
 use std::{
-    collections::HashSet,
-    fmt::{Debug, Display},
+    collections::HashSet, fmt::{Debug, Display}
 };
 
 use serde::{Deserialize, Serialize};
@@ -95,12 +94,17 @@ impl<N: HgNode> Serialize for SparseBasis<N> {
     where
         S: serde::Serializer,
     {
+        if self.nodes.len() == 0 {
+            return serializer.serialize_str("[]");
+        }
         let mut s = String::new();
         s.push_str("[");
         for node in self.nodes.iter() {
             s.push_str(&format!("{:?},", node));
         }
-        s.truncate(s.len() - 1);
+        if s.ends_with(',') {
+            s.remove(s.len() - 1);
+        }
         s.push_str("]");
         serializer.serialize_str(&s)
     }
@@ -112,9 +116,12 @@ impl<'de, N: HgNode> Deserialize<'de> for SparseBasis<N> {
         D: serde::Deserializer<'de>,
     {
         let mut data = <String>::deserialize(deserializer)?;
-        println!("data: {:}", data);
-        data.remove(0);
-        data.remove(data.len() - 1);
+        if data.starts_with("[") {
+            data.remove(0);
+        }
+        if data.ends_with("]") {
+            data.remove(data.len() - 1);
+        }
         let v: Vec<N> = data
             .split(',')
             .filter_map(|x| -> Option<N> {
@@ -275,6 +282,9 @@ mod test {
     #[test]
     fn test_serialization() {
         let b: SparseBasis<u32> = SparseBasis::from_slice(&[1, 2, 3]);
+        let empty_basis: SparseBasis<u32> = SparseBasis::new_empty();
+        let empty_s = serde_json::to_string(&empty_basis).expect("could not serialize emtpy.");
+        println!("empty_s: {:?}", empty_s);
         let s = serde_json::to_string(&b).expect("could not serialize basis");
         dbg!(&s);
         let hm = HashMap::from([(b, 2)]);

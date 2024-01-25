@@ -387,6 +387,21 @@ mod test {
     }
 
     #[test]
+    fn test_deserialization() {
+        let mut hg = HGraph::new();
+        let nodes = hg.add_nodes(10);
+        hg.create_edge(&nodes[0..2]);
+        hg.create_edge(&nodes[0..3]);
+        hg.create_edge(&nodes[0..4]);
+        hg.create_edge(&nodes[0..5]);
+        let mut s = String::new();
+        s = serde_json::to_string(&hg).unwrap();
+        println!("s: {:}", s);
+        let hg2: HGraph = serde_json::from_str(&s[..]).unwrap();
+        println!("hg2:{:}", hg2);
+    }
+
+    #[test]
     fn test_link() {
         let mut hg = HGraph::new();
         let nodes = hg.add_nodes(10);
