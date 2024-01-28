@@ -2,6 +2,7 @@ use std::{
     collections::HashSet, fmt::{Debug, Display}
 };
 
+use bitvec::vec;
 use serde::{Deserialize, Serialize};
 
 use crate::traits::{HgBasis, HgNode};
@@ -116,23 +117,35 @@ impl<'de, N: HgNode> Deserialize<'de> for SparseBasis<N> {
         D: serde::Deserializer<'de>,
     {
         let mut data = <String>::deserialize(deserializer)?;
+
         if data.starts_with("[") {
             data.remove(0);
         }
         if data.ends_with("]") {
             data.remove(data.len() - 1);
         }
-        let v: Vec<N> = data
-            .split(',')
-            .filter_map(|x| -> Option<N> {
-                if let Ok(number) = x.parse() {
-                    Some(number)
-                } else {
-                    None
-                }
-            })
-            .collect();
-        Ok(SparseBasis { nodes: v })
+        if data.contains(",") {
+            let mut v: Vec<N> = data
+                .split(',')
+                .filter_map(|x| -> Option<N> {
+                    if let Ok(number) = x.parse() {
+                        Some(number)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            v.sort();
+            Ok(SparseBasis { nodes: v })
+        } else {
+            if let Ok(n) = data.parse::<N>() {
+                Ok(SparseBasis { nodes: vec![n] })
+            } else {
+                println!("Data: {:?}", data);
+                panic!("Could not parse single input.");
+            }
+        }
+        
     }
 }
 
@@ -292,5 +305,10 @@ mod test {
         dbg!(&s_hm);
         let vec: SparseBasis<u32> = serde_json::from_str(&s).unwrap();
         dbg!(vec);
+
+        let single_node = "\"[1]\"";
+        println!("input string: {:?}", single_node);
+        let parsed: SparseBasis<u32> = serde_json::from_str(single_node).expect("where we parse at");
+        println!("parsed: {:}", parsed);
     }
 }
