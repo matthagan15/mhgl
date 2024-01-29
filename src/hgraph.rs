@@ -308,6 +308,10 @@ impl HGraph {
 
 impl Display for HGraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.nodes.len() == 0 {
+            println!("Graph is empty. Add nodes for more fun.");
+            return Ok(());
+        }
         let mut s = String::new();
         s.push_str("nodes: [");
         let x: Vec<String> = self
