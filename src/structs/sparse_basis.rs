@@ -141,8 +141,12 @@ impl<'de, N: HgNode> Deserialize<'de> for SparseBasis<N> {
             if let Ok(n) = data.parse::<N>() {
                 Ok(SparseBasis { nodes: vec![n] })
             } else {
-                println!("Data: {:?}", data);
-                panic!("Could not parse single input.");
+                if data.len() == 0 {
+                    Ok(SparseBasis { nodes: vec![] })
+                } else {
+                    println!("Data: {:?}", data);
+                    panic!("Could not parse single input.");
+                }
             }
         }
         
