@@ -203,17 +203,33 @@ impl HGraph {
             .collect()
     }
 
-    pub fn get_edges(&self) -> Vec<(Uuid, HashSet<u32>)> {
+    /// Returns a list of all edges in the graph.
+    pub fn get_edges(&self) -> Vec<HashSet<u32>> {
         let edge_ids = self.graph.clone_edges();
         edge_ids
             .into_iter()
             .filter_map(|id| {
                 self.graph
                     .query_edge(&id)
-                    .map(|edge| (edge.id, edge.in_nodes.to_node_set()))
+                    .map(|edge| edge.in_nodes.to_node_set())
             })
             .collect()
     }
+
+    ///
+    pub fn get_edges_with_ids(&self) -> Vec<(HashSet<u32>, Uuid)> {
+        let edge_ids = self.graph.clone_edges();
+        edge_ids
+            .into_iter()
+            .filter_map(|id| {
+                self.graph
+                    .query_edge(&id)
+                    .map(|edge| (edge.in_nodes.to_node_set(), id))
+            })
+            .collect()
+    }
+
+    pub fn walk(&self, start: &[u32] ) {}
 
     /// Computes the number of edges that have one vertex in the
     /// provided `cut_nodes` and one in the remaining set. For example,

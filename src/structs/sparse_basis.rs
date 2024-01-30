@@ -309,7 +309,7 @@ mod test {
         dbg!(&s_hm);
         let vec: SparseBasis<u32> = serde_json::from_str(&s).unwrap();
         dbg!(vec);
-
+        let empty: SparseBasis<u32> = serde_json::from_str(&"\"\"").expect("could not parse empty string");
         let single_node = "\"[1]\"";
         println!("input string: {:?}", single_node);
         let parsed: SparseBasis<u32> = serde_json::from_str(single_node).expect("where we parse at");
