@@ -1,4 +1,4 @@
-use core::prelude::v1;
+
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Display;
 
@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::structs::{
-    EdgeDirection, EdgeID, EdgeWeight, GeneroEdge, GeneroGraph, NodeID, SparseBasis,
+    EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis,
 };
 
 use crate::traits::*;
@@ -229,7 +229,7 @@ impl HGraph {
             .collect()
     }
 
-    pub fn walk(&self, start: &[u32] ) {}
+    pub fn walk(&self, _start: &[u32] ) {}
 
     /// Computes the number of edges that have one vertex in the
     /// provided `cut_nodes` and one in the remaining set. For example,
@@ -353,9 +353,9 @@ impl Display for HGraph {
 }
 
 mod test {
-    use std::collections::{HashMap, HashSet, VecDeque};
+    
 
-    use crate::{EdgeDirection, HGraph, SparseBasis};
+    use crate::{HGraph};
 
     #[test]
     fn test_creating_and_deleting_nodes() {

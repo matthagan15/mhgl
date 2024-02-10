@@ -195,7 +195,7 @@ impl<const K: usize> Serialize for ConstGenBitBasis<K> {
 }
 
 mod tests {
-    use super::ConstGenBitBasis;
+    
 
     #[test]
     fn test_bit_nodes_serialization() {

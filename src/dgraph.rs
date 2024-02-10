@@ -1,10 +1,10 @@
 use std::collections::{HashSet, VecDeque};
 
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use uuid::Uuid;
 
 use crate::structs::{
-    EdgeDirection, EdgeID, EdgeWeight, GeneroEdge, GeneroGraph, NodeID, SparseBasis,
+    EdgeDirection, EdgeID, EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis,
 };
 
 use crate::traits::*;
@@ -198,7 +198,7 @@ impl HyperGraph for DGraph {
 }
 
 mod test {
-    use crate::{DGraph, EdgeDirection};
+    
 
     #[test]
     fn test_node_creation_deletion() {

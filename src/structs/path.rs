@@ -80,12 +80,9 @@ impl<B: HgBasis> Add<(B, EdgeWeight)> for HgPath<B> {
 }
 
 mod test {
-    use std::collections::HashSet;
+    
 
-    use crate::{
-        structs::{HgPath, SparseBasis},
-        DGraph,
-    };
+    
 
     #[test]
     fn test_simple_extension() {

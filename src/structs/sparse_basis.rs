@@ -2,7 +2,7 @@ use std::{
     collections::HashSet, fmt::{Debug, Display}
 };
 
-use bitvec::vec;
+
 use serde::{Deserialize, Serialize};
 
 use crate::traits::{HgBasis, HgNode};
@@ -260,11 +260,11 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
 }
 
 mod test {
-    use std::collections::HashMap;
+    
 
-    use rand::thread_rng;
+    
 
-    use crate::{structs::SparseBasis, traits::HgBasis};
+    
 
     #[test]
     fn test_intersect_with() {
