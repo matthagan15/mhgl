@@ -1,5 +1,5 @@
-use faer::{mat, prelude::*, Mat, complex_native::c64};
+use faer::{Mat, complex_native::c64};
 
 fn sparse_matrix() {
-    let matt: Mat<c64> = Mat::new();
+    let _matt: Mat<c64> = Mat::new();
 }

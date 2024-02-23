@@ -1,12 +1,11 @@
 use std::{
     collections::HashSet,
     hash::Hash,
-    ops::{Add, AddAssign, Mul, MulAssign},
 };
 
 use bitvec::prelude::*;
 
-use serde::{ser::SerializeStruct, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 /// Representation of a subset of nodes using a binary
 /// encoding. Use `flip_node` to set a specific node as present
@@ -22,7 +21,7 @@ impl BitBasis {
     /// Returns a new empty set basis that is active.
     pub fn new(num_nodes: usize) -> Self {
         let mut new_bits = BitVec::with_capacity(num_nodes);
-        for ix in 0..num_nodes {
+        for _ix in 0..num_nodes {
             new_bits.push(false);
         }
         BitBasis {
@@ -198,12 +197,12 @@ impl HgBasis for BitBasis {
     }
 }
 
-use crate::{traits::HgBasis, utils::PowerSetBits};
+use crate::{traits::HgBasis};
 
 mod test {
-    use crate::traits::HgBasis;
+    
 
-    use super::BitBasis;
+    
 
     #[test]
     fn test_bit_basis() {

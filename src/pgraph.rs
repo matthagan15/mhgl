@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use uuid::Uuid;
 
 use crate::{
@@ -153,7 +153,7 @@ impl<N: HgNode> HyperGraph for PGraph<N> {
 }
 
 mod test {
-    use crate::PGraph;
+    
 
     #[test]
     fn test_node_creation_deletion() {

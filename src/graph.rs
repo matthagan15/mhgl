@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
 use crate::{
     structs::{EdgeWeight, GeneroEdge, GeneroGraph},

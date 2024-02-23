@@ -1,6 +1,6 @@
 use std::{collections::HashSet, hash::Hash};
 
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
 /// The basic trait that "subsets" of nodes, which correspond to basis states
 /// of our vector space, need to follow to be represented in hyperedges.

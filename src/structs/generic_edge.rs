@@ -325,16 +325,10 @@ mod test {
     use std::collections::HashSet;
 
     use crate::{
-        structs::{GeneroEdge, GeneroVector, SparseBasis},
+        structs::{GeneroEdge, SparseBasis},
         EdgeDirection,
     };
 
-    fn basic_edge() -> GeneroEdge<SparseBasis<u8>> {
-        let nodes: Vec<u8> = vec![1, 2, 3, 4, 5, 6];
-        let b1 = SparseBasis::from(HashSet::from([1_u8, 2, 3]));
-        let b2 = SparseBasis::from(HashSet::from([3_u8, 4, 5]));
-        GeneroEdge::from(b1, b2, 1., EdgeDirection::Symmetric)
-    }
 
     #[test]
     fn test_sparse_map_vec() {

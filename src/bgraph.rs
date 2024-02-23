@@ -100,7 +100,7 @@ impl HyperGraph for BGraph {
 }
 
 mod tests {
-    use super::BGraph;
+    
 
     #[test]
     fn basic_step_test() {

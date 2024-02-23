@@ -211,16 +211,16 @@ impl<const M: usize> PowerSetBits<M> {
     pub fn print_formatted(&self) {
         let mut buf = String::new();
         for ix in 0..M {
-            write!(&mut buf, "_{:#010b}", self.bits[ix]);
+            write!(&mut buf, "_{:#010b}", self.bits[ix]).expect("Could not write bits.");
         }
         println!("{:}", buf);
     }
 }
 
 mod test {
-    use uuid::Uuid;
+    
 
-    use crate::utils::{power_set, PowerSetBits};
+    
 
     #[test]
     fn test_leading_ones() {

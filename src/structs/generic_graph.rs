@@ -3,9 +3,9 @@ use std::{
     hash::Hash,
 };
 
-use serde::{ser::SerializeStruct, Deserialize, Serialize};
-use serde_json_any_key::*;
-use serde_with::serde_as;
+use serde::{Deserialize, Serialize};
+
+
 use uuid::Uuid;
 
 use crate::traits::HgBasis;
@@ -313,9 +313,9 @@ impl<B: HgBasis> Hash for GeneroGraph<B> {
 }
 
 mod tests {
-    use crate::{structs::GeneroEdge, SparseBasis};
+    
 
-    use super::GeneroGraph;
+    
 
     #[test]
     fn test_serialization() {
