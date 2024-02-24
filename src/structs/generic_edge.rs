@@ -322,12 +322,9 @@ impl<B: HgBasis> Hash for GeneroEdge<B> {
 }
 
 mod test {
-    use std::collections::HashSet;
+    
 
-    use crate::{
-        structs::{GeneroEdge, SparseBasis},
-        EdgeDirection,
-    };
+    
 
 
     #[test]

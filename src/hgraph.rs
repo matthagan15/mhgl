@@ -146,6 +146,13 @@ impl HGraph {
         id
     }
 
+    /// Creates an edge if none exists, but does not create a duplicate edge.
+    pub fn create_edge_no_dups(&mut self, nodes: &[u32]) {
+        if self.query_edge(nodes) == false {
+            self.create_edge(nodes);
+        }
+    }
+
     pub fn remove_edge(&mut self, nodes: &[u32]) {
         let input_basis = SparseBasis::from_slice(nodes);
         let mut query_vec = Vec::from(nodes);
