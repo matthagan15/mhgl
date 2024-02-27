@@ -322,10 +322,9 @@ impl<B: HgBasis> Hash for GeneroEdge<B> {
 }
 
 mod test {
-    
+    use std::collections::HashSet;
 
-    
-
+    use crate::{structs::{GeneroEdge, GeneroVector}, EdgeDirection, SparseBasis};
 
     #[test]
     fn test_sparse_map_vec() {
@@ -343,6 +342,12 @@ mod test {
         println!("input vector: {:#?}", v);
         let out = e.map_vector(v);
         println!("output vector: {:#?}", out);
+    }
+    
+    fn basic_edge() -> GeneroEdge<SparseBasis<u32>> {
+        let b = SparseBasis::from_slice(&[1, 2, 3_u32]);
+        let e = GeneroEdge::from(b, SparseBasis::new(), 1., EdgeDirection::Undirected);
+        e
     }
 
     #[test]

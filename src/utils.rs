@@ -218,10 +218,12 @@ impl<const M: usize> PowerSetBits<M> {
 }
 
 mod test {
-    
+    use uuid::Uuid;
 
-    
+    use crate::utils::power_set;
 
+    use super::PowerSetBits;
+    
     #[test]
     fn test_leading_ones() {
         let og = PowerSetBits {

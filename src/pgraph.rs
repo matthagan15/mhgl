@@ -153,6 +153,8 @@ impl<N: HgNode> HyperGraph for PGraph<N> {
 }
 
 mod test {
+    use crate::PGraph;
+
     
 
     #[test]

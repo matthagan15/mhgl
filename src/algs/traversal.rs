@@ -85,6 +85,8 @@ pub fn random_walk<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) 
 }
 
 mod test {
+    use crate::{algs::traversal::bfs_base, DGraph, SparseBasis};
+
     
 
     

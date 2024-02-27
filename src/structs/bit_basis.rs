@@ -200,6 +200,8 @@ impl HgBasis for BitBasis {
 use crate::{traits::HgBasis};
 
 mod test {
+    use crate::BitBasis;
+
     
 
     

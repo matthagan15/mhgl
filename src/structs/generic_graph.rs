@@ -313,9 +313,7 @@ impl<B: HgBasis> Hash for GeneroGraph<B> {
 }
 
 mod tests {
-    
-
-    
+    use crate::{structs::{GeneroEdge, GeneroGraph}, SparseBasis};
 
     #[test]
     fn test_serialization() {

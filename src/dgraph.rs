@@ -198,6 +198,8 @@ impl HyperGraph for DGraph {
 }
 
 mod test {
+    use crate::{DGraph, EdgeDirection};
+
     
 
     #[test]

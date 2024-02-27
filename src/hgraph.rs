@@ -362,6 +362,8 @@ impl Display for HGraph {
 mod test {
     
 
+    use std::collections::HashSet;
+
     use crate::{HGraph};
 
     #[test]

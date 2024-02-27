@@ -135,6 +135,8 @@ impl<const K: usize> HyperGraph for StackGraph<K> {
 }
 
 mod test {
+    use crate::{stackgraph::StackGraph, EdgeDirection};
+
     
 
     #[test]

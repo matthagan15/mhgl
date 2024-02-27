@@ -260,6 +260,10 @@ impl<N: HgNode + Debug> HgBasis for SparseBasis<N> {
 }
 
 mod test {
+    use std::collections::HashMap;
+
+    use crate::{HgBasis, SparseBasis};
+
     
 
     

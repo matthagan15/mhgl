@@ -195,6 +195,8 @@ impl<const K: usize> Serialize for ConstGenBitBasis<K> {
 }
 
 mod tests {
+    use crate::structs::ConstGenBitBasis;
+
     
 
     #[test]
