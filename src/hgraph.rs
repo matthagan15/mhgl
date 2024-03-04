@@ -56,10 +56,26 @@ impl HGraph {
         }
     }
 
+    // TODO: Need to overhaul the add_nodes api to panic if new nodes
+    // cannot be added. I also do not like the idea of reusing nodes.
+    pub fn add_node(&mut self) -> u32 {
+        if self.next_usable_node < u32::MAX {
+            let ret = self.next_usable_node;
+            self.next_usable_node += 1;
+            ret
+        } else if self.reusable_nodes.len() > 0 {
+            self.reusable_nodes.pop_front().expect("No nodes left.")
+        } else {
+            panic!("No nodes remaining to be added.")
+        }
+    }
+
     /// Adds `num_nodes` nodes to the graph, returning a vector containing
     /// the nodes created. The number of nodes returned may be less than
     /// the number of nodes requested due to the use of u32 to store nodes.
     /// Nodes that get deleted are reused in a First In First Out (FIFO) format.
+    // TODO: This should panic if it cannot offer the right amount of nodes.
+    // Or return a Ret<Ok, Err> type. That would be the best option.
     pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<u32> {
         // TODO: Should the user control what nodes are present? We don't
         // really care what numbers are used to store nodes, so why go through 
@@ -132,6 +148,7 @@ impl HGraph {
     }
 
     /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Allows for duplicate edges. Returns the Uuid of the created edge.
+    // TODO: rename to add_edge
     pub fn create_edge(&mut self, nodes: &[u32]) -> Uuid {
         // TODO: This can be made much faster for HGraph if we
         // take a memory hit by storing a HashSet of each
