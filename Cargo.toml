@@ -11,7 +11,6 @@ repository = "https://github.com/matthagan15/mhgl"
 
 [dependencies]
 bitvec = { version = "1.0.1", features = ["serde"] }
-faer = { version = "0.16.0", features = ["log"] }
 num-integer = "0.1.45"
 rand = "0.8.5"
 serde = { version = "1.0.152", features = ["derive"] }
