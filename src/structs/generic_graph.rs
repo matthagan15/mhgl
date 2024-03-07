@@ -82,6 +82,33 @@ impl<B: HgBasis> GeneroGraph<B> {
         ret
     }
 
+    /// Returns the cardinality of the edge for undirecteds
+    pub fn get_edge_len(&self, edge_id: &EdgeID) -> Option<usize> {
+        self.edges.get(edge_id).map(|e| e.input_cardinality())
+    }
+
+    /// Warning: currently only works for undirected graph types (such as HGraph)
+    /// Should we include the provided edge or no? If the provided edge is 
+    /// not present then we were given a bunk edge_id. If it is then we were
+    /// able to at least find it.
+    pub fn get_containing_edges_id(&self, edge_id: &EdgeID) -> HashSet<EdgeID> {
+        if let Some(edge) = self.edges.get(edge_id) {
+            let nodes: Vec<B> = edge.node_vec();
+            if nodes.len() == 0 {
+                HashSet::from([edge_id.clone()])
+            } else {
+                let n0 = &nodes[0];
+                let outbounds = self.node_to_outbound_edges.get(n0).unwrap();
+                outbounds.iter().filter(|e_id| {
+                    let e = self.edges.get(e_id).unwrap();
+                    e.contains(&edge.in_nodes)
+                }).cloned().collect()
+            }
+        } else {
+            HashSet::new()
+        }
+    }
+
     pub fn add_edge(&mut self, new_edge: GeneroEdge<B>) {
         match new_edge.direction {
             EdgeDirection::Directed => {

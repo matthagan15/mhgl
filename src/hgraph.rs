@@ -227,6 +227,13 @@ impl HGraph {
             .collect()
     }
 
+    /// Returns the hyperedges that contain the provided edge.
+    /// Ex: Edges = [{a, b, c}, {a,b,c,d}, {a,b}, {a,b,c,d,e}]
+    /// star({a,b,c}) = [{a,b,c,d}, {a,b,c,d,e}]
+    pub fn star_id(&self, edge_id: &Uuid) -> Vec<Uuid> {
+        self.graph.get_containing_edges_id(edge_id).into_iter().collect()
+    }
+
     /// Returns a list of all edges in the graph.
     pub fn get_edges(&self) -> Vec<HashSet<u32>> {
         let edge_ids = self.graph.clone_edges();

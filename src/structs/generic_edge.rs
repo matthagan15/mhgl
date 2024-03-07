@@ -190,6 +190,11 @@ impl<B: HgBasis> GeneroEdge<B> {
         tot.nodes()
     }
 
+    pub fn node_vec(&self) -> Vec<B> {
+        let tot = self.in_nodes.union(&self.out_nodes);
+        tot.nodes().into_iter().collect()
+    }
+
     /// Returns true if the provided basis matches an input of the
     /// edge (Undirected, Oriented, and Symmetric edges have more than
     /// one possible input)
