@@ -1,6 +1,8 @@
 
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Display;
+use std::fs;
+use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -53,6 +55,22 @@ impl HGraph {
             reusable_nodes: VecDeque::new(),
             graph: GeneroGraph::new(),
             edge_query_set: HashSet::new(),
+        }
+    }
+
+    pub fn from_file(path: &Path) -> Option<Self> {
+        // check if path is a given file
+        if path.is_file() == false {
+            return None;
+        }
+        if let Ok(hg_json) = fs::read_to_string(path) {
+            if let Ok(serde_out) = serde_json::from_str::<HGraph>(&hg_json) {
+                Some(serde_out)
+            } else {
+                None
+            }
+        } else {
+            None
         }
     }
 
