@@ -1,4 +1,3 @@
-
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Display;
 use std::fs;
@@ -7,9 +6,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::structs::{
-    EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis,
-};
+use crate::structs::{EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis};
 
 use crate::traits::*;
 
@@ -80,6 +77,7 @@ impl HGraph {
         if self.next_usable_node < u32::MAX {
             let ret = self.next_usable_node;
             self.next_usable_node += 1;
+            self.nodes.insert(ret);
             ret
         } else if self.reusable_nodes.len() > 0 {
             self.reusable_nodes.pop_front().expect("No nodes left.")
@@ -96,8 +94,8 @@ impl HGraph {
     // Or return a Ret<Ok, Err> type. That would be the best option.
     pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<u32> {
         // TODO: Should the user control what nodes are present? We don't
-        // really care what numbers are used to store nodes, so why go through 
-        // all this hassle 
+        // really care what numbers are used to store nodes, so why go through
+        // all this hassle
         let mut ret = Vec::with_capacity(num_nodes);
         let mut counter = self.next_usable_node;
         let mut nodes_available = counter < u32::max_number() || self.reusable_nodes.len() > 0;
@@ -249,7 +247,10 @@ impl HGraph {
     /// Ex: Edges = [{a, b, c}, {a,b,c,d}, {a,b}, {a,b,c,d,e}]
     /// star({a,b,c}) = [{a,b,c,d}, {a,b,c,d,e}]
     pub fn star_id(&self, edge_id: &Uuid) -> Vec<Uuid> {
-        self.graph.get_containing_edges_id(edge_id).into_iter().collect()
+        self.graph
+            .get_containing_edges_id(edge_id)
+            .into_iter()
+            .collect()
     }
 
     /// Returns a list of all edges in the graph.
@@ -278,7 +279,7 @@ impl HGraph {
             .collect()
     }
 
-    pub fn walk(&self, _start: &[u32] ) {}
+    pub fn walk(&self, _start: &[u32]) {}
 
     /// Computes the number of edges that have one vertex in the
     /// provided `cut_nodes` and one in the remaining set. For example,
@@ -286,7 +287,7 @@ impl HGraph {
     /// would an edge without any nodes in `cut_nodes`.
     /// The type `ToSet` is any collection that can be converted to a sparse
     /// set representation.
-    /// 
+    ///
     /// Example
     /// ```
     /// let mut hg = HGraph::new();
@@ -299,13 +300,19 @@ impl HGraph {
     /// assert_eq!(hg.cut(&nodes[..4]), 0);
     /// ```
     pub fn cut<ToSet>(&self, cut_nodes: ToSet) -> usize
-    where ToSet: Into<SparseBasis<u32>>
+    where
+        ToSet: Into<SparseBasis<u32>>,
     {
         let mut counted_edges: HashSet<Uuid> = HashSet::new();
         let cut_basis: SparseBasis<u32> = cut_nodes.into();
         dbg!(&cut_basis);
         for node in cut_basis.nodes() {
-            let out_edges: Vec<Uuid> = self.graph.get_outbound_edges(&node).into_iter().filter(|e_id| counted_edges.contains(e_id) == false).collect();
+            let out_edges: Vec<Uuid> = self
+                .graph
+                .get_outbound_edges(&node)
+                .into_iter()
+                .filter(|e_id| counted_edges.contains(e_id) == false)
+                .collect();
             for edge_id in out_edges {
                 if let Some(e) = self.graph.edges.get(&edge_id) {
                     if cut_basis.covers_basis(&e.in_nodes) {
@@ -321,7 +328,7 @@ impl HGraph {
     /// hyperedge is computed using the complement, so a hyperedge
     /// of nodes {a, b, c, d} and a provided `face` of {a, b} would
     /// yield a link of {c, d}. The link of the graph is then the
-    /// union of all the links of each hyperedge. 
+    /// union of all the links of each hyperedge.
     pub fn link(&self, face: HashSet<u32>) -> HGraph {
         let v: Vec<u32> = face.clone().into_iter().collect();
         let face_basis = SparseBasis::from_slice(&v[..]);
@@ -339,7 +346,7 @@ impl HGraph {
         link
     }
 
-    /// Computes the k-skeleton of this hypergraph and returns the 
+    /// Computes the k-skeleton of this hypergraph and returns the
     /// information as a new `HGraph`.
     /// The k-skeleton is defined as all undirected hyperedges of cardinality
     /// less than or equal to `k`.
@@ -348,12 +355,16 @@ impl HGraph {
         let mut ret = HGraph::new();
         let mut new_graph = self.graph.clone();
         let mut new_edge_query_set = HashSet::new();
-        new_graph.edges = new_graph.edges.into_iter().filter(|(_, e)| {
-            let mut query_vec = e.clone_input_nodes().to_node_vec();
-            query_vec.sort();
-            new_edge_query_set.insert(query_vec);
-            e.input_cardinality() <= k + 1
-        }).collect();
+        new_graph.edges = new_graph
+            .edges
+            .into_iter()
+            .filter(|(_, e)| {
+                let mut query_vec = e.clone_input_nodes().to_node_vec();
+                query_vec.sort();
+                new_edge_query_set.insert(query_vec);
+                e.input_cardinality() <= k + 1
+            })
+            .collect();
         ret.nodes = self.nodes.clone();
         ret.next_usable_node = self.next_usable_node;
         ret.reusable_nodes = self.reusable_nodes.clone();
@@ -364,11 +375,11 @@ impl HGraph {
 }
 
 // impl std::ops::Index<dyn Into<SparseBasis<u32>>> for HGraph {
-  //   type Output = bool;
-// 
-  //   fn index(&self, index: dyn Into<SparseBasis<u32>>) -> &Self::Output {
-    //     todo!()
-    // }
+//   type Output = bool;
+//
+//   fn index(&self, index: dyn Into<SparseBasis<u32>>) -> &Self::Output {
+//     todo!()
+// }
 // }
 
 impl Display for HGraph {
@@ -402,11 +413,10 @@ impl Display for HGraph {
 }
 
 mod test {
-    
 
     use std::collections::HashSet;
 
-    use crate::{HGraph};
+    use crate::HGraph;
 
     #[test]
     fn test_creating_and_deleting_nodes() {
