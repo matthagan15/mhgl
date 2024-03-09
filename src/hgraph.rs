@@ -250,6 +250,9 @@ impl HGraph {
         self.graph
             .get_containing_edges_id(edge_id)
             .into_iter()
+            .filter(|id| {
+                edge_id != id
+            })
             .collect()
     }
 
