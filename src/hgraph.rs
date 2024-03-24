@@ -55,6 +55,12 @@ impl HGraph {
         }
     }
 
+    /// Gives the number of edges containing the provided node, where
+    /// each edge counts equally regardless of it's cardinality.
+    pub fn degree(&self, node: u32) -> usize {
+        self.get_containing_edges(&[node]).len()
+    }
+
     pub fn from_file(path: &Path) -> Option<Self> {
         // check if path is a given file
         if path.is_file() == false {
@@ -243,16 +249,15 @@ impl HGraph {
             .collect()
     }
 
-    /// Returns the hyperedges that contain the provided edge.
+    /// Returns the hyperedges that contain the provided edge, not
+    /// including the provided edge.
     /// Ex: Edges = [{a, b, c}, {a,b,c,d}, {a,b}, {a,b,c,d,e}]
     /// star({a,b,c}) = [{a,b,c,d}, {a,b,c,d,e}]
     pub fn star_id(&self, edge_id: &Uuid) -> Vec<Uuid> {
         self.graph
             .get_containing_edges_id(edge_id)
             .into_iter()
-            .filter(|id| {
-                edge_id != id
-            })
+            .filter(|id| edge_id != id)
             .collect()
     }
 
@@ -527,5 +532,23 @@ mod test {
         assert_eq!(hg.cut(&nodes[..2]), 2);
         assert_eq!(hg.cut(&nodes[..3]), 1);
         assert_eq!(hg.cut(&nodes[..4]), 0);
+    }
+
+    #[test]
+    fn test_node_as_edge() {
+        let mut hg = HGraph::new();
+        let nodes = hg.add_nodes(3);
+        let e0 = hg.create_edge(&[0]);
+        let e1 = hg.create_edge(&[0, 1]);
+        let e2 = hg.create_edge(&[0, 1, 2]);
+        let star = hg.star_id(&e0);
+        dbg!(star);
+        dbg!(&hg);
+        println!(
+            "degrees in order: {:}, {:}, {:}.",
+            hg.degree(0),
+            hg.degree(1),
+            hg.degree(2)
+        )
     }
 }
