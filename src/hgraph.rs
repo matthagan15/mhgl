@@ -1,6 +1,7 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::Display;
-use std::fs;
+use std::fs::{self, File};
+use std::io::Write;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -9,6 +10,14 @@ use uuid::Uuid;
 use crate::structs::{EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis};
 
 use crate::traits::*;
+
+pub type NodeID = Uuid;
+pub type EdgeID = Uuid;
+
+pub struct GenHGraph<N, E> {
+    nodes: HashMap<NodeID, N>,
+    edges: HashMap<EdgeID, (SparseBasis<NodeID>, E)>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// The simplest to use hypergraph structure. An Undirected and unweighted variant
@@ -380,6 +389,18 @@ impl HGraph {
         ret.edge_query_set = new_edge_query_set;
         ret
     }
+
+    /// Saves the current graph to a `.dot` file. To view use dotviz.
+    pub fn dotviz(&self, filename: &Path) {
+        let mut buf = String::new();
+        buf.push_str("graph {\n");
+        buf.push_str("1 -- 2\n");
+        buf.push_str("2 -- 3\n");
+        buf.push_str("3 -- 1\n");
+        buf.push_str("}");
+        let mut file = File::create(filename).expect("Could not open file.");
+        file.write(buf.as_bytes()).expect("Could not write");
+    }
 }
 
 // impl std::ops::Index<dyn Into<SparseBasis<u32>>> for HGraph {
@@ -422,7 +443,7 @@ impl Display for HGraph {
 
 mod test {
 
-    use std::collections::HashSet;
+    use std::{collections::HashSet, path::Path};
 
     use crate::HGraph;
 
@@ -550,5 +571,11 @@ mod test {
             hg.degree(1),
             hg.degree(2)
         )
+    }
+
+    #[test]
+    fn test_dotviz() {
+        let hg = HGraph::new();
+        hg.dotviz(&Path::new("/Users/matt/repos/mhgl/tmpfile.tmp"));
     }
 }
