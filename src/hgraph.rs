@@ -50,7 +50,6 @@ pub struct HGraph {
     next_usable_node: u32,
     reusable_nodes: VecDeque<u32>,
     graph: GeneroGraph<SparseBasis<u32>>,
-    edge_query_set: HashSet<Vec<u32>>,
 }
 
 impl HGraph {
@@ -60,7 +59,6 @@ impl HGraph {
             next_usable_node: 0,
             reusable_nodes: VecDeque::new(),
             graph: GeneroGraph::new(),
-            edge_query_set: HashSet::new(),
         }
     }
 
@@ -185,12 +183,9 @@ impl HGraph {
         // take a memory hit by storing a HashSet of each
         // subset/edge we have seen.
         let input_basis = SparseBasis::from_slice(nodes);
-        let mut query_vec = Vec::from(nodes);
-        query_vec.sort();
         let e: GeneroEdge<SparseBasis<u32>> = input_basis.into();
         let id = e.id.clone();
         self.graph.add_edge(e);
-        self.edge_query_set.insert(query_vec);
         id
     }
 
@@ -209,17 +204,13 @@ impl HGraph {
         if let Some(id) = e.first() {
             self.graph.remove_edge(id);
         }
-        self.edge_query_set.remove(&query_vec);
     }
 
     /// Returns true if the provided nodes form an existing edge in
     /// the graph, false if they do not.
     pub fn query_edge(&self, nodes: &[u32]) -> bool {
-        // let input_basis = SparseBasis::from_slice(nodes);
-        // self.graph.query_undirected(&input_basis).len() > 0
-        let mut query_vec = Vec::from(nodes);
-        query_vec.sort();
-        self.edge_query_set.contains(&query_vec)
+        let input_basis = SparseBasis::from_slice(nodes);
+        self.graph.query_undirected(&input_basis).len() > 0
     }
 
     pub fn query_edge_id(&self, id: &Uuid) -> Option<Vec<u32>> {
@@ -332,7 +323,7 @@ impl HGraph {
                 .collect();
             for edge_id in out_edges {
                 if let Some(e) = self.graph.edges.get(&edge_id) {
-                    if cut_basis.covers_basis(&e.in_nodes) {
+                    if e.in_nodes.covers_basis(&cut_basis) && e.in_nodes != cut_basis {
                         counted_edges.insert(edge_id);
                     }
                 }
@@ -355,7 +346,6 @@ impl HGraph {
             next_usable_node: self.next_usable_node,
             reusable_nodes: self.reusable_nodes.clone(),
             graph: GeneroGraph::new(),
-            edge_query_set: HashSet::new(),
         };
         for (b, _) in out.to_tuples() {
             link.create_edge(&b.node_vec()[..]);
@@ -371,22 +361,15 @@ impl HGraph {
     pub fn k_skeleton(&self, k: usize) -> HGraph {
         let mut ret = HGraph::new();
         let mut new_graph = self.graph.clone();
-        let mut new_edge_query_set = HashSet::new();
         new_graph.edges = new_graph
             .edges
             .into_iter()
-            .filter(|(_, e)| {
-                let mut query_vec = e.clone_input_nodes().to_node_vec();
-                query_vec.sort();
-                new_edge_query_set.insert(query_vec);
-                e.input_cardinality() <= k + 1
-            })
+            .filter(|(_, e)| e.input_cardinality() <= k + 1)
             .collect();
         ret.nodes = self.nodes.clone();
         ret.next_usable_node = self.next_usable_node;
         ret.reusable_nodes = self.reusable_nodes.clone();
         ret.graph = new_graph;
-        ret.edge_query_set = new_edge_query_set;
         ret
     }
 
