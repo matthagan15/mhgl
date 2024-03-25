@@ -10,6 +10,10 @@ use crate::structs::{EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis};
 
 use crate::traits::*;
 
+pub trait Face {
+
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// The simplest to use hypergraph structure. An Undirected and unweighted variant
 /// that utilizes u32's for nodes. The directed variant of `HGraph` is
@@ -41,7 +45,6 @@ pub struct HGraph {
     next_usable_node: u32,
     reusable_nodes: VecDeque<u32>,
     graph: GeneroGraph<SparseBasis<u32>>,
-    edge_query_set: HashSet<Vec<u32>>,
 }
 
 impl HGraph {
@@ -51,7 +54,6 @@ impl HGraph {
             next_usable_node: 0,
             reusable_nodes: VecDeque::new(),
             graph: GeneroGraph::new(),
-            edge_query_set: HashSet::new(),
         }
     }
 
@@ -176,12 +178,9 @@ impl HGraph {
         // take a memory hit by storing a HashSet of each
         // subset/edge we have seen.
         let input_basis = SparseBasis::from_slice(nodes);
-        let mut query_vec = Vec::from(nodes);
-        query_vec.sort();
         let e: GeneroEdge<SparseBasis<u32>> = input_basis.into();
         let id = e.id.clone();
         self.graph.add_edge(e);
-        self.edge_query_set.insert(query_vec);
         id
     }
 
@@ -200,7 +199,6 @@ impl HGraph {
         if let Some(id) = e.first() {
             self.graph.remove_edge(id);
         }
-        self.edge_query_set.remove(&query_vec);
     }
 
     /// Returns true if the provided nodes form an existing edge in
@@ -210,7 +208,7 @@ impl HGraph {
         // self.graph.query_undirected(&input_basis).len() > 0
         let mut query_vec = Vec::from(nodes);
         query_vec.sort();
-        self.edge_query_set.contains(&query_vec)
+        self.graph.contains(&query_vec)
     }
 
     pub fn query_edge_id(&self, id: &Uuid) -> Option<Vec<u32>> {

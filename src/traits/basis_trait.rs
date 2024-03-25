@@ -4,6 +4,8 @@ use serde::{Serialize};
 
 /// The basic trait that "subsets" of nodes, which correspond to basis states
 /// of our vector space, need to follow to be represented in hyperedges.
+/// 
+/// An implementation of a storage mechanism for a subset $$ S \subseteq N $$.
 pub trait HgBasis: PartialEq + Eq + Hash + Clone + Serialize {
     fn new_empty() -> Self;
     fn len(&self) -> usize;
@@ -29,4 +31,7 @@ pub trait HgBasis: PartialEq + Eq + Hash + Clone + Serialize {
         intersection == *basis
     }
     fn nodes(&self) -> HashSet<Self>;
+    fn node_vec(&self) -> Vec<Self> {
+        self.nodes().into_iter().collect()
+    }
 }

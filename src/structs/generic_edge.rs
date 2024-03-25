@@ -46,6 +46,7 @@ impl<B: HgBasis> From<B> for GeneroEdge<B> {
     fn from(value: B) -> Self {
         Self {
             id: Uuid::new_v4(),
+            // todo: either remove or set to a finite field. I think remove.
             weight: 1.,
             in_nodes: value,
             out_nodes: B::new_empty(),

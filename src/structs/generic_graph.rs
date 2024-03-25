@@ -70,6 +70,25 @@ impl<B: HgBasis> GeneroGraph<B> {
         self.edges.get(edge_id).cloned()
     }
 
+    /// Watch out - every set contains the empty set.
+    pub fn contains(&self, edge: &B) -> bool {
+        let mut valid_edges: Option<HashSet<EdgeID>> = Some(HashSet::new());
+        let nodes = edge.node_vec();
+        
+        if nodes.is_empty() {
+            true
+        } else {
+            let outbounds: Vec<Uuid> = self.get_containing_edges(&nodes[0]).into_iter().filter(|e| {
+                if let Some(e) = self.edges.get(e) {
+                    e.matches_undirected(edge)
+                } else {
+                    false
+                }
+            }).collect();
+            outbounds.len() > 0
+        }
+    }
+
     /// Gets all edges such that the basis is contained in the union
     /// of the edges input and output
     pub fn get_containing_edges(&self, basis: &B) -> HashSet<EdgeID> {
@@ -352,7 +371,24 @@ mod tests {
             crate::EdgeDirection::Symmetric,
         );
         g.add_edge(e);
+
         let s = serde_json::to_string(&g).expect("could not serialize graph");
         dbg!(s);
+    }
+
+    #[test]
+    fn test_contains() {
+        let mut g: GeneroGraph<SparseBasis<u32>> = GeneroGraph::new();
+        let e = GeneroEdge::from(
+            SparseBasis::<u32>::from(&1),
+            SparseBasis::from(&2),
+            1.,
+            crate::EdgeDirection::Symmetric,
+        );
+        let f = GeneroEdge::from(
+            SparseBasis::from(vec![0, 1, 2]), SparseBasis::<u32>from(vec![]), 1, crate::EdgeDirection::Undirected)
+        g.add_edge(e);
+
+
     }
 }
