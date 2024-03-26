@@ -5,7 +5,7 @@ use serde::{Serialize};
 use crate::{
     structs::{EdgeWeight, GeneroEdge, GeneroGraph},
     traits::HgNode,
-    EdgeDirection, SparseBasis,
+    EdgeDirection, SparseNodeSet,
 };
 
 /// A basic Undirected Graph. Uses a sparse representation.
@@ -14,7 +14,7 @@ pub struct Graph<N: HgNode> {
     nodes: HashSet<N>,
     next_usable_node: N,
     reusable_nodes: HashSet<N>,
-    graph: GeneroGraph<SparseBasis<N>>,
+    graph: GeneroGraph<SparseNodeSet<N>>,
 }
 
 impl<N: HgNode> Graph<N> {
@@ -72,8 +72,8 @@ impl<N: HgNode> Graph<N> {
                 g.next_usable_node.plus_one();
             }
             let e = GeneroEdge::from(
-                SparseBasis::from_slice(&[u]),
-                SparseBasis::from_slice(&[v]),
+                SparseNodeSet::from_slice(&[u]),
+                SparseNodeSet::from_slice(&[v]),
                 w,
                 EdgeDirection::Symmetric,
             );
@@ -89,8 +89,8 @@ impl<N: HgNode> Graph<N> {
         if self.nodes.contains(&v) == false {
             self.add_node(v);
         }
-        let u_basis = SparseBasis::from(&u);
-        let v_basis = SparseBasis::from(&v);
+        let u_basis = SparseNodeSet::from(&u);
+        let v_basis = SparseNodeSet::from(&v);
         self.graph.add_edge(GeneroEdge::from(
             u_basis,
             v_basis,
@@ -101,7 +101,7 @@ impl<N: HgNode> Graph<N> {
 
     /// Returns the neighbors of a node.
     pub fn neighbors(&self, node: N) -> Vec<N> {
-        let b = SparseBasis::from(&node);
+        let b = SparseNodeSet::from(&node);
         self.graph
             .map_basis(&b)
             .basis()

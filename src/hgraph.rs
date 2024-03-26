@@ -7,7 +7,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::structs::{EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis};
+use crate::structs::{EdgeWeight, GeneroEdge, GeneroGraph, SparseNodeSet};
 
 use crate::traits::*;
 
@@ -20,7 +20,7 @@ struct KeyValue {
 
 pub struct GenHGraph<N, E> {
     nodes: HashMap<NodeID, N>,
-    edges: HashMap<EdgeID, GeneroEdge<SparseBasis<NodeID>>>,
+    edges: HashMap<EdgeID, GeneroEdge<SparseNodeSet<NodeID>>>,
     edge_store: HashMap<EdgeID, E>,
 }
 
@@ -62,7 +62,7 @@ pub struct HGraph {
     nodes: HashSet<u32>,
     next_usable_node: u32,
     reusable_nodes: VecDeque<u32>,
-    graph: GeneroGraph<SparseBasis<u32>>,
+    graph: GeneroGraph<SparseNodeSet<u32>>,
 }
 
 impl HGraph {
@@ -165,7 +165,7 @@ impl HGraph {
         if self.nodes.contains(&node) == false {
             return;
         }
-        let node_basis = SparseBasis::from(HashSet::from([node]));
+        let node_basis = SparseNodeSet::from(HashSet::from([node]));
         let edges = self.graph.get_containing_edges(&node_basis);
         for edge in edges {
             if let Some(mut old_edge) = self.graph.remove_edge(&edge) {
@@ -195,8 +195,8 @@ impl HGraph {
         // TODO: This can be made much faster for HGraph if we
         // take a memory hit by storing a HashSet of each
         // subset/edge we have seen.
-        let input_basis = SparseBasis::from_slice(nodes);
-        let e: GeneroEdge<SparseBasis<u32>> = input_basis.into();
+        let input_basis = SparseNodeSet::from_slice(nodes);
+        let e: GeneroEdge<SparseNodeSet<u32>> = input_basis.into();
         let id = self.graph.add_edge(e);
         id
     }
@@ -209,7 +209,7 @@ impl HGraph {
     }
 
     pub fn remove_edge(&mut self, nodes: &[u32]) {
-        let input_basis = SparseBasis::from_slice(nodes);
+        let input_basis = SparseNodeSet::from_slice(nodes);
         let mut query_vec = Vec::from(nodes);
         query_vec.sort();
         let e = self.graph.query_undirected(&input_basis);
@@ -221,7 +221,7 @@ impl HGraph {
     /// Returns true if the provided nodes form an existing edge in
     /// the graph, false if they do not.
     pub fn query_edge(&self, nodes: &[u32]) -> bool {
-        let input_basis = SparseBasis::from_slice(nodes);
+        let input_basis = SparseNodeSet::from_slice(nodes);
         self.graph.query_undirected(&input_basis).len() > 0
     }
 
@@ -234,14 +234,14 @@ impl HGraph {
     }
 
     pub fn get_edge_id(&self, nodes: &[u32]) -> Option<Uuid> {
-        let e = self.graph.query_undirected(&SparseBasis::from_slice(nodes));
+        let e = self.graph.query_undirected(&SparseNodeSet::from_slice(nodes));
         e.first().copied()
     }
 
     /// Computes the link of the provided nodes in the HyperGraph but returns a
     /// list of sets as opposed to a new HyperGraph.
     pub fn link_as_vec(&self, nodes: &[u32]) -> Vec<(HashSet<u32>, EdgeWeight)> {
-        let start_basis = SparseBasis::from(nodes);
+        let start_basis = SparseNodeSet::from(nodes);
         let out_vector = self.graph.map_basis(&start_basis);
         out_vector
             .to_tuples()
@@ -256,7 +256,7 @@ impl HGraph {
 
     pub fn get_containing_edges(&self, nodes: &[u32]) -> Vec<Uuid> {
         self.graph
-            .get_containing_edges(&SparseBasis::from_slice(nodes))
+            .get_containing_edges(&SparseNodeSet::from_slice(nodes))
             .into_iter()
             .collect()
     }
@@ -321,10 +321,10 @@ impl HGraph {
     /// ```
     pub fn cut<ToSet>(&self, cut_nodes: ToSet) -> usize
     where
-        ToSet: Into<SparseBasis<u32>>,
+        ToSet: Into<SparseNodeSet<u32>>,
     {
         let mut counted_edges: HashSet<Uuid> = HashSet::new();
-        let cut_basis: SparseBasis<u32> = cut_nodes.into();
+        let cut_basis: SparseNodeSet<u32> = cut_nodes.into();
         dbg!(&cut_basis);
         for node in cut_basis.nodes() {
             let out_edges: Vec<Uuid> = self
@@ -351,7 +351,7 @@ impl HGraph {
     /// union of all the links of each hyperedge.
     pub fn link(&self, face: HashSet<u32>) -> HGraph {
         let v: Vec<u32> = face.clone().into_iter().collect();
-        let face_basis = SparseBasis::from_slice(&v[..]);
+        let face_basis = SparseNodeSet::from_slice(&v[..]);
         let out = self.graph.map_basis(&face_basis);
         let mut link = HGraph {
             nodes: self.nodes.clone(),

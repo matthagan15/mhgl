@@ -4,7 +4,7 @@ use serde::{Serialize};
 use uuid::Uuid;
 
 use crate::{
-    structs::{EdgeDirection, EdgeID, EdgeWeight, GeneroEdge, GeneroGraph, SparseBasis},
+    structs::{EdgeDirection, EdgeID, EdgeWeight, GeneroEdge, GeneroGraph, SparseNodeSet},
     traits::{HgBasis, HgNode, HyperGraph},
 };
 
@@ -22,7 +22,7 @@ pub struct PGraph<N: HgNode> {
     nodes: HashSet<N>,
     next_usable_node: N,
     reusable_nodes: Vec<N>,
-    graph: GeneroGraph<SparseBasis<N>>,
+    graph: GeneroGraph<SparseNodeSet<N>>,
 }
 
 impl<N: HgNode> PGraph<N> {
@@ -64,7 +64,7 @@ impl<N: HgNode> PGraph<N> {
 
     pub fn remove_node(&mut self, node: N) {
         if self.nodes.remove(&node) {
-            let node_basis = SparseBasis::from(HashSet::from([node.clone()]));
+            let node_basis = SparseNodeSet::from(HashSet::from([node.clone()]));
             let edges = self.graph.get_containing_edges(&node_basis);
             for edge in edges {
                 if let Some(mut old_edge) = self.graph.remove_edge(&edge) {
@@ -85,17 +85,17 @@ impl<N: HgNode> PGraph<N> {
     ) -> u128 {
         match direction {
             EdgeDirection::Directed | EdgeDirection::Symmetric => {
-                let input_basis = SparseBasis::from(inputs);
-                let output_basis = SparseBasis::from(outputs);
+                let input_basis = SparseNodeSet::from(inputs);
+                let output_basis = SparseNodeSet::from(outputs);
                 let e = GeneroEdge::from(input_basis, output_basis, weight, direction);
                 let id = self.graph.add_edge(e);
                 id.as_u128()
             }
             EdgeDirection::Loop | EdgeDirection::Undirected | EdgeDirection::Simplicial => {
-                let mut input_basis = SparseBasis::from(inputs);
-                let output_basis = SparseBasis::from(outputs);
+                let mut input_basis = SparseNodeSet::from(inputs);
+                let output_basis = SparseNodeSet::from(outputs);
                 input_basis.union_with(&output_basis);
-                let e = GeneroEdge::from(input_basis, SparseBasis::new_empty(), weight, direction);
+                let e = GeneroEdge::from(input_basis, SparseNodeSet::new_empty(), weight, direction);
                 let id = self.graph.add_edge(e);
                 id.as_u128()
             }
@@ -117,7 +117,7 @@ impl<N: HgNode> PGraph<N> {
 }
 
 impl<N: HgNode> HyperGraph for PGraph<N> {
-    type Basis = SparseBasis<N>;
+    type Basis = SparseNodeSet<N>;
     fn edges(&self) -> Vec<crate::structs::EdgeID> {
         self.graph.clone_edges()
     }

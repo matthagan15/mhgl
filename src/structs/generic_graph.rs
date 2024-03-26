@@ -20,7 +20,6 @@ use super::{
 /// the basis type provided.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneroGraph<B: HgBasis> {
-    pub id: GraphID,
     pub edges: HashMap<EdgeID, GeneroEdge<B>>,
     node_to_outbound_edges: HashMap<B, HashSet<EdgeID>>,
 }
@@ -28,7 +27,6 @@ pub struct GeneroGraph<B: HgBasis> {
 impl<B: HgBasis> GeneroGraph<B> {
     pub fn new() -> Self {
         GeneroGraph {
-            id: Uuid::new_v4(),
             edges: HashMap::new(),
             node_to_outbound_edges: HashMap::new(),
         }
@@ -310,21 +308,15 @@ impl<B: HgBasis> GeneroGraph<B> {
     }
 }
 
-impl<B: HgBasis> Hash for GeneroGraph<B> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
-}
-
 mod tests {
-    use crate::{structs::{GeneroEdge, GeneroGraph}, SparseBasis};
+    use crate::{structs::{GeneroEdge, GeneroGraph}, SparseNodeSet};
 
     #[test]
     fn test_serialization() {
-        let mut g: GeneroGraph<SparseBasis<u32>> = GeneroGraph::new();
+        let mut g: GeneroGraph<SparseNodeSet<u32>> = GeneroGraph::new();
         let e = GeneroEdge::from(
-            SparseBasis::<u32>::from(&1),
-            SparseBasis::from(&2),
+            SparseNodeSet::<u32>::from(&1),
+            SparseNodeSet::from(&2),
             1.,
             crate::EdgeDirection::Symmetric,
         );

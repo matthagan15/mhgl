@@ -71,12 +71,12 @@ mod traits;
 mod utils;
 
 use std::ops::Mul;
-
+pub use algs::*;
 pub use graph::Graph;
 pub use hgraph::HGraph;
 pub use pgraph::PGraph;
 pub use structs::EdgeDirection;
-pub use structs::SparseBasis;
+pub use structs::SparseNodeSet;
 pub use traits::HgBasis;
 pub use traits::HyperGraph;
 

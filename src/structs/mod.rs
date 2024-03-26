@@ -21,6 +21,6 @@ pub use generic_edge::GeneroEdge;
 pub use generic_graph::GeneroGraph;
 pub use generic_vec::GeneroVector;
 
-pub use sparse_basis::SparseBasis;
+pub use sparse_basis::SparseNodeSet;
 
 pub use path::HgPath;

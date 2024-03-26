@@ -289,19 +289,19 @@ impl<B: HgBasis> GeneroEdge<B> {
 mod test {
     use std::collections::HashSet;
 
-    use crate::{structs::{GeneroEdge, GeneroVector}, EdgeDirection, SparseBasis};
+    use crate::{structs::{GeneroEdge, GeneroVector}, EdgeDirection, SparseNodeSet};
 
     #[test]
     fn test_sparse_map_vec() {
         let _nodes: Vec<u16> = vec![11, 23, 492, 493, 203];
-        let b1 = SparseBasis::from_slice(&[11_u16, 23, 492, 493]);
-        let b2 = SparseBasis::from_slice(&[11_u16, 23, 492, 493, 203]);
-        let b3 = SparseBasis::<u16>::new();
-        let mut e = GeneroEdge::<SparseBasis<u16>>::new();
+        let b1 = SparseNodeSet::from_slice(&[11_u16, 23, 492, 493]);
+        let b2 = SparseNodeSet::from_slice(&[11_u16, 23, 492, 493, 203]);
+        let b3 = SparseNodeSet::<u16>::new();
+        let mut e = GeneroEdge::<SparseNodeSet<u16>>::new();
         e.change_direction(EdgeDirection::Undirected);
         e.add_input_nodes(&b2);
         println!("e: {:?}", e);
-        let mut v = GeneroVector::<SparseBasis<u16>>::new();
+        let mut v = GeneroVector::<SparseNodeSet<u16>>::new();
         v.add_basis(b1.clone(), 2.);
         v.add_basis(b3.clone(), 3.);
         println!("input vector: {:#?}", v);
@@ -309,9 +309,9 @@ mod test {
         println!("output vector: {:#?}", out);
     }
     
-    fn basic_edge() -> GeneroEdge<SparseBasis<u32>> {
-        let b = SparseBasis::from_slice(&[1, 2, 3_u32]);
-        let e = GeneroEdge::from(b, SparseBasis::new(), 1., EdgeDirection::Undirected);
+    fn basic_edge() -> GeneroEdge<SparseNodeSet<u32>> {
+        let b = SparseNodeSet::from_slice(&[1, 2, 3_u32]);
+        let e = GeneroEdge::from(b, SparseNodeSet::new(), 1., EdgeDirection::Undirected);
         e
     }
 
