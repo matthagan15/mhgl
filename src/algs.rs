@@ -83,15 +83,3 @@ pub fn random_walk<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) 
     }
     walker_location
 }
-
-mod test {
-    use crate::{algs::traversal::bfs_base, SparseBasis};
-
-    #[test]
-    fn test_bfs() {
-    }
-
-    #[test]
-    fn test_random_walk() {
-    }
-}
