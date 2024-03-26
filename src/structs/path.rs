@@ -82,25 +82,13 @@ impl<B: HgBasis> Add<(B, EdgeWeight)> for HgPath<B> {
 mod test {
     use std::collections::HashSet;
 
-    use crate::{structs::HgPath, DGraph, SparseBasis};
-
-    
-
-    
+    use crate::{structs::HgPath, HGraph, SparseBasis};
 
     #[test]
     fn test_simple_extension() {
-        let mut hg = DGraph::new();
+        let mut hg = HGraph::new();
         let mut nodes = hg.add_nodes(10);
         nodes.sort();
-        for ix in 0..9 {
-            hg.create_edge(
-                &nodes[ix..=ix],
-                &nodes[ix + 1..=ix + 1],
-                1.,
-                crate::EdgeDirection::Directed,
-            );
-        }
         let p = HgPath::new(SparseBasis::from(HashSet::from([nodes[0]])));
         println!("nodes: {:#?}", nodes);
     }

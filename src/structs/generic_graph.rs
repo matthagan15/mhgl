@@ -38,14 +38,6 @@ impl<B: HgBasis> GeneroGraph<B> {
         self.edges.keys().cloned().collect()
     }
 
-    pub fn update_edge_weight(&mut self, edge_id: &EdgeID, new_weight: EdgeWeight) {
-        if new_weight.is_nan() == false {
-            if let Some(e) = self.edges.get_mut(edge_id) {
-                e.change_weight(new_weight);
-            }
-        }
-    }
-
     /// Returns all EdgeIDs that map from this basis to another.
     pub fn get_outbound_edges(&self, basis: &B) -> HashSet<EdgeID> {
         // TODO: This is inefficient. Take the intersection of edge_ids
@@ -109,49 +101,34 @@ impl<B: HgBasis> GeneroGraph<B> {
         }
     }
 
-    pub fn add_edge(&mut self, new_edge: GeneroEdge<B>) {
+    pub fn add_edge(&mut self, new_edge: GeneroEdge<B>) -> EdgeID {
+        let new_id = Uuid::new_v4();
         match new_edge.direction {
-            EdgeDirection::Directed => {
+            EdgeDirection::Directed  | EdgeDirection::Loop | EdgeDirection::Undirected  | EdgeDirection::Simplicial => {
                 for node in new_edge.in_nodes.nodes() {
                     self.node_to_outbound_edges
                         .entry(node)
                         .or_default()
-                        .insert(new_edge.id.clone());
+                        .insert(new_id.clone());
                 }
-                self.edges.insert(new_edge.id.clone(), new_edge);
+                self.edges.insert(new_id, new_edge);
+                new_id
             }
-            EdgeDirection::Loop => {
+            EdgeDirection::Symmetric => {
                 for node in new_edge.in_nodes.nodes() {
                     self.node_to_outbound_edges
                         .entry(node)
                         .or_default()
-                        .insert(new_edge.id.clone());
-                }
-                self.edges.insert(new_edge.id.clone(), new_edge);
-            }
-            EdgeDirection::Oriented | EdgeDirection::Symmetric => {
-                for node in new_edge.in_nodes.nodes() {
-                    self.node_to_outbound_edges
-                        .entry(node)
-                        .or_default()
-                        .insert(new_edge.id.clone());
+                        .insert(new_id.clone());
                 }
                 for node in new_edge.out_nodes.nodes() {
                     self.node_to_outbound_edges
                         .entry(node)
                         .or_default()
-                        .insert(new_edge.id.clone());
+                        .insert(new_id.clone());
                 }
-                self.edges.insert(new_edge.id.clone(), new_edge);
-            }
-            EdgeDirection::Undirected => {
-                for node in new_edge.in_nodes.nodes() {
-                    self.node_to_outbound_edges
-                        .entry(node)
-                        .or_default()
-                        .insert(new_edge.id.clone());
-                }
-                self.edges.insert(new_edge.id.clone(), new_edge);
+                self.edges.insert(new_id.clone(), new_edge);
+                new_id
             }
         }
     }
@@ -167,7 +144,7 @@ impl<B: HgBasis> GeneroGraph<B> {
                     }
                     Some(edge)
                 }
-                EdgeDirection::Oriented | EdgeDirection::Symmetric => {
+                EdgeDirection::Symmetric => {
                     for node in edge.in_nodes.nodes() {
                         if let Some(set) = self.node_to_outbound_edges.get_mut(&node) {
                             set.remove(edge_id);
@@ -180,7 +157,7 @@ impl<B: HgBasis> GeneroGraph<B> {
                     }
                     Some(edge)
                 }
-                EdgeDirection::Undirected => {
+                EdgeDirection::Undirected | EdgeDirection::Simplicial => {
                     for node in edge.in_nodes.nodes() {
                         if let Some(set) = self.node_to_outbound_edges.get_mut(&node) {
                             set.remove(edge_id);

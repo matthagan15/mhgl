@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::Display;
 use std::fs::{self, File};
-use std::io::Write;
+use std::io::{self, Write};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -14,9 +14,22 @@ use crate::traits::*;
 pub type NodeID = Uuid;
 pub type EdgeID = Uuid;
 
+struct KeyValue {
+    store: Vec<(String, String)>,
+}
+
 pub struct GenHGraph<N, E> {
     nodes: HashMap<NodeID, N>,
-    edges: HashMap<EdgeID, (SparseBasis<NodeID>, E)>,
+    edges: HashMap<EdgeID, GeneroEdge<SparseBasis<NodeID>>>,
+    edge_store: HashMap<EdgeID, E>,
+}
+
+impl<N, E> GenHGraph<N, E> {
+
+}
+
+mod tests {
+
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -184,8 +197,7 @@ impl HGraph {
         // subset/edge we have seen.
         let input_basis = SparseBasis::from_slice(nodes);
         let e: GeneroEdge<SparseBasis<u32>> = input_basis.into();
-        let id = e.id.clone();
-        self.graph.add_edge(e);
+        let id = self.graph.add_edge(e);
         id
     }
 
@@ -383,6 +395,18 @@ impl HGraph {
         buf.push_str("}");
         let mut file = File::create(filename).expect("Could not open file.");
         file.write(buf.as_bytes()).expect("Could not write");
+    }
+
+    pub fn to_disk(&self, path: &Path) -> io::Result<String> {
+        match File::create(path) {
+            Ok(mut file) => {
+                let out = file.write(b"{\"nodes\"=[");
+                let test = self.nodes.iter();
+               
+                todo!()
+            },
+            Err(e) => Err(e),
+        }
     }
 }
 

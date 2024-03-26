@@ -85,54 +85,13 @@ pub fn random_walk<B: HgBasis>(graph: &GeneroGraph<B>, start: &B, steps: usize) 
 }
 
 mod test {
-    use crate::{algs::traversal::bfs_base, DGraph, SparseBasis};
-
-    
-
-    
+    use crate::{algs::traversal::bfs_base, SparseBasis};
 
     #[test]
     fn test_bfs() {
-        let mut hg = DGraph::new();
-        let mut nodes = hg.add_nodes(10);
-        nodes.sort();
-        let start = &nodes[0..2];
-        let b1 = [nodes[0], nodes[1], nodes[2]];
-        let b2 = [nodes[0], nodes[1], nodes[3]];
-        let b3 = [nodes[3]];
-        let b4 = [nodes[4]];
-        let b5 = [nodes[5]];
-        hg.create_edge(start, &b1, 1., crate::EdgeDirection::Directed);
-        hg.create_edge(start, &b2, 1., crate::EdgeDirection::Directed);
-        hg.create_edge(&b1, &b3, 1., crate::EdgeDirection::Directed);
-        hg.create_edge(&b1, &b4, 1., crate::EdgeDirection::Directed);
-        hg.create_edge(&b2, &b3, 1., crate::EdgeDirection::Directed);
-        hg.create_edge(&b2, &b5, 1., crate::EdgeDirection::Directed);
-        println!("nodes: {:#?}", nodes);
-        println!(
-            "bfs: {:#?}",
-            bfs_base(&hg, &SparseBasis::from(start), 2)
-        );
     }
 
     #[test]
     fn test_random_walk() {
-        let mut hg = DGraph::new();
-        let mut nodes = hg.add_nodes(10);
-        nodes.sort();
-        let start = &nodes[0..2];
-        let start_basis = SparseBasis::from(start);
-        let b1 = [nodes[0], nodes[1], nodes[2]];
-        let b2 = [nodes[0], nodes[1], nodes[3]];
-        let b3 = [nodes[3]];
-        let b4 = [nodes[4]];
-        let b5 = [nodes[5]];
-        hg.create_edge(start, &b1, 1., crate::EdgeDirection::Directed);
-        hg.create_edge(start, &b2, 1., crate::EdgeDirection::Directed);
-        hg.create_edge(&b1, &b3, 1., crate::EdgeDirection::Directed);
-        hg.create_edge(&b1, &b4, 1., crate::EdgeDirection::Directed);
-        hg.create_edge(&b2, &b3, 1., crate::EdgeDirection::Directed);
-        hg.create_edge(&b2, &b5, 1., crate::EdgeDirection::Directed);
-        println!("graph:\n{:#?}", hg);
     }
 }

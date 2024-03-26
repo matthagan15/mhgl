@@ -29,4 +29,7 @@ pub trait HgBasis: PartialEq + Eq + Hash + Clone + Serialize {
         intersection == *basis
     }
     fn nodes(&self) -> HashSet<Self>;
+    fn nodes_vec(&self) -> Vec<Self> {
+        self.nodes().into_iter().collect()
+    }
 }

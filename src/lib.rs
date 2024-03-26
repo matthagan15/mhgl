@@ -63,42 +63,20 @@
 
 #[forbid(unsafe_code)]
 pub mod algs;
-mod bgraph;
-mod dgraph;
 mod graph;
 mod hgraph;
 mod pgraph;
-mod stackgraph;
 mod structs;
 mod traits;
 mod utils;
 
 use std::ops::Mul;
 
-pub use bgraph::BGraph;
-pub use dgraph::DGraph;
 pub use graph::Graph;
 pub use hgraph::HGraph;
 pub use pgraph::PGraph;
-pub use structs::BitBasis;
 pub use structs::EdgeDirection;
 pub use structs::SparseBasis;
 pub use traits::HgBasis;
 pub use traits::HyperGraph;
 
-#[cfg(test)]
-mod tests {
-    use crate::structs::NodeID;
-    use std::collections::HashSet;
-
-    #[test]
-    fn hgraph_works() {
-        use crate::{DGraph, EdgeDirection};
-        let mut hg = DGraph::new();
-        let nodes = hg.add_nodes(10);
-        hg.create_edge(&nodes[0..2], &nodes[0..3], 1.23, EdgeDirection::Symmetric);
-        let expected: Vec<(HashSet<u32>, f64)> =
-            vec![(nodes[0..3].iter().cloned().collect(), 1.23)];
-        assert_eq!(hg.step(&nodes[0..2]), expected);
-    }
-}

@@ -8,19 +8,19 @@ use crate::traits::HgBasis;
 use super::{generic_vec::GeneroVector, EdgeID, EdgeWeight};
 
 /// Simple enum to denote which direction an edge faces
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Hash, Clone, Copy, PartialEq)]
 pub enum EdgeDirection {
     /// A set A that maps to a set B
     Directed,
-    /// Set of nodes that map to another set and have the opposite sign going
-    /// the other way A -> B with weight 1., B -> A with weight -1.
-    Oriented,
+
     /// Set of nodes that map to another set and vice versa
     Symmetric,
     /// Set of nodes that map to themselves
     Loop,
     /// A set of nodes
     Undirected,
+
+    Simplicial,
 }
 
 /// # Edge
@@ -33,10 +33,8 @@ pub enum EdgeDirection {
 /// - Oriented: Similar to Undirected but will flip the sign of the edge weight if it is being traversed opposite of the orientation. Ex: A -> B with weight +2.5 but B -> A with weight -2.5.
 /// - Loop: Maps a basis element to itself.
 /// - Undirected: The traditional (in the literature) undirected hyperedge consisting of just a subset of nodes. As far as it's action, we currently think of Undirecteds as mapping a subset of it's basis element to the complement within the subset. For example, a Undirected of {a, b, c} would map {a} -> {b, c}, {a, b} -> {c}, {} -> {a, b, c}, etc.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
 pub struct GeneroEdge<B: HgBasis> {
-    pub id: EdgeID,
-    pub weight: EdgeWeight,
     pub in_nodes: B,
     pub out_nodes: B,
     pub direction: EdgeDirection,
@@ -45,8 +43,6 @@ pub struct GeneroEdge<B: HgBasis> {
 impl<B: HgBasis> From<B> for GeneroEdge<B> {
     fn from(value: B) -> Self {
         Self {
-            id: Uuid::new_v4(),
-            weight: 1.,
             in_nodes: value,
             out_nodes: B::new_empty(),
             direction: EdgeDirection::Undirected,
@@ -57,8 +53,6 @@ impl<B: HgBasis> From<B> for GeneroEdge<B> {
 impl<B: HgBasis> From<(B, B)> for GeneroEdge<B> {
     fn from(value: (B, B)) -> Self {
         Self {
-            id: Uuid::new_v4(),
-            weight: 1.,
             in_nodes: value.0,
             out_nodes: value.1,
             direction: EdgeDirection::Directed,
@@ -71,8 +65,6 @@ impl<B: HgBasis> GeneroEdge<B> {
     /// the empty set to the empty set
     pub fn new() -> Self {
         GeneroEdge {
-            id: Uuid::new_v4(),
-            weight: 1.,
             in_nodes: B::new_empty(),
             out_nodes: B::new_empty(),
             direction: EdgeDirection::Directed,
@@ -83,8 +75,6 @@ impl<B: HgBasis> GeneroEdge<B> {
     pub fn from(in_nodes: B, out_nodes: B, weight: EdgeWeight, edge_type: EdgeDirection) -> Self {
         // TODO: This currently trusts the user way too much, what if we give the same nodes for in and out but specify the direction as Undirected? Need to do some basic checks first.
         GeneroEdge {
-            id: Uuid::new_v4(),
-            weight,
             in_nodes,
             out_nodes,
             direction: edge_type,
@@ -135,13 +125,7 @@ impl<B: HgBasis> GeneroEdge<B> {
         }
     }
 
-    pub fn change_weight(&mut self, new_weight: EdgeWeight) {
-        // NaN check is done at graph level, assuming edges should
-        // not be publicly accessible.
-        self.weight = new_weight
-    }
-
-    pub fn flip_to_and_from(&mut self) {
+    pub fn change_in_and_out(&mut self) {
         let tmp = self.in_nodes.clone();
         self.in_nodes = self.out_nodes.clone();
         self.out_nodes = tmp;
@@ -157,7 +141,7 @@ impl<B: HgBasis> GeneroEdge<B> {
     /// - If you change to a loop then we simply drop the output.
     pub fn change_direction(&mut self, new_direction: EdgeDirection) {
         match new_direction {
-            EdgeDirection::Directed | EdgeDirection::Oriented | EdgeDirection::Symmetric => {
+            EdgeDirection::Directed | EdgeDirection::Symmetric => {
                 if self.direction == EdgeDirection::Undirected
                     || self.direction == EdgeDirection::Loop
                 {
@@ -165,7 +149,7 @@ impl<B: HgBasis> GeneroEdge<B> {
                 }
                 self.direction = new_direction;
             }
-            EdgeDirection::Undirected => {
+            EdgeDirection::Undirected | EdgeDirection::Simplicial => {
                 let u = self.in_nodes.union(&self.out_nodes);
                 self.out_nodes = B::new_empty();
                 self.in_nodes = u;
@@ -201,20 +185,20 @@ impl<B: HgBasis> GeneroEdge<B> {
     pub fn can_map_basis(&self, basis: &B) -> bool {
         match self.direction {
             EdgeDirection::Directed | EdgeDirection::Loop => self.in_nodes == *basis,
-            EdgeDirection::Oriented | EdgeDirection::Symmetric => {
+            EdgeDirection::Symmetric => {
                 self.in_nodes == *basis || self.out_nodes == *basis
             }
-            EdgeDirection::Undirected => self.in_nodes.intersection(basis) == *basis,
+            EdgeDirection::Undirected | EdgeDirection::Simplicial => self.in_nodes.intersection(basis) == *basis,
         }
     }
     /// Returns true if the provided basis is an output of this edge.
     pub fn matches_output(&self, basis: &B) -> bool {
         match self.direction {
             EdgeDirection::Directed | EdgeDirection::Loop => self.out_nodes == *basis,
-            EdgeDirection::Oriented | EdgeDirection::Symmetric => {
+            EdgeDirection::Symmetric => {
                 self.in_nodes == *basis || self.out_nodes == *basis
             }
-            EdgeDirection::Undirected => self.in_nodes.intersection(basis) == *basis,
+            EdgeDirection::Undirected | EdgeDirection::Simplicial => self.in_nodes.intersection(basis) == *basis,
         }
     }
 
@@ -223,12 +207,12 @@ impl<B: HgBasis> GeneroEdge<B> {
         match self.direction {
             EdgeDirection::Directed => self.in_nodes == *input && self.out_nodes == *output,
             EdgeDirection::Loop => self.in_nodes == *input && *output == *input,
-            EdgeDirection::Oriented | EdgeDirection::Symmetric => {
+            EdgeDirection::Symmetric => {
                 let og_dir = self.in_nodes == *input && self.out_nodes == *output;
                 let opposite_dir = self.in_nodes == *output && self.out_nodes == *input;
                 og_dir || opposite_dir
             }
-            EdgeDirection::Undirected => self.in_nodes.complement(input) == *output,
+            EdgeDirection::Undirected | EdgeDirection::Simplicial => self.in_nodes.complement(input) == *output,
         }
     }
 
@@ -274,55 +258,31 @@ impl<B: HgBasis> GeneroEdge<B> {
             EdgeDirection::Directed => {
                 let w = v.remove_basis(&self.in_nodes);
                 if w != 0. {
-                    v.add_basis(self.out_nodes.clone(), w * self.weight);
-                }
-            }
-            EdgeDirection::Oriented => {
-                let input_basis_w = v.remove_basis(&self.in_nodes);
-                let output_basis_w = v.remove_basis(&self.out_nodes);
-                if input_basis_w != 0. {
-                    v.add_basis(self.out_nodes.clone(), input_basis_w * self.weight);
-                }
-                if output_basis_w != 0. {
-                    v.add_basis(self.in_nodes.clone(), -1. * output_basis_w * self.weight);
+                    v.add_basis(self.out_nodes.clone(), w);
                 }
             }
             EdgeDirection::Symmetric => {
                 let input_basis_w = v.remove_basis(&self.in_nodes);
                 let output_basis_w = v.remove_basis(&self.out_nodes);
                 if input_basis_w != 0. {
-                    v.add_basis(self.out_nodes.clone(), input_basis_w * self.weight);
+                    v.add_basis(self.out_nodes.clone(), input_basis_w);
                 }
                 if output_basis_w != 0. {
-                    v.add_basis(self.in_nodes.clone(), output_basis_w * self.weight);
+                    v.add_basis(self.in_nodes.clone(), output_basis_w);
                 }
             }
-            EdgeDirection::Loop => {
-                if v.basis_to_weight.contains_key(&self.in_nodes) {
-                    let old_w = v
-                        .basis_to_weight
-                        .get_mut(&self.in_nodes)
-                        .expect("just checked");
-                    *old_w = *old_w * self.weight;
-                }
-            }
-            EdgeDirection::Undirected => {
+            EdgeDirection::Loop => {}
+            EdgeDirection::Undirected | EdgeDirection::Simplicial => {
                 let mut ret = GeneroVector::new();
                 for (b, w) in v.basis_to_weight.drain() {
                     if self.in_nodes.covers_basis(&b) {
-                        ret.add_basis(self.in_nodes.complement(&b), w * self.weight);
+                        ret.add_basis(self.in_nodes.complement(&b), w);
                     }
                 }
                 v = ret;
             }
         }
         v
-    }
-}
-
-impl<B: HgBasis> Hash for GeneroEdge<B> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
     }
 }
 
@@ -334,8 +294,8 @@ mod test {
     #[test]
     fn test_sparse_map_vec() {
         let _nodes: Vec<u16> = vec![11, 23, 492, 493, 203];
-        let b1 = SparseBasis::from(HashSet::from([11_u16, 23, 492, 493]));
-        let b2 = SparseBasis::from(HashSet::from([11_u16, 23, 492, 493, 203]));
+        let b1 = SparseBasis::from_slice(&[11_u16, 23, 492, 493]);
+        let b2 = SparseBasis::from_slice(&[11_u16, 23, 492, 493, 203]);
         let b3 = SparseBasis::<u16>::new();
         let mut e = GeneroEdge::<SparseBasis<u16>>::new();
         e.change_direction(EdgeDirection::Undirected);
