@@ -41,6 +41,22 @@ impl<N: HgNode> Edge<N> {
         !self.is_simplex()
     }
 
+    pub fn len(&self) -> usize {
+        self.nodes_ref().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn is_node(&self) -> bool {
+        self.len() == 1
+    }
+
+    pub fn get_first_node(&self) -> Option<N> {
+        self.nodes_ref().first().cloned()
+    }
+
     /// Consumes `self`
     pub fn make_simplex(self) -> Self {
         match self {
@@ -124,7 +140,7 @@ impl<N: HgNode> Edge<N> {
         }
     }
 
-    fn contains_node(&self, node: &N) -> bool {
+    pub fn contains_node(&self, node: &N) -> bool {
         let searcher = |nodes: &Vec<N>| {
             if nodes.len() == 0 {
                 return false;
@@ -143,7 +159,7 @@ impl<N: HgNode> Edge<N> {
         }
     }
 
-    fn intersect_with(&mut self, rhs: &Self) {
+    pub fn intersect_with(&mut self, rhs: &Self) {
         let nodes: &mut Vec<N> = self.nodes_ref_mut();
         let mut good_nodes = Vec::with_capacity(nodes.len());
         for _ in 0..nodes.len() {
@@ -157,7 +173,7 @@ impl<N: HgNode> Edge<N> {
         nodes.append(&mut good_nodes);
     }
 
-    fn intersection(&self, rhs: &Self) -> Self {
+    pub fn intersection(&self, rhs: &Self) -> Self {
         let self_nodes = self.nodes_ref();
         let rhs_nodes = rhs.nodes_ref();
         let mut ret = Vec::new();
@@ -185,21 +201,21 @@ impl<N: HgNode> Edge<N> {
         }
     }
 
-    fn union_with(&mut self, rhs: &Self) {
+    pub fn union_with(&mut self, rhs: &Self) {
         let nodes = rhs.nodes_ref();
         for node in nodes.iter() {
             self.add_node(node.clone());
         }
     }
 
-    fn nodes_ref<'a>(&'a self) -> &'a Vec<N> {
+    pub fn nodes_ref<'a>(&'a self) -> &'a Vec<N> {
         match self {
             Edge::Undirected(nodes) => nodes,
             Edge::Simplex(nodes) => nodes,
         }
     }
 
-    fn nodes_ref_mut<'a>(&'a mut self) -> &'a mut Vec<N> {
+    pub fn nodes_ref_mut<'a>(&'a mut self) -> &'a mut Vec<N> {
         match self {
             Edge::Undirected(nodes) => nodes,
             Edge::Simplex(nodes) => nodes,
@@ -207,7 +223,7 @@ impl<N: HgNode> Edge<N> {
     }
 
     // TODO: This is pretty unoptimal but it works.
-    fn union(&self, rhs: &Self) -> Self {
+    pub fn union(&self, rhs: &Self) -> Self {
         let mut tot = HashSet::new();
         let lhs_nodes = self.nodes_ref();
         let rhs_nodes = rhs.nodes_ref();
@@ -253,6 +269,24 @@ impl<N: HgNode> Edge<N> {
         }
         let nodes = self.nodes_ref_mut();
         nodes.shrink_to_fit();
+    }
+
+    pub fn contains(&self, other: &Self) -> bool {
+        let lhs_nodes = self.nodes_ref();
+        let rhs_nodes = other.nodes_ref();
+        let mut left_ix = 0;
+        let mut right_ix = 0;
+        while right_ix < rhs_nodes.len() {
+            if left_ix == lhs_nodes.len() {
+                return false;
+            }
+            if lhs_nodes[left_ix] == rhs_nodes[right_ix] {
+                right_ix += 1;
+            } else {
+                left_ix += 1;
+            }
+        }
+        true
     }
 }
 
@@ -346,6 +380,26 @@ impl<N: HgNode> From<Vec<N>> for Edge<N> {
         nodes.sort();
         nodes.dedup();
         Edge::Undirected(nodes)
+    }
+}
+
+impl<N: HgNode> From<&[N]> for Edge<N> {
+    fn from(value: &[N]) -> Self {
+        let v: Vec<N> = value.iter().cloned().collect();
+        Edge::from(v)
+    }
+}
+
+impl<N: HgNode, const K: usize> From<[N; K]> for Edge<N> {
+    fn from(value: [N; K]) -> Self {
+        Edge::from(value.to_vec())
+    }
+}
+
+impl<N: HgNode> From<HashSet<N>> for Edge<N> {
+    fn from(value: HashSet<N>) -> Self {
+        let v: Vec<N> = value.into_iter().collect();
+        Edge::from(v)
     }
 }
 
@@ -606,11 +660,22 @@ mod test {
 
     use crate::{HgBasis, SparseNodeSet};
 
-    
+    use super::Edge;
 
     
 
     
+
+    #[test]
+    fn test_contains() {
+        let e1 = Edge::from([1_u8, 2, 3, 4]);
+        let e2 = Edge::from([1_u8, 2, 3]);
+        let e3 = Edge::from([0_u8, 7, 9]);
+        assert!(e1.contains(&e2));
+        assert!(!e2.contains(&e1));
+        assert!(!e1.contains(&e3));
+        assert!(!e3.contains(&e1));
+    }
 
     #[test]
     fn test_intersect_with() {

@@ -14,23 +14,6 @@ use crate::traits::*;
 pub type NodeID = Uuid;
 pub type EdgeID = Uuid;
 
-struct KeyValue {
-    store: Vec<(String, String)>,
-}
-
-pub struct GenHGraph<N, E> {
-    nodes: HashMap<NodeID, N>,
-    edges: HashMap<EdgeID, GeneroEdge<SparseNodeSet<NodeID>>>,
-    edge_store: HashMap<EdgeID, E>,
-}
-
-impl<N, E> GenHGraph<N, E> {
-
-}
-
-mod tests {
-
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// The simplest to use hypergraph structure. An Undirected and unweighted variant
