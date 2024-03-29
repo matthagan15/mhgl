@@ -14,7 +14,6 @@ use crate::traits::*;
 pub type NodeID = Uuid;
 pub type EdgeID = Uuid;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// The simplest to use hypergraph structure. An Undirected and unweighted variant
 /// that utilizes u32's for nodes. The directed variant of `HGraph` is
@@ -62,6 +61,12 @@ impl HGraph {
     /// each edge counts equally regardless of it's cardinality.
     pub fn degree(&self, node: u32) -> usize {
         self.get_containing_edges(&[node]).len()
+    }
+
+    pub fn to_disk(&self, path: &Path) {
+        let mut s = serde_json::to_string(self).expect("Could not serialize HGraph.");
+        let mut file = File::create(path).expect("Cannot create File.");
+        file.write_all(s.as_bytes()).expect("Cannot write");
     }
 
     pub fn from_file(path: &Path) -> Option<Self> {
@@ -217,7 +222,9 @@ impl HGraph {
     }
 
     pub fn get_edge_id(&self, nodes: &[u32]) -> Option<Uuid> {
-        let e = self.graph.query_undirected(&SparseNodeSet::from_slice(nodes));
+        let e = self
+            .graph
+            .query_undirected(&SparseNodeSet::from_slice(nodes));
         e.first().copied()
     }
 
@@ -378,18 +385,6 @@ impl HGraph {
         buf.push_str("}");
         let mut file = File::create(filename).expect("Could not open file.");
         file.write(buf.as_bytes()).expect("Could not write");
-    }
-
-    pub fn to_disk(&self, path: &Path) -> io::Result<String> {
-        match File::create(path) {
-            Ok(mut file) => {
-                let out = file.write(b"{\"nodes\"=[");
-                let test = self.nodes.iter();
-               
-                todo!()
-            },
-            Err(e) => Err(e),
-        }
     }
 }
 
