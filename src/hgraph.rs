@@ -7,7 +7,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::structs::{EdgeWeight, GeneroGraph, SparseNodeSet};
+use crate::structs::{EdgeWeight, SparseNodeSet};
 use crate::structs::HGraphCore;
 
 

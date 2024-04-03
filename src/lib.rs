@@ -62,21 +62,14 @@
 //! - Hypergraph (Rust): Appears very limited in scope and not maintained.
 
 #[forbid(unsafe_code)]
-pub mod algs;
-mod graph;
 mod hgraph;
 mod kvgraph;
-mod pgraph;
 mod structs;
 mod traits;
 mod utils;
 
-use std::ops::Mul;
-pub use algs::*;
-pub use graph::Graph;
 pub use hgraph::HGraph;
 pub use kvgraph::KVGraph;
-pub use pgraph::PGraph;
 pub use structs::EdgeDirection;
 pub use structs::SparseNodeSet;
 pub use structs::Edge;

@@ -13,16 +13,13 @@ pub type EdgeWeight = f64;
 mod generic_edge;
 mod generic_graph;
 mod generic_vec;
-mod path;
 mod sparse_basis;
 
 pub use generic_edge::EdgeDirection;
 pub use generic_edge::GeneroEdge;
-pub use generic_graph::GeneroGraph;
 pub use generic_graph::HGraphCore;
 pub use generic_vec::GeneroVector;
 
 pub use sparse_basis::SparseNodeSet;
 pub use sparse_basis::Edge;
 
-pub use path::HgPath;
