@@ -77,6 +77,7 @@ pub use hgraph::HGraph;
 pub use pgraph::PGraph;
 pub use structs::EdgeDirection;
 pub use structs::SparseNodeSet;
+pub use structs::Edge;
 pub use traits::HgBasis;
 pub use traits::HyperGraph;
 

@@ -41,6 +41,11 @@ impl<N: HgNode> Edge<N> {
         !self.is_simplex()
     }
 
+    /// Number of nodes in the edge
+    /// ```rust 
+    /// let e = Edge::from([1,2,3]);
+    /// assert_eq!(e.len(), 3);
+    /// ```
     pub fn len(&self) -> usize {
         self.nodes_ref().len()
     }
@@ -241,18 +246,23 @@ impl<N: HgNode> Edge<N> {
         }
     }
 
-    /// Note: This does **NOT** check if `rhs` is contained in 
-    /// `self`, so use carefully. This returns the elements in
-    /// `self` not contained in `rhs`.
-    pub fn link(&self, rhs: &Self) -> Self {
+    /// If `rhs` is contained in self, returns the complement of rhs
+    /// within self. If `rhs` is not fully contained in self returns the
+    /// empty set. Note this is the same return value as `self.link(&self)`.
+    /// This could lead to major bugs in the future, but the other option
+    /// is that link returns an option. 
+    pub fn link(&self, rhs: &Self) -> Option<Self> {
+        if self.contains(rhs) == false {
+            return None;
+        }
         let mut ret_nodes = self.node_set();
         for node in rhs.nodes_ref() {
             ret_nodes.remove(node);
         }
         let nodes_vec: Vec<N> = ret_nodes.into_iter().collect();
         match self {
-            Edge::Undirected(_) => Edge::from(nodes_vec),
-            Edge::Simplex(_) => Edge::from(nodes_vec).make_simplex(),
+            Edge::Undirected(_) => Some(Edge::from(nodes_vec)),
+            Edge::Simplex(_) => Some(Edge::from(nodes_vec).make_simplex()),
         }
     }
 

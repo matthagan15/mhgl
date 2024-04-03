@@ -14,20 +14,58 @@ use super::{
     generic_edge::{EdgeDirection, GeneroEdge}, generic_vec::GeneroVector, sparse_basis::Edge, EdgeID, EdgeWeight, GraphID
 };
 
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// Defaults to undirected hypergraph, user has to declare it a simplex.
-pub struct Graph<N: HgNode> {
-    edges: HashMap<EdgeID, Edge<N>>,
-    node_to_containing_edges: HashMap<N, HashSet<EdgeID>>,
+pub struct HGraphCore<N: HgNode> {
+    pub edges: HashMap<EdgeID, Edge<N>>,
+    pub node_to_containing_edges: HashMap<N, HashSet<EdgeID>>,
     is_simplex: bool,
 }
 
-impl<N: HgNode> Graph<N> {
+impl<N: HgNode> HGraphCore<N> {
     pub fn new() -> Self {
         Self {
             edges: HashMap::new(),
             node_to_containing_edges: HashMap::new(),
             is_simplex: false,
         }
+    }
+    pub fn contains_node(&self, node: &N) -> bool {
+        self.node_to_containing_edges.contains_key(node)
+    }
+    
+    /// Returns `None` if the edge is not present. Otherwise retrieves the unique id associated with this edge (no duplicate edges allowed).
+    /// 
+    /// Returns `nil` for empty query
+    /// 
+    pub fn query_id<E>(&self, edge: E) -> Option<EdgeID>
+        where E: Into<Edge<N>>
+    {
+        let e: Edge<N> = if self.is_simplex {
+            edge.into().make_simplex() 
+        } else {
+            edge.into()
+        };
+        if e.is_empty() {
+            return Some(Uuid::nil());
+        }
+        let first = e.get_first_node().unwrap();
+        if self.node_to_containing_edges.contains_key(&first) == false {
+            return None;
+        }
+        let candidate_ids = self.node_to_containing_edges.get(&first).unwrap();
+        for candidate_id in candidate_ids {
+            let candidate = self.edges.get(candidate_id).expect("Edge invariant violated.");
+            if *candidate == e {
+                return Some(candidate_id.clone());
+            }
+        }
+        None
+    }
+
+    pub fn get_containing_edges_id(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
+        todo!()
     }
 
     /// what is the right behavior for adding a sub-face of a simplex? 
@@ -112,9 +150,13 @@ impl<N: HgNode> Graph<N> {
     }
 
     /// Returns `true` if the provided edge is supported in
-    /// the graph, `false` otherwise. Returns the vacuous `true` for 
-    /// an empty edge :) and `true` for provided edges that are **covered** by 
+    /// the graph, `false` otherwise. and `true` for provided edges that are **covered** by 
     /// another if  the graph is a simplicial complex.
+    /// 
+    /// ```rust
+    /// let hg = HGraph::new();
+    /// assert!(hg.query(&[]))
+    /// ```
     pub fn query<E>(&self, edge: E) -> bool 
         where E: Into<Edge<N>>
     {
@@ -202,7 +244,15 @@ impl<N: HgNode> Graph<N> {
     }
 
     pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<Edge<N>> {
-        todo!()
+        if let Some(e) = self.edges.remove(&edge_id) {
+            for node in e.nodes_ref() {
+                let containing_edges = self.node_to_containing_edges.get_mut(node).expect("Why is edge not in here.");
+                containing_edges.remove(&edge_id);
+            }
+            Some(e)
+        } else {
+            None
+        }
     }
 
 
@@ -218,9 +268,9 @@ impl<N: HgNode> Graph<N> {
     /// types. If there are multiple edges in the graph that contain the 
     /// provided edge we just return the complement, not multiple copies.
     /// 
-    // pub fn link(&self, edge: &Edge<N>) -> Option<> {
-    //     todo!()
-    // }
+    pub fn link<E: Into<Edge<N>> + ?Sized>(&self, edge: &E) -> Option<Vec<Edge<N>>> {
+        todo!()
+    }
 
     /// Do we include the given edges? AKA is this strict?
     /// ```
@@ -246,11 +296,11 @@ impl<N: HgNode> Graph<N> {
 }
 
 mod tests {
-    use super::Graph;
+    use super::HGraphCore;
 
     #[test]
     fn test_simple_tasks() {
-        let mut g = Graph::<u8>::new();
+        let mut g = HGraphCore::<u8>::new();
         g.make_simplex();
         let e1 = g.add_edge(&[1_u8, 2, 3][..]).unwrap();
         let e2 = g.add_edge(vec![1, 2, 4]).unwrap();

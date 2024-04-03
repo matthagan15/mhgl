@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use serde::{Serialize};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     structs::{EdgeWeight, GeneroEdge, GeneroGraph},
@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// A basic Undirected Graph. Uses a sparse representation.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Graph<N: HgNode> {
     nodes: HashSet<N>,
     next_usable_node: N,
