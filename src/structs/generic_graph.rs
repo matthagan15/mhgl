@@ -1,38 +1,61 @@
-use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
-};
+use std::
+    collections::{HashMap, HashSet}
+;
 
 use serde::{Deserialize, Serialize};
-
+use serde::ser::{SerializeStruct, Serializer};
 
 use uuid::Uuid;
 
-use crate::traits::{HgBasis, HgNode};
+use crate::traits::HgNode;
 
 use super::{
-    generic_edge::{EdgeDirection, GeneroEdge}, generic_vec::GeneroVector, sparse_basis::Edge, EdgeID, EdgeWeight, GraphID
+    sparse_basis::EdgeSet, EdgeID
 };
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Node<NodeData> {
+    pub containing_edges: HashSet<EdgeID>,
+    pub data: NodeData,
+}
+
+impl<NodeData> Node<NodeData> {
+    /// 
+    /// ```rust
+    /// let n = Node::new();
+    /// ```
+    fn new(data: NodeData) -> Self {
+        Node {
+            containing_edges: HashSet::new(),
+            data,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Edge<N: HgNode, EdgeData> {
+    pub nodes: EdgeSet<N>,
+    pub data: EdgeData,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// Defaults to undirected hypergraph, user has to declare it a simplex.
-pub struct HGraphCore<N: HgNode> {
-    pub edges: HashMap<EdgeID, Edge<N>>,
-    pub node_to_containing_edges: HashMap<N, HashSet<EdgeID>>,
+pub struct HGraphCore<N: HgNode, NodeData, EdgeData> {
+    pub edges: HashMap<EdgeID, Edge<N, EdgeData>>,
+    pub nodes: HashMap<N, Node<NodeData>>,
     is_simplex: bool,
 }
 
-impl<N: HgNode> HGraphCore<N> {
+impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     pub fn new() -> Self {
         Self {
             edges: HashMap::new(),
-            node_to_containing_edges: HashMap::new(),
+            nodes: HashMap::new(),
             is_simplex: false,
         }
     }
     pub fn contains_node(&self, node: &N) -> bool {
-        self.node_to_containing_edges.contains_key(node)
+        self.nodes.contains_key(node)
     }
     
     /// Returns `None` if the edge is not present. Otherwise retrieves the unique id associated with this edge (no duplicate edges allowed).
@@ -40,9 +63,9 @@ impl<N: HgNode> HGraphCore<N> {
     /// Returns `nil` for empty query
     /// 
     pub fn query_id<E>(&self, edge: E) -> Option<EdgeID>
-        where E: Into<Edge<N>>
+        where E: Into<EdgeSet<N>>
     {
-        let e: Edge<N> = if self.is_simplex {
+        let e: EdgeSet<N> = if self.is_simplex {
             edge.into().make_simplex() 
         } else {
             edge.into()
@@ -51,13 +74,15 @@ impl<N: HgNode> HGraphCore<N> {
             return Some(Uuid::nil());
         }
         let first = e.get_first_node().unwrap();
-        if self.node_to_containing_edges.contains_key(&first) == false {
+        if self.nodes.contains_key(&first) == false {
             return None;
         }
-        let candidate_ids = self.node_to_containing_edges.get(&first).unwrap();
-        for candidate_id in candidate_ids {
+        let candidate_ids = self.nodes.get(&first).unwrap();
+        for candidate_id in candidate_ids.containing_edges.iter() {
             let candidate = self.edges.get(candidate_id).expect("Edge invariant violated.");
-            if *candidate == e {
+            // This is where the "no duplicate edges" is enforced, otherwise
+            // we will just return the arbitrary first edge that matches
+            if candidate.nodes == e {
                 return Some(candidate_id.clone());
             }
         }
@@ -69,21 +94,30 @@ impl<N: HgNode> HGraphCore<N> {
     }
 
     /// what is the right behavior for adding a sub-face of a simplex? 
-    pub fn add_edge<E>(&mut self, edge: E) -> Option<EdgeID>
-    where E: Into<Edge<N>> {
-        let edge: Edge<N> = if self.is_simplex {
+    /// Fails if not every node is contained in the provided edge.
+    pub fn add_edge<E>(&mut self, edge: E, data: EdgeData) -> Option<EdgeID>
+    where E: Into<EdgeSet<N>> {
+        let edge_set: EdgeSet<N> = if self.is_simplex {
             edge.into().make_simplex() 
         } else {
             edge.into()
         };
 
         let id = Uuid::new_v4();
-        let nodes = edge.node_vec();
-        self.add_nodes(nodes.clone());
+        let nodes = edge_set.node_vec();
         for node in nodes.iter() {
-            let node_link = self.node_to_containing_edges.get_mut(node).expect("Node should already be present, I just added it.");
-            node_link.insert(id.clone());
+            if self.nodes.contains_key(&node) == false {
+                return None;
+            }
         }
+        for node in nodes.iter() {
+            let node_link = self.nodes.get_mut(node).expect("Node should already be present, I just added it.");
+            node_link.containing_edges.insert(id.clone());
+        }
+        let edge = Edge {
+            nodes: edge_set,
+            data,
+        };
         self.edges.insert(id.clone(), edge);
         Some(id)
     }
@@ -91,11 +125,15 @@ impl<N: HgNode> HGraphCore<N> {
     /// Returns true if the node was added correctly, false if 
     /// the node was not added because it was already present.
     /// Does not overwrite existing nodes.
-    pub fn add_node(&mut self, node: N) -> bool {
-        if self.node_to_containing_edges.contains_key(&node) {
+    pub fn add_node(&mut self, node: N, data: NodeData) -> bool {
+        if self.nodes.contains_key(&node) {
             false 
         } else {
-            self.node_to_containing_edges.insert(node, HashSet::new()).is_none()
+            let new_node = Node {
+                containing_edges: HashSet::new(),
+                data,
+            };
+            self.nodes.insert(node, new_node).is_none()
         }
     }
 
@@ -103,11 +141,13 @@ impl<N: HgNode> HGraphCore<N> {
     /// Returns `None` if all nodes are new and added correctly, otherwise
     /// returns the list of nodes that were already present. Does not overwrite 
     /// any existing nodes.
-    pub fn add_nodes(&mut self, nodes: Vec<N>) -> Option<Vec<N>> {
+    pub fn add_nodes(&mut self, nodes: Vec<(N, NodeData)>) -> Option<Vec<(N, NodeData)>> {
         let mut ret = Vec::new();
         for node in nodes.into_iter() {
-            if !self.add_node(node) {
+            if self.nodes.contains_key(&node.0) {
                 ret.push(node);
+            } else {
+                self.add_node(node.0, node.1);
             }
         }
         if ret.is_empty() {
@@ -118,7 +158,9 @@ impl<N: HgNode> HGraphCore<N> {
     }
 
     /// Removes the node, returning the edge ids of the
-    /// effected edges. Does **NOTHING** if a node is not
+    /// effected edges. Deletes all data associated with
+    /// the node atm.
+    /// Does **NOTHING** if a node is not
     /// present in the graph.
     /// what to do if:
     /// - an edge is just modified
@@ -127,18 +169,18 @@ impl<N: HgNode> HGraphCore<N> {
     pub fn remove_nodes(&mut self, nodes: &Vec<N>) -> Vec<EdgeID> {
         let mut effected_edges = HashSet::new();
         for node in nodes {
-            let effected = self.node_to_containing_edges.remove(&node);
+            let effected = self.nodes.remove(&node);
             if let Some(edge_id_set) = effected {
-                for id in edge_id_set.into_iter() {
+                for id in edge_id_set.containing_edges.into_iter() {
                     let edge = self.edges.get_mut(&id).expect("Edge invariant violated.");
-                    edge.remove_node(node);
+                    edge.nodes.remove_node(node);
                     effected_edges.insert(id);
                 }
             }
         }
         for e_id in effected_edges.iter() {
             let edge = self.edges.get(e_id).expect("Edge Invariant violated.");
-            if edge.is_empty() {
+            if edge.nodes.is_empty() {
                 self.edges.remove(e_id);
             }
         }
@@ -158,9 +200,9 @@ impl<N: HgNode> HGraphCore<N> {
     /// assert!(hg.query(&[]))
     /// ```
     pub fn query<E>(&self, edge: E) -> bool 
-        where E: Into<Edge<N>>
+        where E: Into<EdgeSet<N>>
     {
-        let e: Edge<N> = if self.is_simplex {
+        let e: EdgeSet<N> = if self.is_simplex {
             edge.into().make_simplex() 
         } else {
             edge.into()
@@ -169,16 +211,16 @@ impl<N: HgNode> HGraphCore<N> {
             return true;
         }
         let first = e.get_first_node().unwrap();
-        if self.node_to_containing_edges.contains_key(&first) == false {
+        if self.nodes.contains_key(&first) == false {
             return false;
         }
-        let candidate_ids = self.node_to_containing_edges.get(&first).unwrap();
-        for candidate_id in candidate_ids {
+        let candidate_ids = self.nodes.get(&first).unwrap();
+        for candidate_id in candidate_ids.containing_edges.iter() {
             let candidate = self.edges.get(candidate_id).expect("Edge invariant violated.");
             let candidite_is_good = if self.is_simplex {
-                candidate.contains(&e)
+                candidate.nodes.contains(&e)
             } else {
-                *candidate == e
+                candidate.nodes == e
             };
             if candidite_is_good {
                 return true;
@@ -195,9 +237,9 @@ impl<N: HgNode> HGraphCore<N> {
     /// get_containing_edges_strict`. If the provided edge is empty, or the 
     /// edge is not supported on the graph, we return nothing.
     pub fn get_containing_edges<E>(&self, edge: E) -> Vec<EdgeID> 
-        where E: Into<Edge<N>>
+        where E: Into<EdgeSet<N>>
     {
-        let e: Edge<N> = if self.is_simplex {
+        let e: EdgeSet<N> = if self.is_simplex {
             edge.into().make_simplex() 
         } else {
             edge.into()
@@ -206,17 +248,17 @@ impl<N: HgNode> HGraphCore<N> {
             return vec![];
         }
         let first = e.get_first_node().unwrap();
-        if self.node_to_containing_edges.contains_key(&first) == false {
+        if self.nodes.contains_key(&first) == false {
             return vec![];
         }
-        let candidate_ids = self.node_to_containing_edges.get(&first).unwrap();
+        let candidate_ids = self.nodes.get(&first).unwrap();
         let mut ret = Vec::new();
-        for candidate_id in candidate_ids {
+        for candidate_id in candidate_ids.containing_edges.iter() {
             let candidate = self.edges.get(candidate_id).expect("Edge invariant violated.");
             let candidite_is_good = if self.is_simplex {
-                candidate.contains(&e)
+                candidate.nodes.contains(&e)
             } else {
-                *candidate == e
+                candidate.nodes == e
             };
             if candidite_is_good {
                 ret.push(candidate_id.clone());
@@ -229,7 +271,13 @@ impl<N: HgNode> HGraphCore<N> {
         if self.is_simplex {
             return;
         }
-        let new_edges = self.edges.drain().map(|(id, e)| (id, e.make_simplex())).collect();
+        let new_edges = self.edges.drain().map(|(id, e)| {
+            let new_edge = Edge {
+                nodes: e.nodes.make_simplex(),
+                data: e.data,
+            };
+            (id, new_edge)
+        }).collect();
         self.edges = new_edges;
         self.is_simplex = true;
     }
@@ -238,16 +286,23 @@ impl<N: HgNode> HGraphCore<N> {
         if !self.is_simplex {
             return;
         }
-        let new_edges = self.edges.drain().map(|(id, e)| (id, e.make_undirected())).collect();
+        let new_edges = self.edges.drain().map(|(id, e)| {
+        let new_edge = Edge {
+            nodes: e.nodes.make_undirected(),
+            data: e.data,
+        };
+        (id, new_edge)
+        }
+    ).collect();
         self.edges = new_edges;
         self.is_simplex = false;
     }
 
-    pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<Edge<N>> {
+    pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<Edge<N, EdgeData>> {
         if let Some(e) = self.edges.remove(&edge_id) {
-            for node in e.nodes_ref() {
-                let containing_edges = self.node_to_containing_edges.get_mut(node).expect("Why is edge not in here.");
-                containing_edges.remove(&edge_id);
+            for node in e.nodes.nodes_ref() {
+                let containing_edges = self.nodes.get_mut(node).expect("Why is edge not in here.");
+                containing_edges.containing_edges.remove(&edge_id);
             }
             Some(e)
         } else {
@@ -257,7 +312,6 @@ impl<N: HgNode> HGraphCore<N> {
 
 
 
-    /// I need to put the IDs into the edge structs. 
     /// There is an API problem to solve - What type do you return? 
     /// If this is a simplex, I should return the maximal complements.
     /// If I'm a hypergraph I should return something else. I think this 
@@ -268,7 +322,7 @@ impl<N: HgNode> HGraphCore<N> {
     /// types. If there are multiple edges in the graph that contain the 
     /// provided edge we just return the complement, not multiple copies.
     /// 
-    pub fn link<E: Into<Edge<N>> + ?Sized>(&self, edge: &E) -> Option<Vec<Edge<N>>> {
+    pub fn link<E: Into<EdgeSet<N>> + ?Sized>(&self, edge: &E) -> Option<Vec<EdgeSet<N>>> {
         todo!()
     }
 
@@ -285,7 +339,7 @@ impl<N: HgNode> HGraphCore<N> {
     }
 
     /// This one can stay in here.
-    pub fn star(&self, edge: &Edge<N>) -> Option<Vec<EdgeID>> {
+    pub fn star(&self, edge: &EdgeSet<N>) -> Option<Vec<EdgeID>> {
         todo!()
     }
 
@@ -300,11 +354,11 @@ mod tests {
 
     #[test]
     fn test_simple_tasks() {
-        let mut g = HGraphCore::<u8>::new();
+        let mut g = HGraphCore::<u8, (), ()>::new();
         g.make_simplex();
-        let e1 = g.add_edge(&[1_u8, 2, 3][..]).unwrap();
-        let e2 = g.add_edge(vec![1, 2, 4]).unwrap();
-        let e3 = g.add_edge([5_u8,6,7]).unwrap();
+        let e1 = g.add_edge(&[1_u8, 2, 3][..], ()).unwrap();
+        let e2 = g.add_edge(vec![1, 2, 4], ()).unwrap();
+        let e3 = g.add_edge([5_u8,6,7], ()).unwrap();
         assert!(g.query([1_u8, 2, 3]));
         // is simplex so this should work
         assert!(g.query([1_u8, 2]));

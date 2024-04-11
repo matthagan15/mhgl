@@ -3,15 +3,16 @@ use std::fmt::Display;
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::Path;
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::structs::{EdgeWeight, SparseNodeSet};
+use crate::structs::{EdgeWeight};
 use crate::structs::HGraphCore;
 
 
-use crate::{traits::*, Edge};
+use crate::{traits::*, EdgeSet};
 
 pub type NodeID = Uuid;
 pub type EdgeID = Uuid;
@@ -45,7 +46,7 @@ pub type EdgeID = Uuid;
 pub struct HGraph {
     next_usable_node: u32,
     reusable_nodes: VecDeque<u32>,
-    hgraph: HGraphCore<u32>,
+    hgraph: HGraphCore<u32, (), ()>,
 }
 
 impl HGraph {
@@ -64,13 +65,13 @@ impl HGraph {
     }
 
     pub fn to_disk(&self, path: &Path) {
-        let mut s = serde_json::to_string(self).expect("Could not serialize HGraph.");
+        // let mut s = serde_json::to_string(self).expect("Could not serialize HGraph.");
+        let mut s = self.to_string();
         let mut file = File::create(path).expect("Cannot create File.");
         file.write_all(s.as_bytes()).expect("Cannot write");
     }
 
     pub fn from_file(path: &Path) -> Option<Self> {
-        // check if path is a given file
         if path.is_file() == false {
             return None;
         }
@@ -91,7 +92,7 @@ impl HGraph {
         if self.next_usable_node < u32::MAX {
             let ret = self.next_usable_node;
             self.next_usable_node += 1;
-            self.hgraph.add_node(ret);
+            self.hgraph.add_node(ret, ());
             ret
         } else if self.reusable_nodes.len() > 0 {
             self.reusable_nodes.pop_front().expect("No nodes left.")
@@ -116,10 +117,10 @@ impl HGraph {
         while nodes_available && ret.len() < num_nodes {
             // Prefer adding never before seen nodes.
             if counter < u32::max_number() {
-                if self.hgraph.node_to_containing_edges.contains_key(&counter) == false
+                if self.hgraph.nodes.contains_key(&counter) == false
                     && self.reusable_nodes.contains(&counter) == false
                 {
-                    self.hgraph.add_node(counter);
+                    self.hgraph.add_node(counter, ());
                     ret.push(counter);
                 }
                 counter += 1;
@@ -127,15 +128,15 @@ impl HGraph {
                 // If the counter has reached the max, then we start reusing nodes
                 // TODO: This is rather inefficient, can just cache a boolean
                 // if we already added the max value or not.
-                if self.hgraph.node_to_containing_edges.contains_key(&counter) == false
+                if self.hgraph.nodes.contains_key(&counter) == false
                     && self.reusable_nodes.contains(&counter) == false
                 {
-                    self.hgraph.add_node(counter);
+                    self.hgraph.add_node(counter, ());
                     ret.push(counter);
                 } else {
                     if let Some(old_node) = self.reusable_nodes.pop_front() {
-                        if self.hgraph.node_to_containing_edges.contains_key(&old_node) == false {
-                            self.hgraph.add_node(old_node);
+                        if self.hgraph.nodes.contains_key(&old_node) == false {
+                            self.hgraph.add_node(old_node, ());
                             ret.push(old_node);
                         }
                     }
@@ -150,7 +151,7 @@ impl HGraph {
     /// Removes a node from the node set. The deleted node will be added to a
     /// dequeue to be reused later once all possible nodes have been created.
     pub fn remove_node(&mut self, node: u32) {
-        if self.hgraph.node_to_containing_edges.contains_key(&node) == false {
+        if self.hgraph.nodes.contains_key(&node) == false {
             return;
         }
         self.hgraph.remove_node(node);
@@ -164,7 +165,7 @@ impl HGraph {
 
     pub fn nodes(&self) -> Vec<u32> {
         self.hgraph
-        .node_to_containing_edges
+        .nodes
         .keys()
         .cloned().collect()
     }
@@ -172,7 +173,7 @@ impl HGraph {
     /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Allows for duplicate edges. Returns the Uuid of the created edge.
     // TODO: rename to add_edge
     pub fn add_edge(&mut self, nodes: &[u32]) -> Uuid {
-        let id = self.hgraph.add_edge(nodes);
+        let id = self.hgraph.add_edge(nodes, ());
         id.expect("Graph busted")
         
     }
@@ -196,7 +197,7 @@ impl HGraph {
 
     /// Returns the vec of nodes associated with the edge_id.
     pub fn query_edge_id(&self, edge_id: &Uuid) -> Option<Vec<u32>> {
-        self.hgraph.edges.get(edge_id).map(|e| e.node_vec())
+        self.hgraph.edges.get(edge_id).map(|e| e.nodes.node_vec())
     }
 
     pub fn get_edge_id(&self, nodes: &[u32]) -> Option<Uuid> {
@@ -205,7 +206,7 @@ impl HGraph {
 
     /// Warning: Has to filter all edges so takes Theta(|E|) time.
     pub fn edges_of_size(&self, card: usize) -> Vec<Uuid> {
-        self.hgraph.edges.iter().filter(|(id, e)| e.len() == card).map(|(id, e)| id).cloned().collect()
+        self.hgraph.edges.iter().filter(|(id, e)| e.nodes.len() == card).map(|(id, e)| id).cloned().collect()
     }
 
     pub fn get_containing_edges(&self, nodes: &[u32]) -> Vec<Uuid> {
@@ -252,7 +253,7 @@ impl HGraph {
     /// ```
     pub fn cut(&self, cut_nodes: &[u32]) -> usize
     {
-        let cut_as_edge = Edge::from(cut_nodes.clone());
+        let cut_as_edge = EdgeSet::from(cut_nodes.clone());
         let mut counted_edges: HashSet<Uuid> = HashSet::new();
         for node in cut_nodes {
             let out_edges: Vec<Uuid> = self
@@ -263,8 +264,8 @@ impl HGraph {
                 .collect();
             for edge_id in out_edges {
                 if let Some(e) = self.hgraph.edges.get(&edge_id) {
-                    let intersection = cut_as_edge.intersection(e);
-                    if intersection.len() > 0 && intersection.len() < e.len() {
+                    let intersection = cut_as_edge.intersection(&e.nodes);
+                    if intersection.len() > 0 && intersection.len() < e.nodes.len() {
                         counted_edges.insert(edge_id);
                     }
                 }
@@ -278,8 +279,8 @@ impl HGraph {
     /// of nodes {a, b, c, d} and a provided `face` of {a, b} would
     /// yield a link of {c, d}. The link of the graph is then the
     /// union of all the links of each hyperedge.
-    pub fn link<E>(&self, nodes: &E) -> Option<Vec<Edge<u32>>>
-        where E: Into<Edge<u32>>
+    pub fn link<E>(&self, nodes: &E) -> Option<Vec<EdgeSet<u32>>>
+        where E: Into<EdgeSet<u32>>
     {
         todo!()
     }
@@ -291,7 +292,7 @@ impl HGraph {
         self.hgraph
             .edges
             .iter()
-            .filter(|(_, e)| e.len() <= k)
+            .filter(|(_, e)| e.nodes.len() <= k)
             .map(|(id, _)| id.clone())
             .collect()
     }
@@ -307,15 +308,15 @@ impl HGraph {
 
 impl Display for HGraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.hgraph.node_to_containing_edges.len() == 0 {
+        if self.hgraph.nodes.len() == 0 {
             println!("Graph is empty. Add nodes for more fun.");
             return Ok(());
         }
         let mut s = String::new();
-        s.push_str("nodes: [");
+        s.push_str("nodes:\n[");
         let x: Vec<String> = self
             .hgraph
-            .node_to_containing_edges
+            .nodes
             .keys()
             .map(|n| n.to_string())
             .collect();
@@ -327,16 +328,79 @@ impl Display for HGraph {
         s.push_str("]\n");
         s.push_str("edges:\n");
         for e in self.hgraph.edges.values() {
-            s.push_str(&e.to_string());
+            s.push_str(&e.nodes.to_string());
             s.push_str("\n");
         }
         f.write_str(&s)
     }
 }
 
+impl FromStr for HGraph {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut hg_string: String = s.chars().filter(|c| !c.is_whitespace()).collect();
+        let mut edge_strings: Vec<EdgeSet<u32>> = Vec::new();
+        let lines: Vec<&str> = s.lines().collect();
+        let mut nodes_ix = 0;
+        let mut edges_start_ix = 0;
+        for ix in 0..lines.len() {
+            if lines[ix] == "nodes:" {
+                nodes_ix = ix + 1;
+            }
+            if lines[ix] == "edges:" {
+                edges_start_ix = ix + 1;
+            }
+        }
+        let mut node_string = lines[nodes_ix].to_string();
+        if node_string.starts_with('[') {
+            node_string.remove(0);
+        }
+        if node_string.ends_with(']') {
+            node_string.pop();
+        }
+        let mut nodes = Vec::new();
+        for node in node_string.split(',') {
+            nodes.push(
+                (node.trim().parse::<u32>().expect("node parse error."), ())
+            );
+        }
+        let mut edges = Vec::new();
+        for edge_ix in edges_start_ix..lines.len() {
+            let mut edge_string = lines[edge_ix].to_string();
+            if edge_string.starts_with('{') {
+                edge_string.remove(0);
+            }
+            if edge_string.ends_with('}') {
+                edge_string.pop();
+            }
+            let mut node_set = Vec::new();
+            for node_str in edge_string.split(',') {
+                node_set.push(
+                    node_str.trim().parse::<u32>().expect("node parse error.")
+                );
+            }
+            edges.push(node_set);
+        }
+        let mut next_usable_node = nodes.iter().fold(0_u32, |acc, e| acc.max(e.0)) + 1;
+        let mut core = HGraphCore::<u32, (), ()>::new();
+        core.add_nodes(nodes);
+        for edge in edges.into_iter() {
+            core.add_edge(edge, ());
+        }
+        Ok(
+            HGraph {
+                next_usable_node,
+                reusable_nodes: VecDeque::new(),
+                hgraph: core,
+            }
+        )
+    }
+}
+
 mod test {
 
-    use std::{collections::HashSet, path::Path};
+    use std::{collections::HashSet, path::Path, str::FromStr};
 
     use crate::HGraph;
 
@@ -372,34 +436,23 @@ mod test {
         let mut hg = HGraph::new();
         hg.add_nodes(10);
         hg.add_edge(&[0, 1]);
+        hg.add_edge(&[0, 1, 3, 5]);
         println!("hg:\n{:}", hg);
-        let g = hg.hgraph.clone();
-        dbg!(serde_json::to_string(&g).unwrap());
+        let s = hg.to_string();
+        let hg_parsed = HGraph::from_str(&s).expect("no parsing?");
+        println!("hg_parsed:\n{:}", hg_parsed);
         dbg!(&hg.hgraph);
-        let s3 = serde_json::to_string(&hg.next_usable_node)
+        let s3 = serde_json::to_string(&hg)
             .expect("could not serialize next_usable_node");
         let s4 =
             serde_json::to_string(&hg.reusable_nodes).expect("could not serialize reusable_nodes");
-        let s5 = serde_json::to_string(&hg.hgraph).expect("could not serialize graph");
 
         dbg!(s3);
         dbg!(s4);
-        dbg!(s5);
     }
 
     #[test]
     fn test_deserialization() {
-        let mut hg = HGraph::new();
-        let nodes = hg.add_nodes(10);
-        hg.add_edge(&nodes[0..2]);
-        hg.add_edge(&nodes[0..3]);
-        hg.add_edge(&nodes[0..4]);
-        hg.add_edge(&nodes[0..5]);
-        let mut s = String::new();
-        s = serde_json::to_string_pretty(&hg).unwrap();
-        println!("s: {:}", s);
-        let hg2: HGraph = serde_json::from_str(&s[..]).unwrap();
-        println!("hg2:{:}", hg2);
     }
 
     #[test]
