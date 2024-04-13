@@ -64,6 +64,7 @@
 #[forbid(unsafe_code)]
 mod hgraph;
 mod kvgraph;
+mod negraph;
 mod structs;
 mod traits;
 mod utils;

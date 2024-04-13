@@ -154,7 +154,7 @@ impl HGraph {
         if self.hgraph.nodes.contains_key(&node) == false {
             return;
         }
-        self.hgraph.remove_node(node);
+        self.hgraph.remove_node(&node);
     }
 
     /// Removes a collection of nodes. The deleted nodes will be added
@@ -339,8 +339,7 @@ impl FromStr for HGraph {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut hg_string: String = s.chars().filter(|c| !c.is_whitespace()).collect();
-        let mut edge_strings: Vec<EdgeSet<u32>> = Vec::new();
+        // TODO: Convert this to regex
         let lines: Vec<&str> = s.lines().collect();
         let mut nodes_ix = 0;
         let mut edges_start_ix = 0;
@@ -382,7 +381,7 @@ impl FromStr for HGraph {
             }
             edges.push(node_set);
         }
-        let mut next_usable_node = nodes.iter().fold(0_u32, |acc, e| acc.max(e.0)) + 1;
+        let next_usable_node = nodes.iter().fold(0_u32, |acc, e| acc.max(e.0)) + 1;
         let mut core = HGraphCore::<u32, (), ()>::new();
         core.add_nodes(nodes);
         for edge in edges.into_iter() {
@@ -413,11 +412,6 @@ mod test {
         hg.remove_node(removed);
         let one_hundred = hg.add_nodes(1);
         assert_eq!(one_hundred[0], 100_u32);
-        // WARNING: The below was performed once to verify accuracy, do not
-        // uncomment as this test will take forever.
-        // hg.add_nodes((u32::MAX - 101_u32) as usize );
-        // let get_removed = hg.add_nodes(1);
-        // assert_eq!(get_removed[0], removed);
     }
 
     #[test]
@@ -449,10 +443,6 @@ mod test {
 
         dbg!(s3);
         dbg!(s4);
-    }
-
-    #[test]
-    fn test_deserialization() {
     }
 
     #[test]

@@ -166,29 +166,18 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     /// - an edge is just modified
     /// - an edge is completely removed
     /// - a node is not present.
-    pub fn remove_nodes(&mut self, nodes: &Vec<N>) -> Vec<EdgeID> {
-        let mut effected_edges = HashSet::new();
-        for node in nodes {
-            let effected = self.nodes.remove(&node);
-            if let Some(edge_id_set) = effected {
-                for id in edge_id_set.containing_edges.into_iter() {
-                    let edge = self.edges.get_mut(&id).expect("Edge invariant violated.");
-                    edge.nodes.remove_node(node);
-                    effected_edges.insert(id);
-                }
-            }
-        }
-        for e_id in effected_edges.iter() {
-            let edge = self.edges.get(e_id).expect("Edge Invariant violated.");
-            if edge.nodes.is_empty() {
-                self.edges.remove(e_id);
-            }
-        }
-        effected_edges.into_iter().collect()
+    pub fn remove_nodes(&mut self, nodes: &Vec<N>) -> Vec<Node<NodeData>> {
+        nodes.into_iter().map(|n| self.remove_node(n)).collect()
     }
 
-    pub fn remove_node(&mut self, node: N) -> Vec<EdgeID> {
-        self.remove_nodes(&vec![node])
+    /// Note: keeps potentially empty edges around!
+    pub fn remove_node(&mut self, node: &N) -> Node<NodeData> {
+        let removed_node = self.nodes.remove(&node).expect("Node not found.");
+        for effected_edge_id in removed_node.containing_edges.iter() {
+            let effected_edge = self.edges.get_mut(&effected_edge_id).expect("Effected edge not found.");
+            effected_edge.nodes.remove_node(&node);
+        }
+        removed_node
     }
 
     /// Returns `true` if the provided edge is supported in
@@ -356,6 +345,18 @@ mod tests {
     fn test_simple_tasks() {
         let mut g = HGraphCore::<u8, (), ()>::new();
         g.make_simplex();
+        let nodes_good = g.add_nodes(vec![
+            (1, ()),
+            (2, ()),
+            (3, ()),
+            (4, ()),
+            (5, ()),
+            (6, ()),
+            (7, ()),
+            (8, ()),
+            (9, ()),
+        ]).is_none();
+        assert!(nodes_good);
         let e1 = g.add_edge(&[1_u8, 2, 3][..], ()).unwrap();
         let e2 = g.add_edge(vec![1, 2, 4], ()).unwrap();
         let e3 = g.add_edge([5_u8,6,7], ()).unwrap();
@@ -367,12 +368,12 @@ mod tests {
         assert_eq!(containing_edges.len(), 2);
         assert!(containing_edges.contains(&e1));
         assert!(containing_edges.contains(&e2));
-        let affected_edges = g.remove_node(2);
-        assert!(affected_edges.contains(&e1));
-        assert!(affected_edges.contains(&e2));
+        let affected_edges = g.remove_node(&2);
+        assert!(affected_edges.containing_edges.contains(&e1));
+        assert!(affected_edges.containing_edges.contains(&e2));
         assert!(g.query([1_u8, 3]));
         assert!(!g.query([1_u8, 2, 3]));
-        assert_eq!(g.remove_nodes(&vec![5, 6, 7])[0], e3);
+        assert!(g.remove_nodes(&vec![5, 6, 7])[0].containing_edges.contains(&e3));
         assert!(!g.query([5, 6, 7]));
 
     }
