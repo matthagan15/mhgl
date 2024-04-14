@@ -24,7 +24,7 @@ impl<NodeData> Node<NodeData> {
     /// ```rust
     /// let n = Node::new();
     /// ```
-    fn new(data: NodeData) -> Self {
+    pub fn new(data: NodeData) -> Self {
         Node {
             containing_edges: HashSet::new(),
             data,
@@ -56,6 +56,32 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     }
     pub fn contains_node(&self, node: &N) -> bool {
         self.nodes.contains_key(node)
+    }
+
+    pub fn change_node_data(&mut self, node: &N, new_data: NodeData) -> Option<NodeData> {
+        if let Some(old_node) = self.nodes.remove(node) {
+            let new_node = Node {
+                containing_edges: old_node.containing_edges,
+                data: new_data,
+            };
+            self.nodes.insert(node.clone(), new_node);
+            Some(old_node.data)
+        } else {
+            None
+        }
+    }
+
+    pub fn change_edge_data(&mut self, edge_id: &EdgeID, new_data: EdgeData) -> Option<EdgeData> {
+        if let Some(old_edge) = self.edges.remove(edge_id) {
+            let new_edge = Edge {
+                nodes: old_edge.nodes,
+                data: new_data,
+            };
+            self.edges.insert(edge_id.clone(), new_edge);
+            Some(old_edge.data)
+        } else {
+            None
+        }
     }
     
     /// Returns `None` if the edge is not present. Otherwise retrieves the unique id associated with this edge (no duplicate edges allowed).
@@ -301,17 +327,12 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
 
 
 
-    /// There is an API problem to solve - What type do you return? 
-    /// If this is a simplex, I should return the maximal complements.
-    /// If I'm a hypergraph I should return something else. I think this 
-    /// should move up a layer, to things like HGraph or `SComplex`
-    /// 
-    /// The issue is that complements are not guaranteed to be contained
-    /// in the hypergraph. So what should I return? An Edge with the proper 
-    /// types. If there are multiple edges in the graph that contain the 
-    /// provided edge we just return the complement, not multiple copies.
-    /// 
-    pub fn link<E: Into<EdgeSet<N>> + ?Sized>(&self, edge: &E) -> Option<Vec<EdgeSet<N>>> {
+    /// If this is a simplex it should only return the link associated with the
+    /// maximal id? No, it should return any associated edge_ids and the link within the edge. doesn't matter if its a sub-maximal edge or not. up to the user
+    /// to decide.
+    pub fn link<E>(&self, edge: &E) -> Vec<(EdgeID, EdgeSet<N>)>
+    where E: Into<EdgeSet<N>>
+     {
         todo!()
     }
 

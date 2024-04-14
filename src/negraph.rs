@@ -3,7 +3,7 @@ use std::collections::{HashMap, VecDeque};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::structs::HGraphCore;
+use crate::{hgraph::EdgeID, structs::HGraphCore, EdgeSet};
 
 
 /// A generic hypergraph over (N)ode and (E)dge datatypes. 
@@ -85,6 +85,56 @@ impl<NodeData, EdgeData> NEGraph<NodeData, EdgeData> {
         }
         self.next_usable_node = counter;
         ret
+    }
+
+    /// returns the data with the associated node, panics
+    /// if the node is not found because your dumb ass deserves
+    /// it.
+    pub fn node_ref(&self, node: &u32) -> &NodeData {
+        &self.core.nodes.get(node).expect("Node not found").data
+    }
+
+    pub fn node_ref_mut(&mut self, node: &u32) -> &mut NodeData {
+        &mut self.core.nodes.get_mut(node).expect("Node not found").data
+    }
+
+    pub fn edge_ref(&self, edge_id: &EdgeID) -> &EdgeData {
+        &self.core.edges.get(edge_id).expect("Edge not found").data
+    }
+
+    pub fn edge_ref_mut(&mut self, edge_id: &EdgeID) -> &EdgeData {
+        &mut self.core.edges.get_mut(edge_id).expect("Edge not found").data
+    }
+
+    /// Returns data of associated node, allowing the node for reuse. 
+    /// returns `None` if the node is not present
+    pub fn remove_node(&mut self, node: &u32) -> Option<NodeData> {
+        self.core.nodes.remove(node).map(|old_data| {
+            old_data.data
+        })
+    }
+    pub fn nodes(&self) -> Vec<u32> {
+        self.core
+            .nodes
+            .keys()
+            .cloned()
+            .collect()
+    }
+
+    pub fn add_edge<E>(&mut self, nodes: E, data: EdgeData) -> Uuid 
+        where E: Into<EdgeSet<u32>>
+    {
+        self.core
+            .add_edge(nodes, data)
+            .expect("Could not edge")
+    }
+
+    pub fn change_node_data(&mut self, node: &u32, new_data: NodeData) -> Option<NodeData> {
+        self.core.change_node_data(node, new_data)
+    }
+
+    pub fn change_edge_data(&mut self, edge_id: &EdgeID, new_data: EdgeData) -> Option<EdgeData> {
+        self.core.change_edge_data(edge_id, new_data)
     }
 }
 
