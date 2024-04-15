@@ -74,4 +74,3 @@ pub use kvgraph::KVGraph;
 pub use structs::EdgeSet;
 pub use traits::HgBasis;
 pub use traits::HyperGraph;
-

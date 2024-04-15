@@ -8,9 +8,8 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::structs::{EdgeWeight};
+use crate::structs::EdgeWeight;
 use crate::structs::HGraphCore;
-
 
 use crate::{traits::*, EdgeSet};
 
@@ -164,10 +163,7 @@ impl HGraph {
     }
 
     pub fn nodes(&self) -> Vec<u32> {
-        self.hgraph
-        .nodes
-        .keys()
-        .cloned().collect()
+        self.hgraph.nodes.keys().cloned().collect()
     }
 
     /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Allows for duplicate edges. Returns the Uuid of the created edge.
@@ -175,7 +171,6 @@ impl HGraph {
     pub fn add_edge(&mut self, nodes: &[u32]) -> Uuid {
         let id = self.hgraph.add_edge(nodes, ());
         id.expect("Graph busted")
-        
     }
 
     pub fn remove_edge(&mut self, nodes: &[u32]) {
@@ -206,7 +201,13 @@ impl HGraph {
 
     /// Warning: Has to filter all edges so takes Theta(|E|) time.
     pub fn edges_of_size(&self, card: usize) -> Vec<Uuid> {
-        self.hgraph.edges.iter().filter(|(id, e)| e.nodes.len() == card).map(|(id, e)| id).cloned().collect()
+        self.hgraph
+            .edges
+            .iter()
+            .filter(|(id, e)| e.nodes.len() == card)
+            .map(|(id, e)| id)
+            .cloned()
+            .collect()
     }
 
     pub fn get_containing_edges(&self, nodes: &[u32]) -> Vec<Uuid> {
@@ -251,8 +252,7 @@ impl HGraph {
     /// assert_eq!(hg.cut(&nodes[..3]), 1);
     /// assert_eq!(hg.cut(&nodes[..4]), 0);
     /// ```
-    pub fn cut(&self, cut_nodes: &[u32]) -> usize
-    {
+    pub fn cut(&self, cut_nodes: &[u32]) -> usize {
         let cut_as_edge = EdgeSet::from(cut_nodes.clone());
         let mut counted_edges: HashSet<Uuid> = HashSet::new();
         for node in cut_nodes {
@@ -280,7 +280,8 @@ impl HGraph {
     /// yield a link of {c, d}. The link of the graph is then the
     /// union of all the links of each hyperedge.
     pub fn link<E>(&self, nodes: &E) -> Option<Vec<EdgeSet<u32>>>
-        where E: Into<EdgeSet<u32>>
+    where
+        E: Into<EdgeSet<u32>>,
     {
         todo!()
     }
@@ -314,12 +315,7 @@ impl Display for HGraph {
         }
         let mut s = String::new();
         s.push_str("nodes:\n[");
-        let x: Vec<String> = self
-            .hgraph
-            .nodes
-            .keys()
-            .map(|n| n.to_string())
-            .collect();
+        let x: Vec<String> = self.hgraph.nodes.keys().map(|n| n.to_string()).collect();
         for ix in 0..x.len() - 1 {
             s.push_str(&x[ix]);
             s.push_str(", ");
@@ -360,9 +356,7 @@ impl FromStr for HGraph {
         }
         let mut nodes = Vec::new();
         for node in node_string.split(',') {
-            nodes.push(
-                (node.trim().parse::<u32>().expect("node parse error."), ())
-            );
+            nodes.push((node.trim().parse::<u32>().expect("node parse error."), ()));
         }
         let mut edges = Vec::new();
         for edge_ix in edges_start_ix..lines.len() {
@@ -375,9 +369,7 @@ impl FromStr for HGraph {
             }
             let mut node_set = Vec::new();
             for node_str in edge_string.split(',') {
-                node_set.push(
-                    node_str.trim().parse::<u32>().expect("node parse error.")
-                );
+                node_set.push(node_str.trim().parse::<u32>().expect("node parse error."));
             }
             edges.push(node_set);
         }
@@ -387,13 +379,11 @@ impl FromStr for HGraph {
         for edge in edges.into_iter() {
             core.add_edge(edge, ());
         }
-        Ok(
-            HGraph {
-                next_usable_node,
-                reusable_nodes: VecDeque::new(),
-                hgraph: core,
-            }
-        )
+        Ok(HGraph {
+            next_usable_node,
+            reusable_nodes: VecDeque::new(),
+            hgraph: core,
+        })
     }
 }
 
@@ -436,8 +426,7 @@ mod test {
         let hg_parsed = HGraph::from_str(&s).expect("no parsing?");
         println!("hg_parsed:\n{:}", hg_parsed);
         dbg!(&hg.hgraph);
-        let s3 = serde_json::to_string(&hg)
-            .expect("could not serialize next_usable_node");
+        let s3 = serde_json::to_string(&hg).expect("could not serialize next_usable_node");
         let s4 =
             serde_json::to_string(&hg.reusable_nodes).expect("could not serialize reusable_nodes");
 

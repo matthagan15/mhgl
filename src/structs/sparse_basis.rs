@@ -1,7 +1,7 @@
 use std::{
-    collections::HashSet, fmt::{Debug, Display}
+    collections::HashSet,
+    fmt::{Debug, Display},
 };
-
 
 use serde::{Deserialize, Serialize};
 
@@ -16,15 +16,15 @@ use crate::traits::{HgBasis, HgNode};
 /// ```
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub enum EdgeSet<N: HgNode> {
-    Undirected (Vec<N>),
-    Simplex (Vec<N>),
+    Undirected(Vec<N>),
+    Simplex(Vec<N>),
 }
 
 impl<N: HgNode> EdgeSet<N> {
     /// Creates an empty edge.
     pub fn new(simplex: bool) -> Self {
         if simplex {
-            EdgeSet::Simplex (Vec::new())
+            EdgeSet::Simplex(Vec::new())
         } else {
             EdgeSet::Undirected(Vec::new())
         }
@@ -42,7 +42,7 @@ impl<N: HgNode> EdgeSet<N> {
     }
 
     /// Number of nodes in the edge
-    /// ```rust 
+    /// ```rust
     /// let e = Edge::from([1,2,3]);
     /// assert_eq!(e.len(), 3);
     /// ```
@@ -65,68 +65,44 @@ impl<N: HgNode> EdgeSet<N> {
     /// Consumes `self`
     pub fn make_simplex(self) -> Self {
         match self {
-            EdgeSet::Undirected(nodes) => {
-                EdgeSet::Simplex(nodes)
-            },
-            EdgeSet::Simplex(_) => {
-                self
-            },
+            EdgeSet::Undirected(nodes) => EdgeSet::Simplex(nodes),
+            EdgeSet::Simplex(_) => self,
         }
     }
 
     /// Consumes `self`
     pub fn make_undirected(self) -> Self {
         match self {
-            EdgeSet::Undirected(_) => {
-                self
-            },
-            EdgeSet::Simplex(nodes) => {
-                EdgeSet::Undirected(nodes)
-            },
+            EdgeSet::Undirected(_) => self,
+            EdgeSet::Simplex(nodes) => EdgeSet::Undirected(nodes),
         }
     }
 
     pub fn node_set(&self) -> HashSet<N> {
         match self {
-            EdgeSet::Undirected(nodes) => {
-                nodes.clone().into_iter().collect()
-            },
-            EdgeSet::Simplex(nodes) => {
-                nodes.clone().into_iter().collect()
-            },
+            EdgeSet::Undirected(nodes) => nodes.clone().into_iter().collect(),
+            EdgeSet::Simplex(nodes) => nodes.clone().into_iter().collect(),
         }
     }
 
     pub fn node_vec(&self) -> Vec<N> {
         match self {
-            EdgeSet::Undirected(nodes) => {
-                nodes.clone().into_iter().collect()
-            },
-            EdgeSet::Simplex(nodes) => {
-                nodes.clone().into_iter().collect()
-            },
+            EdgeSet::Undirected(nodes) => nodes.clone().into_iter().collect(),
+            EdgeSet::Simplex(nodes) => nodes.clone().into_iter().collect(),
         }
     }
 
     pub fn to_node_set(self) -> HashSet<N> {
         match self {
-            EdgeSet::Undirected(nodes) => {
-                nodes.into_iter().collect()
-            },
-            EdgeSet::Simplex(nodes) => {
-                nodes.into_iter().collect()
-            },
+            EdgeSet::Undirected(nodes) => nodes.into_iter().collect(),
+            EdgeSet::Simplex(nodes) => nodes.into_iter().collect(),
         }
     }
 
     pub fn to_node_vec(self) -> Vec<N> {
         match self {
-            EdgeSet::Undirected(nodes) => {
-                nodes.into_iter().collect()
-            },
-            EdgeSet::Simplex(nodes) => {
-                nodes.into_iter().collect()
-            },
+            EdgeSet::Undirected(nodes) => nodes.into_iter().collect(),
+            EdgeSet::Simplex(nodes) => nodes.into_iter().collect(),
         }
     }
 
@@ -136,12 +112,12 @@ impl<N: HgNode> EdgeSet<N> {
                 if let Err(ix) = nodes.binary_search(&node) {
                     nodes.insert(ix, node);
                 }
-            },
+            }
             EdgeSet::Simplex(nodes) => {
                 if let Err(ix) = nodes.binary_search(&node) {
                     nodes.insert(ix, node);
                 }
-            },
+            }
         }
     }
 
@@ -238,7 +214,7 @@ impl<N: HgNode> EdgeSet<N> {
         for node in rhs_nodes {
             tot.insert(*node);
         }
-        let mut union: Vec<N>= tot.into_iter().collect();
+        let mut union: Vec<N> = tot.into_iter().collect();
         union.sort();
         match self {
             EdgeSet::Undirected(_) => EdgeSet::Undirected(union),
@@ -250,7 +226,7 @@ impl<N: HgNode> EdgeSet<N> {
     /// within self. If `rhs` is not fully contained in self returns the
     /// empty set. Note this is the same return value as `self.link(&self)`.
     /// This could lead to major bugs in the future, but the other option
-    /// is that link returns an option. 
+    /// is that link returns an option.
     pub fn link(&self, rhs: &Self) -> Option<Self> {
         if self.contains(rhs) == false {
             return None;
@@ -416,13 +392,9 @@ impl<N: HgNode> From<HashSet<N>> for EdgeSet<N> {
 mod test {
     use std::collections::HashMap;
 
-    use crate::{HgBasis};
+    use crate::HgBasis;
 
     use super::EdgeSet;
-
-    
-
-    
 
     #[test]
     fn test_contains() {

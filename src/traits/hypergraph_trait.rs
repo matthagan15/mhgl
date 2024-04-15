@@ -1,5 +1,3 @@
-
-
 use crate::structs::{EdgeID, EdgeWeight, GeneroVector};
 use crate::traits::*;
 

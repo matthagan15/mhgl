@@ -5,8 +5,7 @@ use uuid::Uuid;
 
 use crate::{hgraph::EdgeID, structs::HGraphCore, EdgeSet};
 
-
-/// A generic hypergraph over (N)ode and (E)dge datatypes. 
+/// A generic hypergraph over (N)ode and (E)dge datatypes.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NEGraph<NodeData, EdgeData> {
     next_usable_node: u32,
@@ -23,7 +22,7 @@ impl<NodeData, EdgeData> NEGraph<NodeData, EdgeData> {
         }
     }
 
-     // TODO: Need to overhaul the add_nodes api to panic if new nodes
+    // TODO: Need to overhaul the add_nodes api to panic if new nodes
     // cannot be added. I also do not like the idea of reusing nodes.
     pub fn add_node(&mut self, data: NodeData) -> u32 {
         if self.next_usable_node < u32::MAX {
@@ -39,10 +38,10 @@ impl<NodeData, EdgeData> NEGraph<NodeData, EdgeData> {
     }
 
     /// Panics if cannot add all nodes.
-    /// TODO: The proper thing to do is return a 
-    /// result with the OK variant being the Vec<u32> of each node added and 
-    /// the Error variant containing the vec of the nodes added and 
-    /// all the data that was not properly added. 
+    /// TODO: The proper thing to do is return a
+    /// result with the OK variant being the Vec<u32> of each node added and
+    /// the Error variant containing the vec of the nodes added and
+    /// all the data that was not properly added.
     pub fn add_nodes(&mut self, data: Vec<NodeData>) -> Vec<u32> {
         // TODO: Should the user control what nodes are present? We don't
         // really care what numbers are used to store nodes, so why go through
@@ -103,30 +102,28 @@ impl<NodeData, EdgeData> NEGraph<NodeData, EdgeData> {
     }
 
     pub fn edge_ref_mut(&mut self, edge_id: &EdgeID) -> &EdgeData {
-        &mut self.core.edges.get_mut(edge_id).expect("Edge not found").data
+        &mut self
+            .core
+            .edges
+            .get_mut(edge_id)
+            .expect("Edge not found")
+            .data
     }
 
-    /// Returns data of associated node, allowing the node for reuse. 
+    /// Returns data of associated node, allowing the node for reuse.
     /// returns `None` if the node is not present
     pub fn remove_node(&mut self, node: &u32) -> Option<NodeData> {
-        self.core.nodes.remove(node).map(|old_data| {
-            old_data.data
-        })
+        self.core.nodes.remove(node).map(|old_data| old_data.data)
     }
     pub fn nodes(&self) -> Vec<u32> {
-        self.core
-            .nodes
-            .keys()
-            .cloned()
-            .collect()
+        self.core.nodes.keys().cloned().collect()
     }
 
-    pub fn add_edge<E>(&mut self, nodes: E, data: EdgeData) -> Uuid 
-        where E: Into<EdgeSet<u32>>
+    pub fn add_edge<E>(&mut self, nodes: E, data: EdgeData) -> Uuid
+    where
+        E: Into<EdgeSet<u32>>,
     {
-        self.core
-            .add_edge(nodes, data)
-            .expect("Could not edge")
+        self.core.add_edge(nodes, data).expect("Could not edge")
     }
 
     pub fn change_node_data(&mut self, node: &u32, new_data: NodeData) -> Option<NodeData> {
@@ -145,10 +142,7 @@ mod tests {
     fn test_node_creation() {
         let mut hg = NEGraph::<String, String>::new();
         hg.add_node(String::from("node 1"));
-        hg.add_nodes(vec![
-            String::from("node 2"),
-            String::from("node 3"),
-        ]);
+        hg.add_nodes(vec![String::from("node 2"), String::from("node 3")]);
         dbg!(hg);
     }
 }

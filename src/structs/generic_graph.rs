@@ -1,17 +1,13 @@
-use std::
-    collections::{HashMap, HashSet}
-;
+use std::collections::{HashMap, HashSet};
 
-use serde::{Deserialize, Serialize};
 use serde::ser::{SerializeStruct, Serializer};
+use serde::{Deserialize, Serialize};
 
 use uuid::Uuid;
 
 use crate::traits::HgNode;
 
-use super::{
-    sparse_basis::EdgeSet, EdgeID
-};
+use super::{sparse_basis::EdgeSet, EdgeID};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node<NodeData> {
@@ -20,7 +16,7 @@ pub struct Node<NodeData> {
 }
 
 impl<NodeData> Node<NodeData> {
-    /// 
+    ///
     /// ```rust
     /// let n = Node::new();
     /// ```
@@ -83,16 +79,17 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
             None
         }
     }
-    
+
     /// Returns `None` if the edge is not present. Otherwise retrieves the unique id associated with this edge (no duplicate edges allowed).
-    /// 
+    ///
     /// Returns `nil` for empty query
-    /// 
+    ///
     pub fn query_id<E>(&self, edge: E) -> Option<EdgeID>
-        where E: Into<EdgeSet<N>>
+    where
+        E: Into<EdgeSet<N>>,
     {
         let e: EdgeSet<N> = if self.is_simplex {
-            edge.into().make_simplex() 
+            edge.into().make_simplex()
         } else {
             edge.into()
         };
@@ -105,7 +102,10 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         }
         let candidate_ids = self.nodes.get(&first).unwrap();
         for candidate_id in candidate_ids.containing_edges.iter() {
-            let candidate = self.edges.get(candidate_id).expect("Edge invariant violated.");
+            let candidate = self
+                .edges
+                .get(candidate_id)
+                .expect("Edge invariant violated.");
             // This is where the "no duplicate edges" is enforced, otherwise
             // we will just return the arbitrary first edge that matches
             if candidate.nodes == e {
@@ -119,12 +119,14 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         todo!()
     }
 
-    /// what is the right behavior for adding a sub-face of a simplex? 
+    /// what is the right behavior for adding a sub-face of a simplex?
     /// Fails if not every node is contained in the provided edge.
     pub fn add_edge<E>(&mut self, edge: E, data: EdgeData) -> Option<EdgeID>
-    where E: Into<EdgeSet<N>> {
+    where
+        E: Into<EdgeSet<N>>,
+    {
         let edge_set: EdgeSet<N> = if self.is_simplex {
-            edge.into().make_simplex() 
+            edge.into().make_simplex()
         } else {
             edge.into()
         };
@@ -137,7 +139,10 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
             }
         }
         for node in nodes.iter() {
-            let node_link = self.nodes.get_mut(node).expect("Node should already be present, I just added it.");
+            let node_link = self
+                .nodes
+                .get_mut(node)
+                .expect("Node should already be present, I just added it.");
             node_link.containing_edges.insert(id.clone());
         }
         let edge = Edge {
@@ -148,12 +153,12 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         Some(id)
     }
 
-    /// Returns true if the node was added correctly, false if 
+    /// Returns true if the node was added correctly, false if
     /// the node was not added because it was already present.
     /// Does not overwrite existing nodes.
     pub fn add_node(&mut self, node: N, data: NodeData) -> bool {
         if self.nodes.contains_key(&node) {
-            false 
+            false
         } else {
             let new_node = Node {
                 containing_edges: HashSet::new(),
@@ -165,7 +170,7 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
 
     /// Adds the provided nodes to the graph with no connective structure.
     /// Returns `None` if all nodes are new and added correctly, otherwise
-    /// returns the list of nodes that were already present. Does not overwrite 
+    /// returns the list of nodes that were already present. Does not overwrite
     /// any existing nodes.
     pub fn add_nodes(&mut self, nodes: Vec<(N, NodeData)>) -> Option<Vec<(N, NodeData)>> {
         let mut ret = Vec::new();
@@ -200,25 +205,29 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     pub fn remove_node(&mut self, node: &N) -> Node<NodeData> {
         let removed_node = self.nodes.remove(&node).expect("Node not found.");
         for effected_edge_id in removed_node.containing_edges.iter() {
-            let effected_edge = self.edges.get_mut(&effected_edge_id).expect("Effected edge not found.");
+            let effected_edge = self
+                .edges
+                .get_mut(&effected_edge_id)
+                .expect("Effected edge not found.");
             effected_edge.nodes.remove_node(&node);
         }
         removed_node
     }
 
     /// Returns `true` if the provided edge is supported in
-    /// the graph, `false` otherwise. and `true` for provided edges that are **covered** by 
+    /// the graph, `false` otherwise. and `true` for provided edges that are **covered** by
     /// another if  the graph is a simplicial complex.
-    /// 
+    ///
     /// ```rust
     /// let hg = HGraph::new();
     /// assert!(hg.query(&[]))
     /// ```
-    pub fn query<E>(&self, edge: E) -> bool 
-        where E: Into<EdgeSet<N>>
+    pub fn query<E>(&self, edge: E) -> bool
+    where
+        E: Into<EdgeSet<N>>,
     {
         let e: EdgeSet<N> = if self.is_simplex {
-            edge.into().make_simplex() 
+            edge.into().make_simplex()
         } else {
             edge.into()
         };
@@ -231,7 +240,10 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         }
         let candidate_ids = self.nodes.get(&first).unwrap();
         for candidate_id in candidate_ids.containing_edges.iter() {
-            let candidate = self.edges.get(candidate_id).expect("Edge invariant violated.");
+            let candidate = self
+                .edges
+                .get(candidate_id)
+                .expect("Edge invariant violated.");
             let candidite_is_good = if self.is_simplex {
                 candidate.nodes.contains(&e)
             } else {
@@ -249,13 +261,14 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     /// [{1, 2, 3}, {1, 2, 3, 4}, {1,2}, {0, 1, 2}] would yield
     /// g.get_containing_edges([1, 2]) = [{1, 2, 3}, {1, 2, 3, 4}, {1,2}]
     /// If you want **strictly** containing edges use `
-    /// get_containing_edges_strict`. If the provided edge is empty, or the 
+    /// get_containing_edges_strict`. If the provided edge is empty, or the
     /// edge is not supported on the graph, we return nothing.
-    pub fn get_containing_edges<E>(&self, edge: E) -> Vec<EdgeID> 
-        where E: Into<EdgeSet<N>>
+    pub fn get_containing_edges<E>(&self, edge: E) -> Vec<EdgeID>
+    where
+        E: Into<EdgeSet<N>>,
     {
         let e: EdgeSet<N> = if self.is_simplex {
-            edge.into().make_simplex() 
+            edge.into().make_simplex()
         } else {
             edge.into()
         };
@@ -269,7 +282,10 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         let candidate_ids = self.nodes.get(&first).unwrap();
         let mut ret = Vec::new();
         for candidate_id in candidate_ids.containing_edges.iter() {
-            let candidate = self.edges.get(candidate_id).expect("Edge invariant violated.");
+            let candidate = self
+                .edges
+                .get(candidate_id)
+                .expect("Edge invariant violated.");
             let candidite_is_good = if self.is_simplex {
                 candidate.nodes.contains(&e)
             } else {
@@ -281,18 +297,22 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         }
         ret
     }
-    
+
     pub fn make_simplex(&mut self) {
         if self.is_simplex {
             return;
         }
-        let new_edges = self.edges.drain().map(|(id, e)| {
-            let new_edge = Edge {
-                nodes: e.nodes.make_simplex(),
-                data: e.data,
-            };
-            (id, new_edge)
-        }).collect();
+        let new_edges = self
+            .edges
+            .drain()
+            .map(|(id, e)| {
+                let new_edge = Edge {
+                    nodes: e.nodes.make_simplex(),
+                    data: e.data,
+                };
+                (id, new_edge)
+            })
+            .collect();
         self.edges = new_edges;
         self.is_simplex = true;
     }
@@ -301,14 +321,17 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         if !self.is_simplex {
             return;
         }
-        let new_edges = self.edges.drain().map(|(id, e)| {
-        let new_edge = Edge {
-            nodes: e.nodes.make_undirected(),
-            data: e.data,
-        };
-        (id, new_edge)
-        }
-    ).collect();
+        let new_edges = self
+            .edges
+            .drain()
+            .map(|(id, e)| {
+                let new_edge = Edge {
+                    nodes: e.nodes.make_undirected(),
+                    data: e.data,
+                };
+                (id, new_edge)
+            })
+            .collect();
         self.edges = new_edges;
         self.is_simplex = false;
     }
@@ -325,38 +348,73 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         }
     }
 
-
-
     /// If this is a simplex it should only return the link associated with the
     /// maximal id? No, it should return any associated edge_ids and the link within the edge. doesn't matter if its a sub-maximal edge or not. up to the user
     /// to decide.
-    pub fn link<E>(&self, edge: &E) -> Vec<(EdgeID, EdgeSet<N>)>
+    /// ```rust
+    /// let core = HGraphCore::<u32, (), ()>::new();
+    /// let nodes: Vec<_> =(0..=10).into_iter().map(|x| {
+    /// (x, ())
+    /// }).collect();
+    /// core.add_nodes(nodes);
+    /// 
+    /// ```
+    pub fn link<E>(&self, edge: E) -> Vec<(EdgeID, EdgeSet<N>)>
+    where
+        E: Into<EdgeSet<N>>,
+    {
+        let e: EdgeSet<N> = if self.is_simplex {
+            edge.into().make_simplex()
+        } else {
+            edge.into()
+        };
+        let containing_edges = self.get_containing_edges(e.node_vec());
+        containing_edges
+            .into_iter()
+            .filter_map(|id| {
+                if let Some(local_link) = self
+                    .edges
+                    .get(&id)
+                    .expect("Broken edge invariant found in link.")
+                    .nodes
+                    .link(&e)
+                {
+                    Some((id, local_link))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    /// As this consists of only proper edges then we can just return the maximal edges containing the provided edge.
+    pub fn star<E>(&self, edge: E) -> Option<Vec<EdgeID>> 
     where E: Into<EdgeSet<N>>
-     {
-        todo!()
+    {
+        let containing_edges = self.get_containing_edges(edge);
+        if containing_edges.is_empty() {
+            return None;
+        }
+        let mut edges_with_len: Vec<_> = containing_edges.into_iter()
+        .map(|id| {
+            (id, self.edges.get(&id).unwrap().nodes.len())
+        }).collect();
+        edges_with_len.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap().reverse());
+        let max_size = edges_with_len[0].1;
+        Some(edges_with_len.into_iter().filter_map(|(id, size)| if size == max_size {
+            Some(id)
+        } else {
+            None
+        }).collect())
     }
 
-    /// Do we include the given edges? AKA is this strict?
-    /// ```
-    /// let g = Graph::new();
-    /// let e1 = g.add_edge([1_u8, 2, 3]);
-    /// let maxes = g.maximal_containing_edges(&e1);
-    /// assert_eq!(maxes, vec![e1])
-    /// ```
-    pub fn maximal_containing_edges(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
-        
-        todo!()
+    pub fn star_id(&self, edge_id: &EdgeID) -> Option<Vec<EdgeID>> {
+        if let Some(edge) = self.edges.get(edge_id) {
+            self.star(edge.nodes.node_vec())
+        } else {
+            None
+        }
     }
-
-    /// This one can stay in here.
-    pub fn star(&self, edge: &EdgeSet<N>) -> Option<Vec<EdgeID>> {
-        todo!()
-    }
-
-    pub fn star_id(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
-        todo!()
-    }
-
 }
 
 mod tests {
@@ -366,21 +424,23 @@ mod tests {
     fn test_simple_tasks() {
         let mut g = HGraphCore::<u8, (), ()>::new();
         g.make_simplex();
-        let nodes_good = g.add_nodes(vec![
-            (1, ()),
-            (2, ()),
-            (3, ()),
-            (4, ()),
-            (5, ()),
-            (6, ()),
-            (7, ()),
-            (8, ()),
-            (9, ()),
-        ]).is_none();
+        let nodes_good = g
+            .add_nodes(vec![
+                (1, ()),
+                (2, ()),
+                (3, ()),
+                (4, ()),
+                (5, ()),
+                (6, ()),
+                (7, ()),
+                (8, ()),
+                (9, ()),
+            ])
+            .is_none();
         assert!(nodes_good);
         let e1 = g.add_edge(&[1_u8, 2, 3][..], ()).unwrap();
         let e2 = g.add_edge(vec![1, 2, 4], ()).unwrap();
-        let e3 = g.add_edge([5_u8,6,7], ()).unwrap();
+        let e3 = g.add_edge([5_u8, 6, 7], ()).unwrap();
         assert!(g.query([1_u8, 2, 3]));
         // is simplex so this should work
         assert!(g.query([1_u8, 2]));
@@ -394,8 +454,9 @@ mod tests {
         assert!(affected_edges.containing_edges.contains(&e2));
         assert!(g.query([1_u8, 3]));
         assert!(!g.query([1_u8, 2, 3]));
-        assert!(g.remove_nodes(&vec![5, 6, 7])[0].containing_edges.contains(&e3));
+        assert!(g.remove_nodes(&vec![5, 6, 7])[0]
+            .containing_edges
+            .contains(&e3));
         assert!(!g.query([5, 6, 7]));
-
     }
 }
