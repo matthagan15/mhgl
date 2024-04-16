@@ -142,6 +142,9 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         } else {
             edge.into()
         };
+        if self.query_id(edge_set.node_vec()).is_some() {
+            return None;
+        }
 
         let id = Uuid::new_v4();
         let nodes = edge_set.node_vec();

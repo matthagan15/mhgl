@@ -1,4 +1,9 @@
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    fs::File,
+    io::Write,
+    path::Path,
+};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -126,12 +131,127 @@ impl<NodeData, EdgeData> NEGraph<NodeData, EdgeData> {
         self.core.add_edge(nodes, data).expect("Could not edge")
     }
 
+    pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<EdgeData> {
+        self.core.remove_edge(edge_id).map(|edge| edge.data)
+    }
+
+    pub fn query_edge<E>(&self, edge: E) -> bool
+    where
+        E: Into<EdgeSet<u32>>,
+    {
+        self.core.query(edge)
+    }
+
+    /// Returns the vec of nodes associated with the edge_id.
+    pub fn query_edge_id(&self, edge_id: &Uuid) -> Option<Vec<u32>> {
+        self.core.edges.get(edge_id).map(|e| e.nodes.node_vec())
+    }
+
+    pub fn get_edge_id<E>(&self, edge: E) -> Option<Uuid>
+    where
+        E: Into<EdgeSet<u32>>,
+    {
+        self.core.query_id(edge)
+    }
+
+    /// Warning: Has to filter all edges so takes Theta(|E|) time.
+    pub fn edges_of_size(&self, card: usize) -> Vec<Uuid> {
+        self.core
+            .edges
+            .iter()
+            .filter(|(id, e)| e.nodes.len() == card)
+            .map(|(id, e)| id)
+            .cloned()
+            .collect()
+    }
+
+    pub fn get_containing_edges<E>(&self, edge: E) -> Vec<Uuid>
+    where
+        E: Into<EdgeSet<u32>>,
+    {
+        self.core
+            .get_containing_edges_strict(edge)
+            .into_iter()
+            .collect()
+    }
+
+    /// Returns the hyperedges that contain the provided edge, not
+    /// including the provided edge.
+    /// Ex: Edges = [{a, b, c}, {a,b,c,d}, {a,b}, {a,b,c,d,e}]
+    /// star({a,b,c}) = [{a,b,c,d}, {a,b,c,d,e}]
+    pub fn get_containing_edges_id(&self, edge_id: &Uuid) -> Vec<Uuid> {
+        self.core
+            .get_containing_edges_strict_id(edge_id)
+            .into_iter()
+            .collect()
+    }
+
+    /// Returns a list of all edges in the graph.
+    pub fn get_edges(&self) -> Vec<EdgeID> {
+        self.core.edges.keys().cloned().collect()
+    }
+
+    /// Computes the link of the provided set. The link of a single
+    /// hyperedge is computed using the complement, so a hyperedge
+    /// of nodes {a, b, c, d} and a provided `face` of {a, b} would
+    /// yield a link of {c, d}. The link of the graph is then the
+    /// union of all the links of each hyperedge.
+    pub fn link<E>(&self, nodes: E) -> Vec<EdgeSet<u32>>
+    where
+        E: Into<EdgeSet<u32>>,
+    {
+        self.core
+            .link(nodes)
+            .into_iter()
+            .map(|(_, edge)| edge)
+            .collect()
+    }
+
+    /// Returns the set of edge of size less than or equal to `k`,
+    /// inclusive. Also note that `k` refers to the cardinality of the
+    /// provided sets, not the dimension.
+    pub fn k_skeleton(&self, k: usize) -> HashSet<EdgeID> {
+        self.core
+            .edges
+            .iter()
+            .filter(|(_, e)| e.nodes.len() <= k)
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+
     pub fn change_node_data(&mut self, node: &u32, new_data: NodeData) -> Option<NodeData> {
         self.core.change_node_data(node, new_data)
     }
 
     pub fn change_edge_data(&mut self, edge_id: &EdgeID, new_data: EdgeData) -> Option<EdgeData> {
         self.core.change_edge_data(edge_id, new_data)
+    }
+}
+
+impl<NodeData, EdgeData> NEGraph<NodeData, EdgeData>
+where
+    NodeData: Serialize + for<'a> Deserialize<'a>,
+    EdgeData: Serialize + for<'a> Deserialize<'a>,
+{
+    pub fn to_disk(&self, path: &Path) {
+        let s = serde_json::to_string(self).expect("could not serialize NEGraph");
+        let mut file = File::create(path).expect("Cannot create File.");
+        file.write_all(s.as_bytes()).expect("Cannot write");
+    }
+
+    pub fn from_file(path: &Path) -> Option<Self> {
+        if path.is_file() == false {
+            return None;
+        }
+        if let Ok(hg_string) = std::fs::read_to_string(path) {
+            if let Ok(serde_out) = serde_json::from_str(&hg_string) {
+                Some(serde_out)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 }
 

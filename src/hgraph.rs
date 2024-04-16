@@ -73,8 +73,8 @@ impl HGraph {
         if path.is_file() == false {
             return None;
         }
-        if let Ok(hg_json) = fs::read_to_string(path) {
-            if let Ok(serde_out) = serde_json::from_str::<HGraph>(&hg_json) {
+        if let Ok(hg_string) = fs::read_to_string(path) {
+            if let Ok(serde_out) = HGraph::from_str(&hg_string) {
                 Some(serde_out)
             } else {
                 None
@@ -165,8 +165,7 @@ impl HGraph {
         self.core.nodes.keys().cloned().collect()
     }
 
-    /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Allows for duplicate edges. Returns the Uuid of the created edge.
-    // TODO: rename to add_edge
+    /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Does not allow for duplicate edges at the moment.
     pub fn add_edge(&mut self, nodes: &[u32]) -> Uuid {
         let id = self.core.add_edge(nodes, ());
         id.expect("Graph busted")
@@ -220,11 +219,10 @@ impl HGraph {
     /// including the provided edge.
     /// Ex: Edges = [{a, b, c}, {a,b,c,d}, {a,b}, {a,b,c,d,e}]
     /// star({a,b,c}) = [{a,b,c,d}, {a,b,c,d,e}]
-    pub fn star_id(&self, edge_id: &Uuid) -> Vec<Uuid> {
+    pub fn get_containing_edges_id(&self, edge_id: &Uuid) -> Vec<Uuid> {
         self.core
-            .get_containing_edges_id(edge_id)
+            .get_containing_edges_strict_id(edge_id)
             .into_iter()
-            .filter(|id| edge_id != id)
             .collect()
     }
 
@@ -488,7 +486,7 @@ mod test {
         let e0 = hg.add_edge(&[0]);
         let e1 = hg.add_edge(&[0, 1]);
         let e2 = hg.add_edge(&[0, 1, 2]);
-        let star = hg.star_id(&e0);
+        let star = hg.get_containing_edges_id(&e0);
         dbg!(star);
         dbg!(&hg);
         println!(
