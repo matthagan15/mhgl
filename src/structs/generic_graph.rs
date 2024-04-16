@@ -116,7 +116,19 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     }
 
     pub fn get_containing_edges_id(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
-        todo!()
+        if let Some(nodes_of_edge) = self.edges.get(edge_id) {
+            self.get_containing_edges(nodes_of_edge.nodes.node_vec())
+        } else {
+            vec![]
+        }
+    }
+
+    pub fn get_containing_edges_strict_id(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
+        if let Some(nodes_of_edge) = self.edges.get(edge_id) {
+            self.get_containing_edges_strict(nodes_of_edge.nodes.node_vec())
+        } else {
+            vec![]
+        }
     }
 
     /// what is the right behavior for adding a sub-face of a simplex?
