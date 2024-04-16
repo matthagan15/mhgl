@@ -63,7 +63,7 @@ impl<N: HgNode> EdgeSet<N> {
     }
 
     /// Consumes `self`
-    pub fn make_simplex(self) -> Self {
+    pub fn to_simplex(self) -> Self {
         match self {
             EdgeSet::Undirected(nodes) => EdgeSet::Simplex(nodes),
             EdgeSet::Simplex(_) => self,
@@ -228,7 +228,7 @@ impl<N: HgNode> EdgeSet<N> {
     /// This could lead to major bugs in the future, but the other option
     /// is that link returns an option.
     pub fn link(&self, rhs: &Self) -> Option<Self> {
-        if self.contains(rhs) == false {
+        if self.contains_strict(rhs) == false {
             return None;
         }
         let mut ret_nodes = self.node_set();
@@ -238,7 +238,7 @@ impl<N: HgNode> EdgeSet<N> {
         let nodes_vec: Vec<N> = ret_nodes.into_iter().collect();
         match self {
             EdgeSet::Undirected(_) => Some(EdgeSet::from(nodes_vec)),
-            EdgeSet::Simplex(_) => Some(EdgeSet::from(nodes_vec).make_simplex()),
+            EdgeSet::Simplex(_) => Some(EdgeSet::from(nodes_vec).to_simplex()),
         }
     }
 
@@ -257,6 +257,7 @@ impl<N: HgNode> EdgeSet<N> {
         nodes.shrink_to_fit();
     }
 
+    /// This is equivalent to self \subseteq other
     pub fn contains(&self, other: &Self) -> bool {
         let lhs_nodes = self.nodes_ref();
         let rhs_nodes = other.nodes_ref();
@@ -273,6 +274,23 @@ impl<N: HgNode> EdgeSet<N> {
             }
         }
         true
+    }
+    pub fn contains_strict(&self, other: &Self) -> bool {
+        let lhs_nodes = self.nodes_ref();
+        let rhs_nodes = other.nodes_ref();
+        let mut left_ix = 0;
+        let mut right_ix = 0;
+        while right_ix < rhs_nodes.len() {
+            if left_ix == lhs_nodes.len() {
+                return false;
+            }
+            if lhs_nodes[left_ix] == rhs_nodes[right_ix] {
+                right_ix += 1;
+            } else {
+                left_ix += 1;
+            }
+        }
+        left_ix < lhs_nodes.len() - 1
     }
 }
 
@@ -401,7 +419,10 @@ mod test {
         let e1 = EdgeSet::from([1_u8, 2, 3, 4]);
         let e2 = EdgeSet::from([1_u8, 2, 3]);
         let e3 = EdgeSet::from([0_u8, 7, 9]);
+        let e4 = EdgeSet::from([1_u8, 2, 3, 4]);
         assert!(e1.contains(&e2));
+        assert!(e1.contains_strict(&e2));
+        assert!(!e1.contains_strict(&e4));
         assert!(!e2.contains(&e1));
         assert!(!e1.contains(&e3));
         assert!(!e3.contains(&e1));

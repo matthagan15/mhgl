@@ -89,7 +89,7 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         E: Into<EdgeSet<N>>,
     {
         let e: EdgeSet<N> = if self.is_simplex {
-            edge.into().make_simplex()
+            edge.into().to_simplex()
         } else {
             edge.into()
         };
@@ -126,7 +126,7 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         E: Into<EdgeSet<N>>,
     {
         let edge_set: EdgeSet<N> = if self.is_simplex {
-            edge.into().make_simplex()
+            edge.into().to_simplex()
         } else {
             edge.into()
         };
@@ -227,7 +227,7 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         E: Into<EdgeSet<N>>,
     {
         let e: EdgeSet<N> = if self.is_simplex {
-            edge.into().make_simplex()
+            edge.into().to_simplex()
         } else {
             edge.into()
         };
@@ -267,8 +267,23 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     where
         E: Into<EdgeSet<N>>,
     {
+        self.get_containing_edges_internal(edge, false)
+    }
+
+    /// Same as `get_containing_edges` but only returns edges that are
+    /// strictly supersets of the provided edge.
+    pub fn get_containing_edges_strict<E>(&self, edge: E) -> Vec<EdgeID>
+    where
+        E: Into<EdgeSet<N>>,
+    {
+        self.get_containing_edges_internal(edge, false)
+    }
+    fn get_containing_edges_internal<E>(&self, edge: E, strict: bool) -> Vec<EdgeID>
+    where
+        E: Into<EdgeSet<N>>,
+    {
         let e: EdgeSet<N> = if self.is_simplex {
-            edge.into().make_simplex()
+            edge.into().to_simplex()
         } else {
             edge.into()
         };
@@ -286,13 +301,14 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
                 .edges
                 .get(candidate_id)
                 .expect("Edge invariant violated.");
-            let candidite_is_good = if self.is_simplex {
-                candidate.nodes.contains(&e)
+            if strict {
+                if candidate.nodes.contains_strict(&e) {
+                    ret.push(candidate_id.clone());
+                }
             } else {
-                candidate.nodes == e
-            };
-            if candidite_is_good {
-                ret.push(candidate_id.clone());
+                if candidate.nodes.contains(&e) {
+                    ret.push(candidate_id.clone());
+                }
             }
         }
         ret
@@ -307,7 +323,7 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
             .drain()
             .map(|(id, e)| {
                 let new_edge = Edge {
-                    nodes: e.nodes.make_simplex(),
+                    nodes: e.nodes.to_simplex(),
                     data: e.data,
                 };
                 (id, new_edge)
@@ -357,14 +373,14 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     /// (x, ())
     /// }).collect();
     /// core.add_nodes(nodes);
-    /// 
+    ///
     /// ```
     pub fn link<E>(&self, edge: E) -> Vec<(EdgeID, EdgeSet<N>)>
     where
         E: Into<EdgeSet<N>>,
     {
         let e: EdgeSet<N> = if self.is_simplex {
-            edge.into().make_simplex()
+            edge.into().to_simplex()
         } else {
             edge.into()
         };
@@ -387,30 +403,78 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
             .collect()
     }
 
-    /// As this consists of only proper edges then we can just return the maximal edges containing the provided edge.
-    pub fn star<E>(&self, edge: E) -> Option<Vec<EdgeID>> 
-    where E: Into<EdgeSet<N>>
+    pub fn maximal_containing_edges<E>(&self, edge: E) -> Option<Vec<EdgeID>>
+    where
+        E: Into<EdgeSet<N>>,
+    {
+        let e: EdgeSet<N> = if self.is_simplex {
+            edge.into().to_simplex()
+        } else {
+            edge.into()
+        };
+        let containing_edges = self.get_containing_edges(e.node_vec());
+        if containing_edges.is_empty() {
+            return None;
+        }
+        let mut submaximal_edges = HashSet::new();
+        for ix in 0..containing_edges.len() {
+            if submaximal_edges.contains(&containing_edges[ix]) {
+                continue;
+            }
+            let edge_ix = self
+                .edges
+                .get(&containing_edges[ix])
+                .expect("Edge invariant broken.");
+            for jx in 0..containing_edges.len() {
+                if ix == jx {
+                    continue;
+                }
+                let edge_jx = self
+                    .edges
+                    .get(&containing_edges[jx])
+                    .expect("Edge invariant broken.");
+                if edge_jx.nodes.contains_strict(&edge_ix.nodes) {
+                    submaximal_edges.insert(containing_edges[ix].clone());
+                } else if edge_ix.nodes.contains_strict(&edge_jx.nodes) {
+                    submaximal_edges.insert(containing_edges[jx].clone());
+                }
+            }
+        }
+        Some(
+            containing_edges
+                .into_iter()
+                .filter(|id| submaximal_edges.contains(id) == false)
+                .collect(),
+        )
+    }
+
+    /// Returns the edges containing the provided node set that are
+    /// of the max size viewable by the edge set.
+    pub fn maximal_size_containing_edges<E>(&self, edge: E) -> Option<Vec<EdgeID>>
+    where
+        E: Into<EdgeSet<N>>,
     {
         let containing_edges = self.get_containing_edges(edge);
         if containing_edges.is_empty() {
             return None;
         }
-        let mut edges_with_len: Vec<_> = containing_edges.into_iter()
-        .map(|id| {
-            (id, self.edges.get(&id).unwrap().nodes.len())
-        }).collect();
+        let mut edges_with_len: Vec<_> = containing_edges
+            .into_iter()
+            .map(|id| (id, self.edges.get(&id).unwrap().nodes.len()))
+            .collect();
         edges_with_len.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap().reverse());
         let max_size = edges_with_len[0].1;
-        Some(edges_with_len.into_iter().filter_map(|(id, size)| if size == max_size {
-            Some(id)
-        } else {
-            None
-        }).collect())
+        Some(
+            edges_with_len
+                .into_iter()
+                .filter_map(|(id, size)| if size == max_size { Some(id) } else { None })
+                .collect(),
+        )
     }
 
-    pub fn star_id(&self, edge_id: &EdgeID) -> Option<Vec<EdgeID>> {
+    pub fn maximal_size_containing_edges_id(&self, edge_id: &EdgeID) -> Option<Vec<EdgeID>> {
         if let Some(edge) = self.edges.get(edge_id) {
-            self.star(edge.nodes.node_vec())
+            self.maximal_size_containing_edges(edge.nodes.node_vec())
         } else {
             None
         }
@@ -418,6 +482,8 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
 }
 
 mod tests {
+    use crate::EdgeSet;
+
     use super::HGraphCore;
 
     #[test]
@@ -458,5 +524,36 @@ mod tests {
             .containing_edges
             .contains(&e3));
         assert!(!g.query([5, 6, 7]));
+    }
+
+    #[test]
+    fn test_link_and_star() {
+        let mut core = HGraphCore::<u8, (), ()>::new();
+        for ix in 0..10 {
+            core.add_node(ix, ());
+        }
+        let e1 = core.add_edge(vec![0, 1], ()).unwrap();
+        let e2 = core.add_edge(vec![0, 2], ()).unwrap();
+        let e3 = core.add_edge(vec![0, 3], ()).unwrap();
+        let e4 = core.add_edge(vec![0, 1, 4], ()).unwrap();
+        let e5 = core.add_edge(vec![0, 1, 4, 5], ()).unwrap();
+        let e6 = core.add_edge(vec![0, 2, 6], ()).unwrap();
+        let containers = core.get_containing_edges([0]);
+        let mut maximal_edges = core.maximal_containing_edges([0]).unwrap();
+        maximal_edges.sort();
+        let mut expected = vec![e3, e5, e6];
+        expected.sort();
+        assert_eq!(maximal_edges, expected);
+
+        let mut link = core.link([0, 1]);
+        link.sort();
+        let mut expected_link = vec![
+            (e4.clone(), EdgeSet::from([4_u8])),
+            (e5.clone(), EdgeSet::from([4_u8, 5])),
+        ];
+        expected_link.sort();
+        assert_eq!(link, expected_link);
+
+        assert_eq!(core.maximal_size_containing_edges([0]), Some(vec![e5]));
     }
 }
