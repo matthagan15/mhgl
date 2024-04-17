@@ -63,14 +63,12 @@
 
 #[forbid(unsafe_code)]
 mod hgraph;
-mod kvgraph;
 mod negraph;
 mod structs;
 mod traits;
 mod utils;
 
 pub use hgraph::HGraph;
-pub use kvgraph::KVGraph;
 pub use structs::EdgeSet;
 pub use traits::HgBasis;
 pub use traits::HyperGraph;
