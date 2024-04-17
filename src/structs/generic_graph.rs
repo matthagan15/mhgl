@@ -66,6 +66,13 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
             None
         }
     }
+    pub fn borrow_node_mut(&mut self, node: &N) -> Option<&mut NodeData> {
+        self.nodes.get_mut(node).map(|big_node| &mut big_node.data)
+    }
+
+    pub fn borrow_edge_mut(&mut self, edge: &EdgeID) -> Option<&mut EdgeData> {
+        self.edges.get_mut(edge).map(|big_edge| &mut big_edge.data)
+    }
 
     pub fn change_edge_data(&mut self, edge_id: &EdgeID, new_data: EdgeData) -> Option<EdgeData> {
         if let Some(old_edge) = self.edges.remove(edge_id) {

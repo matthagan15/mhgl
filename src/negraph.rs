@@ -124,6 +124,7 @@ impl<NodeData, EdgeData> NEGraph<NodeData, EdgeData> {
         self.core.nodes.keys().cloned().collect()
     }
 
+    /// Currently panics if all nodes are not present in the hgraph
     pub fn add_edge<E>(&mut self, nodes: E, data: EdgeData) -> Uuid
     where
         E: Into<EdgeSet<u32>>,
