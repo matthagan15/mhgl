@@ -1,20 +1,16 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque};
 use std::fmt::Display;
-use std::fs::{self, File};
-use std::io::{self, Write};
+use std::fs;
+use std::fs::File;
+use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
-use crate::structs::EdgeWeight;
-use crate::structs::HGraphCore;
+use crate::structs::{EdgeID, HGraphCore};
 
 use crate::{traits::*, EdgeSet};
-
-pub type NodeID = Uuid;
-pub type EdgeID = Uuid;
 
 /// The simplest to use hypergraph structure. An Undirected and unweighted variant
 /// that utilizes u32's for nodes. The directed variant of `HGraph` is
@@ -33,9 +29,9 @@ pub type EdgeID = Uuid;
 /// Here is how to store labeled data
 /// ```
 /// let mut hg = HGraph::new();
-/// let mut hm: HashMap<Uuid, NodeType> = HashMap::new();
+/// let mut hm: HashMap<NodeID, NodeType> = HashMap::new();
 /// let node_data: Vec<NodeType> = data_set.load();
-/// let node_ids: Vec<Uuid> = HGraph::add_nodes(node_data.len());
+/// let node_ids: Vec<NodeID> = HGraph::add_nodes(node_data.len());
 /// for ix in node_data.into_iter() {
 ///     hm.insert(node_ids[ix], node_data[ix])
 /// }
@@ -43,16 +39,12 @@ pub type EdgeID = Uuid;
 /// Then data can be accessed by querying `hm[id]`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HGraph {
-    next_usable_node: u32,
-    reusable_nodes: VecDeque<u32>,
     core: HGraphCore<u32, (), ()>,
 }
 
 impl HGraph {
     pub fn new() -> HGraph {
         HGraph {
-            next_usable_node: 0,
-            reusable_nodes: VecDeque::new(),
             core: HGraphCore::new(),
         }
     }
@@ -87,16 +79,7 @@ impl HGraph {
     // TODO: Need to overhaul the add_nodes api to panic if new nodes
     // cannot be added. I also do not like the idea of reusing nodes.
     pub fn add_node(&mut self) -> u32 {
-        if self.next_usable_node < u32::MAX {
-            let ret = self.next_usable_node;
-            self.next_usable_node += 1;
-            self.core.add_node(ret, ());
-            ret
-        } else if self.reusable_nodes.len() > 0 {
-            self.reusable_nodes.pop_front().expect("No nodes left.")
-        } else {
-            panic!("No nodes remaining to be added.")
-        }
+        self.core.add_node(())
     }
 
     /// Adds `num_nodes` nodes to the graph, returning a vector containing
@@ -106,58 +89,18 @@ impl HGraph {
     // TODO: This should panic if it cannot offer the right amount of nodes.
     // Or return a Ret<Ok, Err> type. That would be the best option.
     pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<u32> {
-        // TODO: Should the user control what nodes are present? We don't
-        // really care what numbers are used to store nodes, so why go through
-        // all this hassle
-        let mut ret = Vec::with_capacity(num_nodes);
-        let mut counter = self.next_usable_node;
-        let mut nodes_available = counter < u32::max_number() || self.reusable_nodes.len() > 0;
-        while nodes_available && ret.len() < num_nodes {
-            // Prefer adding never before seen nodes.
-            if counter < u32::max_number() {
-                if self.core.nodes.contains_key(&counter) == false
-                    && self.reusable_nodes.contains(&counter) == false
-                {
-                    self.core.add_node(counter, ());
-                    ret.push(counter);
-                }
-                counter += 1;
-            } else {
-                // If the counter has reached the max, then we start reusing nodes
-                // TODO: This is rather inefficient, can just cache a boolean
-                // if we already added the max value or not.
-                if self.core.nodes.contains_key(&counter) == false
-                    && self.reusable_nodes.contains(&counter) == false
-                {
-                    self.core.add_node(counter, ());
-                    ret.push(counter);
-                } else {
-                    if let Some(old_node) = self.reusable_nodes.pop_front() {
-                        if self.core.nodes.contains_key(&old_node) == false {
-                            self.core.add_node(old_node, ());
-                            ret.push(old_node);
-                        }
-                    }
-                }
-            }
-            nodes_available = counter < u32::max_number() || self.reusable_nodes.len() > 0;
-        }
-        self.next_usable_node = counter;
-        ret
+        self.core.add_nodes((0..num_nodes).map(|_| ()).collect())
     }
 
     /// Removes a node from the node set. The deleted node will be added to a
     /// dequeue to be reused later once all possible nodes have been created.
     pub fn remove_node(&mut self, node: u32) {
-        if self.core.nodes.contains_key(&node) == false {
-            return;
-        }
-        self.core.remove_node(&node);
+        self.core.remove_node(node);
     }
 
     /// Removes a collection of nodes. The deleted nodes will be added
     /// to a dequeue to be reused later once all possible nodes have been created
-    pub fn remove_nodes(&mut self, nodes: &Vec<u32>) {
+    pub fn remove_nodes(&mut self, nodes: Vec<u32>) {
         self.core.remove_nodes(nodes);
     }
 
@@ -166,7 +109,7 @@ impl HGraph {
     }
 
     /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Does not allow for duplicate edges at the moment.
-    pub fn add_edge(&mut self, nodes: &[u32]) -> Uuid {
+    pub fn add_edge(&mut self, nodes: &[u32]) -> EdgeID {
         let id = self.core.add_edge(nodes, ());
         id.expect("Graph busted")
     }
@@ -178,7 +121,7 @@ impl HGraph {
         }
     }
 
-    pub fn remove_edge_id(&mut self, edge_id: Uuid) {
+    pub fn remove_edge_id(&mut self, edge_id: EdgeID) {
         self.core.remove_edge(edge_id);
     }
 
@@ -189,16 +132,16 @@ impl HGraph {
     }
 
     /// Returns the vec of nodes associated with the edge_id.
-    pub fn query_edge_id(&self, edge_id: &Uuid) -> Option<Vec<u32>> {
+    pub fn query_edge_id(&self, edge_id: &EdgeID) -> Option<Vec<u32>> {
         self.core.edges.get(edge_id).map(|e| e.nodes.node_vec())
     }
 
-    pub fn get_edge_id(&self, nodes: &[u32]) -> Option<Uuid> {
+    pub fn get_edge_id(&self, nodes: &[u32]) -> Option<EdgeID> {
         self.core.query_id(nodes)
     }
 
     /// Warning: Has to filter all edges so takes Theta(|E|) time.
-    pub fn edges_of_size(&self, card: usize) -> Vec<Uuid> {
+    pub fn edges_of_size(&self, card: usize) -> Vec<EdgeID> {
         self.core
             .edges
             .iter()
@@ -208,7 +151,7 @@ impl HGraph {
             .collect()
     }
 
-    pub fn get_containing_edges(&self, nodes: &[u32]) -> Vec<Uuid> {
+    pub fn get_containing_edges(&self, nodes: &[u32]) -> Vec<EdgeID> {
         self.core
             .get_containing_edges_strict(nodes)
             .into_iter()
@@ -219,7 +162,7 @@ impl HGraph {
     /// including the provided edge.
     /// Ex: Edges = [{a, b, c}, {a,b,c,d}, {a,b}, {a,b,c,d,e}]
     /// star({a,b,c}) = [{a,b,c,d}, {a,b,c,d,e}]
-    pub fn get_containing_edges_id(&self, edge_id: &Uuid) -> Vec<Uuid> {
+    pub fn get_containing_edges_id(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
         self.core
             .get_containing_edges_strict_id(edge_id)
             .into_iter()
@@ -251,9 +194,9 @@ impl HGraph {
     /// ```
     pub fn cut(&self, cut_nodes: &[u32]) -> usize {
         let cut_as_edge = EdgeSet::from(cut_nodes.clone());
-        let mut counted_edges: HashSet<Uuid> = HashSet::new();
+        let mut counted_edges: HashSet<EdgeID> = HashSet::new();
         for node in cut_nodes {
-            let out_edges: Vec<Uuid> = self
+            let out_edges: Vec<EdgeID> = self
                 .core
                 .get_containing_edges([*node])
                 .into_iter()
@@ -355,9 +298,9 @@ impl FromStr for HGraph {
         if node_string.ends_with(']') {
             node_string.pop();
         }
-        let mut nodes = Vec::new();
+        let mut nodes = HashSet::new();
         for node in node_string.split(',') {
-            nodes.push((node.trim().parse::<u32>().expect("node parse error."), ()));
+            nodes.insert(node.trim().parse::<u32>().expect("node parse error."));
         }
         let mut edges = Vec::new();
         for edge_ix in edges_start_ix..lines.len() {
@@ -374,17 +317,18 @@ impl FromStr for HGraph {
             }
             edges.push(node_set);
         }
-        let next_usable_node = nodes.iter().fold(0_u32, |acc, e| acc.max(e.0)) + 1;
+        let max_seen_node = nodes.iter().fold(0_u32, |acc, e| acc.max(*e)) + 1;
         let mut core = HGraphCore::<u32, (), ()>::new();
-        core.add_nodes(nodes);
+        core.add_nodes((0..=max_seen_node).map(|_| ()).collect());
+        for ix in 0..=max_seen_node {
+            if nodes.contains(&ix) == false {
+                core.remove_node(ix);
+            }
+        }
         for edge in edges.into_iter() {
             core.add_edge(edge, ());
         }
-        Ok(HGraph {
-            next_usable_node,
-            reusable_nodes: VecDeque::new(),
-            core,
-        })
+        Ok(HGraph { core })
     }
 }
 
@@ -428,11 +372,8 @@ mod test {
         println!("hg_parsed:\n{:}", hg_parsed);
         dbg!(&hg.core);
         let s3 = serde_json::to_string(&hg).expect("could not serialize next_usable_node");
-        let s4 =
-            serde_json::to_string(&hg.reusable_nodes).expect("could not serialize reusable_nodes");
 
         dbg!(s3);
-        dbg!(s4);
     }
 
     #[test]

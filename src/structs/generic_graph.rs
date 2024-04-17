@@ -1,5 +1,9 @@
 use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::{BufReader, Write};
+use std::path::Path;
 
+use serde::de::DeserializeOwned;
 use serde::ser::{SerializeStruct, Serializer};
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +11,7 @@ use uuid::Uuid;
 
 use crate::traits::HgNode;
 
-use super::{sparse_basis::EdgeSet, EdgeID};
+use super::{edge_set::EdgeSet, EdgeID};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node<NodeData> {
@@ -36,25 +40,29 @@ pub struct Edge<N: HgNode, EdgeData> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// Defaults to undirected hypergraph, user has to declare it a simplex.
-pub struct HGraphCore<N: HgNode, NodeData, EdgeData> {
-    pub edges: HashMap<EdgeID, Edge<N, EdgeData>>,
-    pub nodes: HashMap<N, Node<NodeData>>,
+pub struct HGraphCore<NodeID: HgNode, NodeData, EdgeData> {
+    next_node_id: NodeID,
+    next_edge_id: EdgeID,
+    pub edges: HashMap<EdgeID, Edge<NodeID, EdgeData>>,
+    pub nodes: HashMap<NodeID, Node<NodeData>>,
     is_simplex: bool,
 }
 
-impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
+impl<NodeID: HgNode, NodeData, EdgeData> HGraphCore<NodeID, NodeData, EdgeData> {
     pub fn new() -> Self {
         Self {
+            next_node_id: NodeID::zero(),
+            next_edge_id: 0,
             edges: HashMap::new(),
             nodes: HashMap::new(),
             is_simplex: false,
         }
     }
-    pub fn contains_node(&self, node: &N) -> bool {
+    pub fn contains_node(&self, node: &NodeID) -> bool {
         self.nodes.contains_key(node)
     }
 
-    pub fn change_node_data(&mut self, node: &N, new_data: NodeData) -> Option<NodeData> {
+    pub fn change_node_data(&mut self, node: &NodeID, new_data: NodeData) -> Option<NodeData> {
         if let Some(old_node) = self.nodes.remove(node) {
             let new_node = Node {
                 containing_edges: old_node.containing_edges,
@@ -66,7 +74,7 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
             None
         }
     }
-    pub fn borrow_node_mut(&mut self, node: &N) -> Option<&mut NodeData> {
+    pub fn borrow_node_mut(&mut self, node: &NodeID) -> Option<&mut NodeData> {
         self.nodes.get_mut(node).map(|big_node| &mut big_node.data)
     }
 
@@ -93,15 +101,15 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     ///
     pub fn query_id<E>(&self, edge: E) -> Option<EdgeID>
     where
-        E: Into<EdgeSet<N>>,
+        E: Into<EdgeSet<NodeID>>,
     {
-        let e: EdgeSet<N> = if self.is_simplex {
+        let e: EdgeSet<NodeID> = if self.is_simplex {
             edge.into().to_simplex()
         } else {
             edge.into()
         };
         if e.is_empty() {
-            return Some(Uuid::nil());
+            return None;
         }
         let first = e.get_first_node().unwrap();
         if self.nodes.contains_key(&first) == false {
@@ -142,9 +150,9 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     /// Fails if not every node is contained in the provided edge.
     pub fn add_edge<E>(&mut self, edge: E, data: EdgeData) -> Option<EdgeID>
     where
-        E: Into<EdgeSet<N>>,
+        E: Into<EdgeSet<NodeID>>,
     {
-        let edge_set: EdgeSet<N> = if self.is_simplex {
+        let edge_set: EdgeSet<NodeID> = if self.is_simplex {
             edge.into().to_simplex()
         } else {
             edge.into()
@@ -153,7 +161,14 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
             return None;
         }
 
-        let id = Uuid::new_v4();
+        let id = self.next_edge_id;
+        // Note this technically means we can't use all possible edges
+        // but missing 1 out of the 2^64 - 1 possibilities ain't bad.
+        if self.next_edge_id == EdgeID::MAX {
+            panic!("Ran out of edges, need to use a bigger EdgeID representation.")
+        }
+        self.next_edge_id += 1;
+
         let nodes = edge_set.node_vec();
         for node in nodes.iter() {
             if self.nodes.contains_key(&node) == false {
@@ -178,36 +193,27 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     /// Returns true if the node was added correctly, false if
     /// the node was not added because it was already present.
     /// Does not overwrite existing nodes.
-    pub fn add_node(&mut self, node: N, data: NodeData) -> bool {
-        if self.nodes.contains_key(&node) {
-            false
-        } else {
-            let new_node = Node {
-                containing_edges: HashSet::new(),
-                data,
-            };
-            self.nodes.insert(node, new_node).is_none()
+    pub fn add_node(&mut self, node: NodeData) -> NodeID {
+        let node_id = self.next_node_id;
+        if self.next_node_id == NodeID::max_number() {
+            panic!("Too small of a NodeID representation used, you ran out of nodes.")
         }
+        self.next_node_id.plus_one();
+
+        let new_node = Node {
+            containing_edges: HashSet::new(),
+            data: node,
+        };
+        self.nodes.insert(node_id, new_node);
+        node_id
     }
 
     /// Adds the provided nodes to the graph with no connective structure.
     /// Returns `None` if all nodes are new and added correctly, otherwise
     /// returns the list of nodes that were already present. Does not overwrite
     /// any existing nodes.
-    pub fn add_nodes(&mut self, nodes: Vec<(N, NodeData)>) -> Option<Vec<(N, NodeData)>> {
-        let mut ret = Vec::new();
-        for node in nodes.into_iter() {
-            if self.nodes.contains_key(&node.0) {
-                ret.push(node);
-            } else {
-                self.add_node(node.0, node.1);
-            }
-        }
-        if ret.is_empty() {
-            None
-        } else {
-            Some(ret)
-        }
+    pub fn add_nodes(&mut self, nodes: Vec<NodeData>) -> Vec<NodeID> {
+        nodes.into_iter().map(|data| self.add_node(data)).collect()
     }
 
     /// Removes the node, returning the edge ids of the
@@ -219,12 +225,12 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     /// - an edge is just modified
     /// - an edge is completely removed
     /// - a node is not present.
-    pub fn remove_nodes(&mut self, nodes: &Vec<N>) -> Vec<Node<NodeData>> {
+    pub fn remove_nodes(&mut self, nodes: Vec<NodeID>) -> Vec<NodeData> {
         nodes.into_iter().map(|n| self.remove_node(n)).collect()
     }
 
     /// Note: keeps potentially empty edges around!
-    pub fn remove_node(&mut self, node: &N) -> Node<NodeData> {
+    pub fn remove_node(&mut self, node: NodeID) -> NodeData {
         let removed_node = self.nodes.remove(&node).expect("Node not found.");
         for effected_edge_id in removed_node.containing_edges.iter() {
             let effected_edge = self
@@ -233,7 +239,7 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
                 .expect("Effected edge not found.");
             effected_edge.nodes.remove_node(&node);
         }
-        removed_node
+        removed_node.data
     }
 
     /// Returns `true` if the provided edge is supported in
@@ -246,9 +252,9 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     /// ```
     pub fn query<E>(&self, edge: E) -> bool
     where
-        E: Into<EdgeSet<N>>,
+        E: Into<EdgeSet<NodeID>>,
     {
-        let e: EdgeSet<N> = if self.is_simplex {
+        let e: EdgeSet<NodeID> = if self.is_simplex {
             edge.into().to_simplex()
         } else {
             edge.into()
@@ -287,7 +293,7 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     /// edge is not supported on the graph, we return nothing.
     pub fn get_containing_edges<E>(&self, edge: E) -> Vec<EdgeID>
     where
-        E: Into<EdgeSet<N>>,
+        E: Into<EdgeSet<NodeID>>,
     {
         self.get_containing_edges_internal(edge, false)
     }
@@ -296,15 +302,15 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     /// strictly supersets of the provided edge.
     pub fn get_containing_edges_strict<E>(&self, edge: E) -> Vec<EdgeID>
     where
-        E: Into<EdgeSet<N>>,
+        E: Into<EdgeSet<NodeID>>,
     {
         self.get_containing_edges_internal(edge, false)
     }
     fn get_containing_edges_internal<E>(&self, edge: E, strict: bool) -> Vec<EdgeID>
     where
-        E: Into<EdgeSet<N>>,
+        E: Into<EdgeSet<NodeID>>,
     {
-        let e: EdgeSet<N> = if self.is_simplex {
+        let e: EdgeSet<NodeID> = if self.is_simplex {
             edge.into().to_simplex()
         } else {
             edge.into()
@@ -374,7 +380,7 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
         self.is_simplex = false;
     }
 
-    pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<Edge<N, EdgeData>> {
+    pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<Edge<NodeID, EdgeData>> {
         if let Some(e) = self.edges.remove(&edge_id) {
             for node in e.nodes.nodes_ref() {
                 let containing_edges = self.nodes.get_mut(node).expect("Why is edge not in here.");
@@ -397,11 +403,11 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     /// core.add_nodes(nodes);
     ///
     /// ```
-    pub fn link<E>(&self, edge: E) -> Vec<(EdgeID, EdgeSet<N>)>
+    pub fn link<E>(&self, edge: E) -> Vec<(EdgeID, EdgeSet<NodeID>)>
     where
-        E: Into<EdgeSet<N>>,
+        E: Into<EdgeSet<NodeID>>,
     {
-        let e: EdgeSet<N> = if self.is_simplex {
+        let e: EdgeSet<NodeID> = if self.is_simplex {
             edge.into().to_simplex()
         } else {
             edge.into()
@@ -427,9 +433,9 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
 
     pub fn maximal_containing_edges<E>(&self, edge: E) -> Option<Vec<EdgeID>>
     where
-        E: Into<EdgeSet<N>>,
+        E: Into<EdgeSet<NodeID>>,
     {
-        let e: EdgeSet<N> = if self.is_simplex {
+        let e: EdgeSet<NodeID> = if self.is_simplex {
             edge.into().to_simplex()
         } else {
             edge.into()
@@ -474,7 +480,7 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
     /// of the max size viewable by the edge set.
     pub fn maximal_size_containing_edges<E>(&self, edge: E) -> Option<Vec<EdgeID>>
     where
-        E: Into<EdgeSet<N>>,
+        E: Into<EdgeSet<NodeID>>,
     {
         let containing_edges = self.get_containing_edges(edge);
         if containing_edges.is_empty() {
@@ -501,6 +507,56 @@ impl<N: HgNode, NodeData, EdgeData> HGraphCore<N, NodeData, EdgeData> {
             None
         }
     }
+
+    /// Warning: Has to filter all edges so takes Theta(|E|) time.
+    pub fn edges_of_size(&self, card: usize) -> Vec<EdgeID> {
+        self.edges
+            .iter()
+            .filter(|(id, e)| e.nodes.len() == card)
+            .map(|(id, e)| id)
+            .cloned()
+            .collect()
+    }
+
+    /// Returns the set of edge of size less than or equal to `k`,
+    /// inclusive. Also note that `k` refers to the cardinality of the
+    /// provided sets, not the dimension (An edge {1, 2} would be included in a k-skeleton with k >= 2.)
+    pub fn k_skeleton(&self, k: usize) -> HashSet<EdgeID> {
+        self.edges
+            .iter()
+            .filter(|(_, e)| e.nodes.len() <= k)
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+}
+
+impl<NodeID: HgNode + DeserializeOwned, NodeData, EdgeData> HGraphCore<NodeID, NodeData, EdgeData>
+where
+    NodeData: Serialize + DeserializeOwned,
+    EdgeData: Serialize + DeserializeOwned,
+{
+    pub fn to_disk(&self, path: &Path) {
+        let s = serde_json::to_string(self).expect("could not serialize NEGraph");
+        let mut file = File::create(path).expect("Cannot create File.");
+        file.write_all(s.as_bytes()).expect("Cannot write");
+    }
+
+    pub fn from_file(path: &Path) -> Option<Self> {
+        if path.is_file() == false {
+            return None;
+        }
+        if let Ok(file) = File::open(path) {
+            let reader = BufReader::new(file);
+            let out = serde_json::from_reader(reader);
+            if out.is_ok() {
+                Some(out.unwrap())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
 }
 
 mod tests {
@@ -512,20 +568,8 @@ mod tests {
     fn test_simple_tasks() {
         let mut g = HGraphCore::<u8, (), ()>::new();
         g.make_simplex();
-        let nodes_good = g
-            .add_nodes(vec![
-                (1, ()),
-                (2, ()),
-                (3, ()),
-                (4, ()),
-                (5, ()),
-                (6, ()),
-                (7, ()),
-                (8, ()),
-                (9, ()),
-            ])
-            .is_none();
-        assert!(nodes_good);
+        let nodes = g.add_nodes((0..10).map(|_| ()).collect());
+        assert_eq!(nodes.len(), 9);
         let e1 = g.add_edge(&[1_u8, 2, 3][..], ()).unwrap();
         let e2 = g.add_edge(vec![1, 2, 4], ()).unwrap();
         let e3 = g.add_edge([5_u8, 6, 7], ()).unwrap();
@@ -537,14 +581,13 @@ mod tests {
         assert_eq!(containing_edges.len(), 2);
         assert!(containing_edges.contains(&e1));
         assert!(containing_edges.contains(&e2));
-        let affected_edges = g.remove_node(&2);
-        assert!(affected_edges.containing_edges.contains(&e1));
-        assert!(affected_edges.containing_edges.contains(&e2));
+        let affected_edges = g.get_containing_edges([2]);
+        g.remove_node(2);
+        assert!(affected_edges.contains(&e1));
+        assert!(affected_edges.contains(&e2));
         assert!(g.query([1_u8, 3]));
         assert!(!g.query([1_u8, 2, 3]));
-        assert!(g.remove_nodes(&vec![5, 6, 7])[0]
-            .containing_edges
-            .contains(&e3));
+        g.remove_nodes(vec![5, 6, 7]);
         assert!(!g.query([5, 6, 7]));
     }
 
@@ -552,7 +595,7 @@ mod tests {
     fn test_link_and_star() {
         let mut core = HGraphCore::<u8, (), ()>::new();
         for ix in 0..10 {
-            core.add_node(ix, ());
+            core.add_node(());
         }
         let e1 = core.add_edge(vec![0, 1], ()).unwrap();
         let e2 = core.add_edge(vec![0, 2], ()).unwrap();

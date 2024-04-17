@@ -63,7 +63,6 @@
 
 #[forbid(unsafe_code)]
 mod hgraph;
-mod negraph;
 mod structs;
 mod traits;
 mod utils;
