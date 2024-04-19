@@ -530,10 +530,11 @@ impl<NodeID: HgNode, NodeData, EdgeData> HGraphCore<NodeID, NodeData, EdgeData> 
     }
 }
 
-impl<NodeID: HgNode + DeserializeOwned, NodeData, EdgeData> HGraphCore<NodeID, NodeData, EdgeData>
+impl<NodeID, NodeData, EdgeData> HGraphCore<NodeID, NodeData, EdgeData>
 where
-    NodeData: Serialize + DeserializeOwned,
-    EdgeData: Serialize + DeserializeOwned,
+    NodeID: HgNode + for<'a> Deserialize<'a>,
+    NodeData: Serialize + for<'a> Deserialize<'a>,
+    EdgeData: Serialize + for<'a> Deserialize<'a>,
 {
     pub fn to_disk(&self, path: &Path) {
         let s = serde_json::to_string(self).expect("could not serialize NEGraph");
