@@ -63,11 +63,24 @@
 
 #[forbid(unsafe_code)]
 mod hgraph;
+mod kvgraph;
 mod structs;
 mod traits;
 mod utils;
 
 pub use hgraph::HGraph;
+pub use kvgraph::KVGraph;
 pub use structs::EdgeSet;
 pub use traits::HgBasis;
 pub use traits::HyperGraph;
+
+mod tests {
+
+    use polars::prelude::*;
+    #[test]
+    fn polars_from() {
+        let x = 1.2_f64;
+        let av = AnyValue::from(x);
+        dbg!(av);
+    }
+}

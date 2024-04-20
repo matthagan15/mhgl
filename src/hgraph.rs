@@ -158,6 +158,13 @@ impl HGraph {
             .collect()
     }
 
+    pub fn get_maximal_containing_edges<E>(&self, nodes: E) -> Vec<EdgeID>
+    where
+        E: Into<EdgeSet<u32>>,
+    {
+        self.core.maximal_containing_edges(nodes)
+    }
+
     /// Returns the hyperedges that contain the provided edge, not
     /// including the provided edge.
     /// Ex: Edges = [{a, b, c}, {a,b,c,d}, {a,b}, {a,b,c,d,e}]

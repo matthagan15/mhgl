@@ -74,10 +74,16 @@ impl<NodeID: HgNode, NodeData, EdgeData> HGraphCore<NodeID, NodeData, EdgeData> 
             None
         }
     }
+    pub fn borrow_node(&self, node: &NodeID) -> Option<&NodeData> {
+        self.nodes.get(node).map(|big_node| &big_node.data)
+    }
     pub fn borrow_node_mut(&mut self, node: &NodeID) -> Option<&mut NodeData> {
         self.nodes.get_mut(node).map(|big_node| &mut big_node.data)
     }
 
+    pub fn borrow_edge(&self, edge: &EdgeID) -> Option<&EdgeData> {
+        self.edges.get(edge).map(|big_edge| &big_edge.data)
+    }
     pub fn borrow_edge_mut(&mut self, edge: &EdgeID) -> Option<&mut EdgeData> {
         self.edges.get_mut(edge).map(|big_edge| &mut big_edge.data)
     }
@@ -431,7 +437,7 @@ impl<NodeID: HgNode, NodeData, EdgeData> HGraphCore<NodeID, NodeData, EdgeData> 
             .collect()
     }
 
-    pub fn maximal_containing_edges<E>(&self, edge: E) -> Option<Vec<EdgeID>>
+    pub fn maximal_containing_edges<E>(&self, edge: E) -> Vec<EdgeID>
     where
         E: Into<EdgeSet<NodeID>>,
     {
@@ -442,7 +448,7 @@ impl<NodeID: HgNode, NodeData, EdgeData> HGraphCore<NodeID, NodeData, EdgeData> 
         };
         let containing_edges = self.get_containing_edges(e.node_vec());
         if containing_edges.is_empty() {
-            return None;
+            return Vec::new();
         }
         let mut submaximal_edges = HashSet::new();
         for ix in 0..containing_edges.len() {
@@ -468,12 +474,10 @@ impl<NodeID: HgNode, NodeData, EdgeData> HGraphCore<NodeID, NodeData, EdgeData> 
                 }
             }
         }
-        Some(
-            containing_edges
-                .into_iter()
-                .filter(|id| submaximal_edges.contains(id) == false)
-                .collect(),
-        )
+        containing_edges
+            .into_iter()
+            .filter(|id| submaximal_edges.contains(id) == false)
+            .collect()
     }
 
     /// Returns the edges containing the provided node set that are
@@ -605,7 +609,7 @@ mod tests {
         let e5 = core.add_edge(vec![0, 1, 4, 5], ()).unwrap();
         let e6 = core.add_edge(vec![0, 2, 6], ()).unwrap();
         let containers = core.get_containing_edges([0]);
-        let mut maximal_edges = core.maximal_containing_edges([0]).unwrap();
+        let mut maximal_edges = core.maximal_containing_edges([0]);
         maximal_edges.sort();
         let mut expected = vec![e3, e5, e6];
         expected.sort();
