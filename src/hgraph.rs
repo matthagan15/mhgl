@@ -39,7 +39,7 @@ use crate::{traits::*, EdgeSet};
 /// Then data can be accessed by querying `hm[id]`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HGraph {
-    core: HGraphCore<u32, (), ()>,
+    core: HGraphCore<(), ()>,
 }
 
 impl HGraph {
@@ -76,10 +76,8 @@ impl HGraph {
         }
     }
 
-    // TODO: Need to overhaul the add_nodes api to panic if new nodes
-    // cannot be added. I also do not like the idea of reusing nodes.
     pub fn add_node(&mut self) -> u32 {
-        self.core.add_node(())
+        self.core.add_node(()).0
     }
 
     /// Adds `num_nodes` nodes to the graph, returning a vector containing
@@ -89,7 +87,7 @@ impl HGraph {
     // TODO: This should panic if it cannot offer the right amount of nodes.
     // Or return a Ret<Ok, Err> type. That would be the best option.
     pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<u32> {
-        self.core.add_nodes((0..num_nodes).map(|_| ()).collect())
+        (0..num_nodes).map(|_| self.core.add_node(()).0).collect()
     }
 
     /// Removes a node from the node set. The deleted node will be added to a
@@ -101,7 +99,10 @@ impl HGraph {
     /// Removes a collection of nodes. The deleted nodes will be added
     /// to a dequeue to be reused later once all possible nodes have been created
     pub fn remove_nodes(&mut self, nodes: Vec<u32>) {
-        self.core.remove_nodes(nodes);
+        nodes
+            .into_iter()
+            .map(|node| self.core.remove_node(node))
+            .collect()
     }
 
     pub fn nodes(&self) -> Vec<u32> {
@@ -115,7 +116,7 @@ impl HGraph {
     }
 
     pub fn remove_edge(&mut self, nodes: &[u32]) {
-        let e = self.core.query_id(nodes);
+        let e = self.core.find_id(nodes);
         if let Some(id) = e {
             self.core.remove_edge(id);
         }
@@ -127,8 +128,8 @@ impl HGraph {
 
     /// Returns true if the provided nodes form an existing edge in
     /// the graph, false if they do not.
-    pub fn query_edge(&self, nodes: &[u32]) -> bool {
-        self.core.query(nodes)
+    pub fn does_edge_exist(&self, nodes: &[u32]) -> bool {
+        self.core.does_edge_exist(nodes)
     }
 
     /// Returns the vec of nodes associated with the edge_id.
@@ -136,8 +137,11 @@ impl HGraph {
         self.core.edges.get(edge_id).map(|e| e.nodes.node_vec())
     }
 
-    pub fn get_edge_id(&self, nodes: &[u32]) -> Option<EdgeID> {
-        self.core.query_id(nodes)
+    pub fn find_edge_id<E>(&self, nodes: E) -> Option<EdgeID>
+    where
+        E: AsRef<[u32]>,
+    {
+        self.core.find_id(nodes.as_ref())
     }
 
     /// Warning: Has to filter all edges so takes Theta(|E|) time.
@@ -325,8 +329,8 @@ impl FromStr for HGraph {
             edges.push(node_set);
         }
         let max_seen_node = nodes.iter().fold(0_u32, |acc, e| acc.max(*e)) + 1;
-        let mut core = HGraphCore::<u32, (), ()>::new();
-        core.add_nodes((0..=max_seen_node).map(|_| ()).collect());
+        let mut core = HGraphCore::<(), (), u32, u64>::new();
+        let _: Vec<_> = (0..=max_seen_node).map(|_| core.add_node(())).collect();
         for ix in 0..=max_seen_node {
             if nodes.contains(&ix) == false {
                 core.remove_node(ix);
@@ -363,8 +367,8 @@ mod test {
         hg.add_edge(&nodes[0..5]);
         hg.add_edge(&nodes[0..6]);
         hg.remove_edge(&nodes[0..5]);
-        assert!(hg.query_edge(&[nodes[4], nodes[3], nodes[2], nodes[1], nodes[0]]) == false);
-        assert!(hg.query_edge(&nodes[0..6]))
+        assert!(hg.does_edge_exist(&[nodes[4], nodes[3], nodes[2], nodes[1], nodes[0]]) == false);
+        assert!(hg.does_edge_exist(&nodes[0..6]))
     }
 
     #[test]
