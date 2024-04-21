@@ -243,17 +243,20 @@ impl<'a> KVGraph<'a> {
         let mut df = DataFrame::default();
         for (node_id, node_struct) in self.core.nodes.iter() {
             let mut cols = Vec::new();
-            cols.push(Series::new("id", [node_id.to_string()]));
+            let id_string = Uuid::from_u128(*node_id).to_string();
+            cols.push(Series::new("id", [id_string.clone()]));
             let mut node_string = String::from("[");
-            node_string.push_str(&node_id.to_string());
+            node_string.push_str(&id_string[..]);
             node_string.push(']');
             cols.push(Series::new("nodes", [node_string]));
             let kv_store = &node_struct.data;
             for (key, value) in kv_store.iter() {
                 cols.push(Series::new(&key[..], [value.clone()]));
             }
+            let node_df = DataFrame::new(cols).expect("no dataframe?");
+            df.vstack_mut(&node_df).expect("Could not vstack");
         }
-        todo!()
+        df
     }
 
     /// Clones the given id's key-value pairs.
@@ -286,13 +289,19 @@ impl<'a> KVGraph<'a> {
 }
 
 mod tests {
+    use polars::datatypes::AnyValue;
+
     use crate::KVGraph;
 
     #[test]
     fn create_read_update_delete() {
         let mut hg = KVGraph::new();
         let n1 = hg.add_node();
-        hg.insert(&n1, "test", 1.2_f64);
+        hg.insert(&n1, "test", 1.2_f64).unwrap();
+        hg.insert(&n1, "weight", 1).unwrap();
+        hg.insert(&n1, "booty", AnyValue::Boolean(true)).unwrap();
+
         dbg!(hg.get(&n1, "test"));
+        println!("{:}", hg.get_dataframe());
     }
 }
