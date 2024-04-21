@@ -48,9 +48,16 @@ impl<'a> KVGraph<'a> {
         self.core.remove_nodes(nodes);
     }
     /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Does not allow for duplicate edges at the moment.
-    pub fn add_edge(&mut self, nodes: &[EdgeID]) -> EdgeID {
-        let id = self.core.add_edge(nodes, HashMap::new());
-        id.expect("Graph busted")
+    pub fn add_edge<E>(&mut self, nodes: E) -> Option<EdgeID>
+    where
+        E: Into<EdgeSet<u64>>,
+    {
+        let edge: EdgeSet<u64> = nodes.into();
+        if edge.len() == 1 {
+            return None;
+        }
+        let id = self.core.add_edge(edge, HashMap::new());
+        Some(id.expect("Graph busted"))
     }
     pub fn remove_edge(&mut self, nodes: &[EdgeID]) {
         let e = self.core.query_id(nodes);
@@ -126,6 +133,10 @@ impl<'a> KVGraph<'a> {
         self.core.maximal_containing_edges(nodes)
     }
 
+    /// Adds a `key`-`value` pair to the provided `id`, whether `id` correspond to
+    /// a node or edge. The provided pair must match the schema associated with the
+    /// hypergraph, if the `key` has not been seen before it automatically creates
+    /// a new schema in the structure.
     pub fn insert<S, V>(&mut self, id: &EdgeID, key: S, value: V) -> Result<(), ()>
     where
         S: ToString,
@@ -156,13 +167,62 @@ impl<'a> KVGraph<'a> {
             Err(())
         }
     }
-    pub fn query(&self, id: &EdgeID, key: &str) -> Option<&AnyValue<'a>> {
+    pub fn get(&self, id: &EdgeID, key: &str) -> Option<&AnyValue<'a>> {
         if self.core.nodes.contains_key(id) {
             let query = key.to_string();
             self.core.borrow_node(id).unwrap().get(&query)
         } else if self.core.nodes.contains_key(id) {
             let query = key.to_string();
             self.core.borrow_edge(id).unwrap().get(&query)
+        } else {
+            None
+        }
+    }
+
+    /// Returns a copy of the given schema being used
+    pub fn get_schema(&self) -> HashMap<String, DataType> {
+        self.schema.clone()
+    }
+
+    pub fn get_dataframe(&self) -> DataFrame {
+        let mut df = DataFrame::default();
+        for (node_id, node_struct) in self.core.nodes.iter() {
+            let mut cols = Vec::new();
+            cols.push(Series::new("id", [*node_id]));
+            let mut node_string = String::from("[");
+            node_string.push_str(&node_id.to_string());
+            node_string.push(']');
+            cols.push(Series::new("nodes", [node_string]));
+            let kv_store = &node_struct.data;
+            for (key, value) in kv_store.iter() {
+                cols.push(Series::new(&key[..], [value.clone()]));
+            }
+        }
+        todo!()
+    }
+
+    /// Clones the given id's key-value pairs.
+    /// The result is wrapped in an option to help the user distinguish between an empty `id`
+    /// with no key-value pairs or the id is incorrect.
+    pub fn get_all_kv_pairs(&self, id: &EdgeID) -> Option<Vec<(String, AnyValue<'a>)>> {
+        if self.core.nodes.contains_key(id) {
+            Some(
+                self.core
+                    .borrow_node(id)
+                    .unwrap()
+                    .clone()
+                    .into_iter()
+                    .collect(),
+            )
+        } else if self.core.edges.contains_key(id) {
+            Some(
+                self.core
+                    .borrow_edge(id)
+                    .unwrap()
+                    .clone()
+                    .into_iter()
+                    .collect(),
+            )
         } else {
             None
         }
@@ -177,6 +237,6 @@ mod tests {
         let mut hg = KVGraph::new();
         let n1 = hg.add_node();
         hg.insert(&n1, "test", 1.2_f64);
-        dbg!(hg.query(&n1, "test"));
+        dbg!(hg.get(&n1, "test"));
     }
 }
