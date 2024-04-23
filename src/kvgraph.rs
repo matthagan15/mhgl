@@ -1,24 +1,229 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    str::FromStr,
+};
 
 use polars::prelude::*;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{structs::HGraphCore, EdgeSet};
 
-pub struct KVGraph<'a> {
-    core: HGraphCore<HashMap<String, AnyValue<'a>>, HashMap<String, AnyValue<'a>>, u128, u128>,
-    schema: HashMap<String, DataType>,
+pub enum DataType {
+    Bool,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    Float32,
+    Float64,
+    String,
 }
 
-impl<'a> KVGraph<'a> {
+impl FromStr for DataType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match &s.to_lowercase()[..] {
+            "bool" => Ok(DataType::Bool),
+            "uint8" => Ok(DataType::UInt8),
+            "uint16" => Ok(DataType::UInt16),
+            "uint32" => Ok(DataType::UInt32),
+            "uint64" => Ok(DataType::UInt64),
+            "int8" => Ok(DataType::Int8),
+            "int16" => Ok(DataType::Int16),
+            "int32" => Ok(DataType::UInt32),
+            "int64" => Ok(DataType::UInt64),
+            "float32" => Ok(DataType::Float32),
+            "float64" => Ok(DataType::Float64),
+            "String" => Ok(DataType::String),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Value {
+    Bool(bool),
+    UInt8(u8),
+    UInt16(u16),
+    UInt32(u32),
+    UInt64(u64),
+    Int8(i8),
+    Int16(i16),
+    Int32(i32),
+    Int64(i64),
+    Float32(f32),
+    Float64(f64),
+    String(String),
+}
+
+impl Value {
+    pub fn dtype(&self) -> String {
+        match self {
+            Value::Bool(_) => "Bool".to_string(),
+            Value::UInt8(_) => "UInt8".to_string(),
+            Value::UInt16(_) => "UInt16".to_string(),
+            Value::UInt32(_) => "UInt32".to_string(),
+            Value::UInt64(_) => "UInt64".to_string(),
+            Value::Int8(_) => "Int8".to_string(),
+            Value::Int16(_) => "Int16".to_string(),
+            Value::Int32(_) => "Int32".to_string(),
+            Value::Int64(_) => "Int64".to_string(),
+            Value::Float32(_) => "Float32".to_string(),
+            Value::Float64(_) => "Float64".to_string(),
+            Value::String(_) => "String".to_string(),
+        }
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Value::Bool(value)
+    }
+}
+impl From<u8> for Value {
+    fn from(value: u8) -> Self {
+        Value::UInt8(value)
+    }
+}
+impl From<u16> for Value {
+    fn from(value: u16) -> Self {
+        Value::UInt16(value)
+    }
+}
+impl From<u32> for Value {
+    fn from(value: u32) -> Self {
+        Value::UInt32(value)
+    }
+}
+impl From<u64> for Value {
+    fn from(value: u64) -> Self {
+        Value::UInt64(value)
+    }
+}
+impl From<i8> for Value {
+    fn from(value: i8) -> Self {
+        Value::Int8(value)
+    }
+}
+impl From<i16> for Value {
+    fn from(value: i16) -> Self {
+        Value::Int16(value)
+    }
+}
+impl From<i32> for Value {
+    fn from(value: i32) -> Self {
+        Value::Int32(value)
+    }
+}
+impl From<i64> for Value {
+    fn from(value: i64) -> Self {
+        Value::Int64(value)
+    }
+}
+
+impl From<f32> for Value {
+    fn from(value: f32) -> Self {
+        Value::Float32(value)
+    }
+}
+impl From<f64> for Value {
+    fn from(value: f64) -> Self {
+        Value::Float64(value)
+    }
+}
+
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        Value::String(value)
+    }
+}
+
+impl<'a> From<Value> for AnyValue<'a> {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Bool(v) => AnyValue::Boolean(v),
+            Value::UInt8(v) => v.into(),
+            Value::UInt16(v) => v.into(),
+            Value::UInt32(v) => v.into(),
+            Value::UInt64(v) => v.into(),
+            Value::Int8(v) => v.into(),
+            Value::Int16(v) => v.into(),
+            Value::Int32(v) => v.into(),
+            Value::Int64(v) => v.into(),
+            Value::Float32(v) => v.into(),
+            Value::Float64(v) => v.into(),
+            Value::String(v) => AnyValue::StringOwned(v.into()),
+        }
+    }
+}
+
+impl From<Value> for bool {
+    fn from(value: Value) -> Self {
+        if let Value::Bool(v) = value {
+            return v;
+        } else {
+            panic!("Improper From conversion Value => bool.")
+        }
+    }
+}
+impl From<Value> for u8 {
+    fn from(value: Value) -> Self {
+        if let Value::UInt8(v) = value {
+            return v;
+        } else {
+            panic!("Improper From conversion Value => bool.")
+        }
+    }
+}
+impl From<Value> for u16 {
+    fn from(value: Value) -> Self {
+        if let Value::UInt16(v) = value {
+            return v;
+        } else {
+            panic!("Improper From conversion Value => bool.")
+        }
+    }
+}
+impl From<Value> for u32 {
+    fn from(value: Value) -> Self {
+        if let Value::UInt32(v) = value {
+            return v;
+        } else {
+            panic!("Improper From conversion Value => bool.")
+        }
+    }
+}
+impl From<Value> for u64 {
+    fn from(value: Value) -> Self {
+        if let Value::UInt64(v) = value {
+            return v;
+        } else {
+            panic!("Improper From conversion Value => bool.")
+        }
+    }
+}
+
+pub struct KVGraph {
+    core: HGraphCore<HashMap<String, Value>, HashMap<String, Value>, u128, u128>,
+    schema: HashMap<String, String>,
+}
+
+impl KVGraph {
     pub fn new() -> Self {
         Self {
             core: HGraphCore::new(),
-            schema: HashMap::new(),
+            schema: HashMap::from([
+                ("id".to_string(), "String".to_string()),
+                ("nodes".to_string(), "String".to_string()),
+            ]),
         }
     }
-    // TODO: Need to overhaul the add_nodes api to panic if new nodes
-    // cannot be added. I also do not like the idea of reusing nodes.
     pub fn add_node(&mut self) -> Uuid {
         let id = Uuid::new_v4();
         self.core
@@ -48,12 +253,7 @@ impl<'a> KVGraph<'a> {
     where
         E: AsRef<[Uuid]>,
     {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
+        let node_vec: Vec<_> = nodes.as_ref().iter().map(|id| id.as_u128()).collect();
         let edge: EdgeSet<u128> = EdgeSet::from(node_vec);
         if edge.len() == 1 {
             return None;
@@ -67,12 +267,7 @@ impl<'a> KVGraph<'a> {
     where
         E: AsRef<[Uuid]>,
     {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
+        let node_vec: Vec<_> = nodes.as_ref().iter().map(|id| id.as_u128()).collect();
         let e = self.core.find_id(node_vec);
         if let Some(id) = e {
             self.core.remove_edge(id);
@@ -98,12 +293,7 @@ impl<'a> KVGraph<'a> {
     where
         E: AsRef<[Uuid]>,
     {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
+        let node_vec: Vec<_> = nodes.as_ref().iter().map(|id| id.as_u128()).collect();
         self.core.find_id(node_vec).map(|id| Uuid::from_u128(id))
     }
 
@@ -116,17 +306,12 @@ impl<'a> KVGraph<'a> {
     where
         E: AsRef<[Uuid]>,
     {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
+        let node_vec: Vec<_> = nodes.as_ref().iter().map(|id| id.as_u128()).collect();
         self.core
             .link(node_vec)
             .into_iter()
             .map(|(_, edge)| {
-                let mut nodes = edge.to_node_vec();
+                let nodes = edge.to_node_vec();
                 nodes.into_iter().map(|id| Uuid::from_u128(id)).collect()
             })
             .collect()
@@ -193,15 +378,15 @@ impl<'a> KVGraph<'a> {
     pub fn insert<S, V>(&mut self, id: &Uuid, key: S, value: V) -> Result<(), ()>
     where
         S: ToString,
-        V: Into<AnyValue<'a>>,
+        V: Into<Value>,
     {
         let id = id.as_u128();
         let key_string = key.to_string();
-        let any_value: AnyValue<'a> = value.into();
+        let val: Value = value.into();
         if self.schema.contains_key(&key_string) == false {
-            self.schema.insert(key_string.clone(), any_value.dtype());
+            self.schema.insert(key_string.clone(), val.dtype());
         } else {
-            if *self.schema.get(&key_string).unwrap() != any_value.dtype() {
+            if *self.schema.get(&key_string).unwrap() != val.dtype() {
                 return Err(());
             }
         }
@@ -209,19 +394,19 @@ impl<'a> KVGraph<'a> {
             self.core
                 .borrow_node_mut(&id)
                 .unwrap()
-                .insert(key_string, any_value);
+                .insert(key_string, val);
             Ok(())
         } else if self.core.edges.contains_key(&id) {
             self.core
                 .borrow_edge_mut(&id)
                 .unwrap()
-                .insert(key_string, any_value);
+                .insert(key_string, val);
             Ok(())
         } else {
             Err(())
         }
     }
-    pub fn get(&self, id: &Uuid, key: &str) -> Option<&AnyValue<'a>> {
+    pub fn get(&self, id: &Uuid, key: &str) -> Option<&Value> {
         let id = id.as_u128();
         if self.core.nodes.contains_key(&id) {
             let query = key.to_string();
@@ -234,26 +419,63 @@ impl<'a> KVGraph<'a> {
         }
     }
 
+    pub fn label<S>(&mut self, id: &Uuid, label: S) -> Result<(), ()>
+    where
+        S: ToString,
+    {
+        self.insert(id, "label", label.to_string())
+    }
+
     /// Returns a copy of the given schema being used
-    pub fn get_schema(&self) -> HashMap<String, DataType> {
+    pub fn get_schema(&self) -> HashMap<String, String> {
         self.schema.clone()
     }
 
     pub fn get_dataframe(&self) -> DataFrame {
         let mut df = DataFrame::default();
         for (node_id, node_struct) in self.core.nodes.iter() {
-            let mut cols = Vec::new();
+            let node_kv_store = &node_struct.data;
+            let mut node_df = DataFrame::default();
             let id_string = Uuid::from_u128(*node_id).to_string();
-            cols.push(Series::new("id", [id_string.clone()]));
-            let mut node_string = String::from("[");
-            node_string.push_str(&id_string[..]);
-            node_string.push(']');
-            cols.push(Series::new("nodes", [node_string]));
-            let kv_store = &node_struct.data;
-            for (key, value) in kv_store.iter() {
-                cols.push(Series::new(&key[..], [value.clone()]));
+            // todo: change this to a List type of AnyValue.
+            for (key, dtype) in self.schema.iter() {
+                if &key[..] == "id" {
+                    node_df
+                        .with_column(Series::new("id", [id_string.clone()]))
+                        .expect("couldn't add column.");
+                } else if &key[..] == "nodes" {
+                    let mut node_string = String::from("[");
+                    node_string.push_str(&id_string[..]);
+                    node_string.push(']');
+                    node_df
+                        .with_column(Series::new("nodes", [node_string]))
+                        .expect("What error");
+                } else {
+                    let true_dtype = DataType::from_str(&dtype[..]).expect("datatype parsing.");
+                    match true_dtype {
+                        DataType::Bool => {
+                            let s = Series::new(
+                                &key[..],
+                                [node_kv_store
+                                    .get(key)
+                                    .map(|val| Into::<bool>::into(val.clone()))],
+                            );
+                            node_df.with_column(s).expect("Couldn't add column.");
+                        }
+                        DataType::UInt8 => todo!(),
+                        DataType::UInt16 => todo!(),
+                        DataType::UInt32 => todo!(),
+                        DataType::UInt64 => todo!(),
+                        DataType::Int8 => todo!(),
+                        DataType::Int16 => todo!(),
+                        DataType::Int32 => todo!(),
+                        DataType::Int64 => todo!(),
+                        DataType::Float32 => todo!(),
+                        DataType::Float64 => todo!(),
+                        DataType::String => todo!(),
+                    };
+                }
             }
-            let node_df = DataFrame::new(cols).expect("no dataframe?");
             df.vstack_mut(&node_df).expect("Could not vstack");
         }
         df
@@ -262,7 +484,7 @@ impl<'a> KVGraph<'a> {
     /// Clones the given id's key-value pairs.
     /// The result is wrapped in an option to help the user distinguish between an empty `id`
     /// with no key-value pairs or the id is incorrect.
-    pub fn get_all_kv_pairs(&self, id: &Uuid) -> Option<Vec<(String, AnyValue<'a>)>> {
+    pub fn get_all_kv_pairs(&self, id: &Uuid) -> Option<Vec<(String, Value)>> {
         let id = id.as_u128();
         if self.core.nodes.contains_key(&id) {
             Some(
@@ -297,9 +519,13 @@ mod tests {
     fn create_read_update_delete() {
         let mut hg = KVGraph::new();
         let n1 = hg.add_node();
-        hg.insert(&n1, "test", 1.2_f64).unwrap();
-        hg.insert(&n1, "weight", 1).unwrap();
-        hg.insert(&n1, "booty", AnyValue::Boolean(true)).unwrap();
+        let n2 = hg.add_node();
+        hg.insert(&n1, "test", false).unwrap();
+        hg.insert(&n1, "weight", true).unwrap();
+        hg.insert(&n1, "booty", true).unwrap();
+        hg.insert(&n2, "weight", false);
+        hg.insert(&n2, "booty", false);
+        hg.insert(&n2, "defense", true);
 
         dbg!(hg.get(&n1, "test"));
         println!("{:}", hg.get_dataframe());
