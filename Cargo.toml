@@ -13,7 +13,7 @@ repository = "https://github.com/matthagan15/mhgl"
 bitvec = { version = "1.0.1", features = ["serde"] }
 indexmap = { version = "2.2.6", features = ["serde"] }
 num-integer = "0.1.45"
-polars = "0.39.2"
+polars = { version = "0.39.2", features = ["dtype-u8", "dtype-u16", "dtype-i8", "dtype-i16"] }
 rand = "0.8.5"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.91"

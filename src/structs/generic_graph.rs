@@ -113,7 +113,35 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     where
         E: Into<EdgeSet<NodeID>>,
     {
-        todo!()
+        let edge_set: EdgeSet<NodeID> = if self.is_simplex {
+            edge.into().to_simplex()
+        } else {
+            edge.into()
+        };
+        if self.find_id(edge_set.node_vec()).is_some() {
+            return None;
+        }
+
+        let nodes = edge_set.node_vec();
+        for node in nodes.iter() {
+            if self.nodes.contains_key(&node) == false {
+                return None;
+            }
+        }
+        for node in nodes.iter() {
+            let node_link = self
+                .nodes
+                .get_mut(node)
+                .expect("Node should already be present, I just added it.");
+            node_link.containing_edges.insert(id.clone());
+        }
+        let edge = Edge {
+            nodes: edge_set,
+            data,
+        };
+        self.edges
+            .insert(id.clone(), edge)
+            .map(|edge_struct| edge_struct.data)
     }
     /// Returns true if the node was added correctly, false if
     /// the node was not added because it was already present.
