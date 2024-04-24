@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{structs::HGraphCore, EdgeSet};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DataType {
     Bool,
     UInt8,
@@ -38,8 +38,8 @@ impl FromStr for DataType {
             "uint64" => Ok(DataType::UInt64),
             "int8" => Ok(DataType::Int8),
             "int16" => Ok(DataType::Int16),
-            "int32" => Ok(DataType::UInt32),
-            "int64" => Ok(DataType::UInt64),
+            "int32" => Ok(DataType::Int32),
+            "int64" => Ok(DataType::Int64),
             "float32" => Ok(DataType::Float32),
             "float64" => Ok(DataType::Float64),
             "string" => Ok(DataType::String),
