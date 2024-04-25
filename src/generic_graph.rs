@@ -10,8 +10,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::traits::HgNode;
-
-use super::edge_set::EdgeSet;
+use crate::EdgeSet;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node<NodeData, EdgeID: HgNode> {

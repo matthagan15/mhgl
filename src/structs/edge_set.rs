@@ -378,37 +378,18 @@ impl<N: HgNode> Display for EdgeSet<N> {
     }
 }
 
-impl<N: HgNode> From<Vec<N>> for EdgeSet<N> {
-    fn from(value: Vec<N>) -> Self {
-        let mut nodes = value;
+impl<N: HgNode, R: AsRef<[N]>> From<R> for EdgeSet<N> {
+    fn from(value: R) -> Self {
+        let ref_value = value.as_ref();
+        let mut nodes: Vec<N> = ref_value.iter().cloned().collect();
         nodes.sort();
         nodes.dedup();
         EdgeSet::Undirected(nodes)
     }
 }
 
-impl<N: HgNode> From<&[N]> for EdgeSet<N> {
-    fn from(value: &[N]) -> Self {
-        let v: Vec<N> = value.iter().cloned().collect();
-        EdgeSet::from(v)
-    }
-}
-
-impl<N: HgNode, const K: usize> From<[N; K]> for EdgeSet<N> {
-    fn from(value: [N; K]) -> Self {
-        EdgeSet::from(value.to_vec())
-    }
-}
-
-impl<N: HgNode> From<HashSet<N>> for EdgeSet<N> {
-    fn from(value: HashSet<N>) -> Self {
-        let v: Vec<N> = value.into_iter().collect();
-        EdgeSet::from(v)
-    }
-}
-
 mod test {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
 
     use crate::HgBasis;
 
@@ -426,5 +407,21 @@ mod test {
         assert!(!e2.contains(&e1));
         assert!(!e1.contains(&e3));
         assert!(!e3.contains(&e1));
+    }
+
+    #[test]
+    fn conversions() {
+        let node_vec = vec![1_u8, 2, 3];
+        let node_set = HashSet::from([1_u8, 2, 3]);
+        let node_arr = [1_u8, 2, 3];
+        let e1 = EdgeSet::from(&node_vec);
+        let e2 = EdgeSet::from(&node_vec[..]);
+        let e3 = EdgeSet::from(node_vec);
+        let e4 = EdgeSet::from(node_arr.iter());
+        let e5 = EdgeSet::from(node_arr);
+        assert_eq!(e1, e2);
+        assert_eq!(e1, e3);
+        assert_eq!(e1, e4);
+        assert_eq!(e1, e5);
     }
 }

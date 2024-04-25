@@ -8,43 +8,19 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::structs::{EdgeID, HGraphCore};
+use crate::{structs::EdgeID, HGraphCore};
 
 use crate::{traits::*, EdgeSet};
 
-/// The simplest to use hypergraph structure. An Undirected and unweighted variant
-/// that utilizes u32's for nodes. The directed variant of `HGraph` is
-/// `DGraph`. For smaller memory footprints, use
-/// `UGraph<N>` for undirected graphs or `PGraph<N>` for directed variants.
-/// Duplicate edges are disallowed.
-/// ## Example Usage
-/// ```
-/// let hg = HGraph::new();
-/// let nodes = hg.create_nodes(10);
-/// hg.create_directed_edge(&nodes[0..3], &nodes[0..=1], 1.2);
-/// assert_eq!(hg.step(&nodes[0..3]), vec![(HashSet::from(&nodes[0..=1]), 1.2)]);
-/// ```
-///
-/// Currently do not support labeling nodes.
-/// Here is how to store labeled data
-/// ```
-/// let mut hg = HGraph::new();
-/// let mut hm: HashMap<NodeID, NodeType> = HashMap::new();
-/// let node_data: Vec<NodeType> = data_set.load();
-/// let node_ids: Vec<NodeID> = HGraph::add_nodes(node_data.len());
-/// for ix in node_data.into_iter() {
-///     hm.insert(node_ids[ix], node_data[ix])
-/// }
-/// ```
-/// Then data can be accessed by querying `hm[id]`.
+/// A connectivity only hypergraph object.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HGraph {
+pub struct ConGraph {
     core: HGraphCore<(), ()>,
 }
 
-impl HGraph {
-    pub fn new() -> HGraph {
-        HGraph {
+impl ConGraph {
+    pub fn new() -> ConGraph {
+        ConGraph {
             core: HGraphCore::new(),
         }
     }
@@ -52,7 +28,7 @@ impl HGraph {
     /// Gives the number of edges containing the provided node, where
     /// each edge counts equally regardless of it's cardinality.
     pub fn degree(&self, node: u32) -> usize {
-        self.get_containing_edges(&[node]).len()
+        self.containing_edges(&[node]).len()
     }
 
     pub fn to_disk(&self, path: &Path) {
@@ -66,7 +42,7 @@ impl HGraph {
             return None;
         }
         if let Ok(hg_string) = fs::read_to_string(path) {
-            if let Ok(serde_out) = HGraph::from_str(&hg_string) {
+            if let Ok(serde_out) = ConGraph::from_str(&hg_string) {
                 Some(serde_out)
             } else {
                 None
@@ -115,14 +91,7 @@ impl HGraph {
         id.expect("Graph busted")
     }
 
-    pub fn remove_edge(&mut self, nodes: &[u32]) {
-        let e = self.core.find_id(nodes);
-        if let Some(id) = e {
-            self.core.remove_edge(id);
-        }
-    }
-
-    pub fn remove_edge_id(&mut self, edge_id: EdgeID) {
+    pub fn remove_edge(&mut self, edge_id: EdgeID) {
         self.core.remove_edge(edge_id);
     }
 
@@ -155,14 +124,14 @@ impl HGraph {
             .collect()
     }
 
-    pub fn get_containing_edges(&self, nodes: &[u32]) -> Vec<EdgeID> {
+    pub fn containing_edges(&self, nodes: &[u32]) -> Vec<EdgeID> {
         self.core
             .get_containing_edges_strict(nodes)
             .into_iter()
             .collect()
     }
 
-    pub fn get_maximal_containing_edges<E>(&self, nodes: E) -> Vec<EdgeID>
+    pub fn maximal_containing_edges<E>(&self, nodes: E) -> Vec<EdgeID>
     where
         E: Into<EdgeSet<u32>>,
     {
@@ -173,7 +142,7 @@ impl HGraph {
     /// including the provided edge.
     /// Ex: Edges = [{a, b, c}, {a,b,c,d}, {a,b}, {a,b,c,d,e}]
     /// star({a,b,c}) = [{a,b,c,d}, {a,b,c,d,e}]
-    pub fn get_containing_edges_id(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
+    pub fn get_containing_edges_by_id(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
         self.core
             .get_containing_edges_strict_id(edge_id)
             .into_iter()
@@ -181,7 +150,7 @@ impl HGraph {
     }
 
     /// Returns a list of all edges in the graph.
-    pub fn get_edges(&self) -> Vec<EdgeID> {
+    pub fn edges(&self) -> Vec<EdgeID> {
         self.core.edges.keys().cloned().collect()
     }
 
@@ -241,28 +210,29 @@ impl HGraph {
             .collect()
     }
 
-    /// Returns the set of edge of size less than or equal to `k`,
-    /// inclusive. Also note that `k` refers to the cardinality of the
-    /// provided sets, not the dimension.
-    pub fn k_skeleton(&self, k: usize) -> HashSet<EdgeID> {
+    /// Returns the edges that have cardinality less than or equal to the input `cardinality`.
+    /// ```rust
+    /// use mhgl::ConGraph;
+    /// let mut hg = ConGraph::new();
+    /// let nodes = hg.add_nodes(10);
+    /// let mut edges = Vec::new();
+    /// for k in 1..6 {
+    ///     edges.push(hg.add_edge(&nodes[0..=k]));
+    /// }
+    /// let mut s = hg.skeleton(4);
+    /// assert_eq!(s[..], edges[..=2]);
+    /// ```
+    pub fn skeleton(&self, cardinality: usize) -> Vec<EdgeID> {
         self.core
             .edges
             .iter()
-            .filter(|(_, e)| e.nodes.len() <= k)
+            .filter(|(_, e)| e.nodes.len() <= cardinality)
             .map(|(id, _)| id.clone())
             .collect()
     }
 }
 
-// impl std::ops::Index<dyn Into<SparseBasis<u32>>> for HGraph {
-//   type Output = bool;
-//
-//   fn index(&self, index: dyn Into<SparseBasis<u32>>) -> &Self::Output {
-//     todo!()
-// }
-// }
-
-impl Display for HGraph {
+impl Display for ConGraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.core.nodes.len() == 0 {
             println!("Graph is empty. Add nodes for more fun.");
@@ -286,7 +256,7 @@ impl Display for HGraph {
     }
 }
 
-impl FromStr for HGraph {
+impl FromStr for ConGraph {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -339,7 +309,7 @@ impl FromStr for HGraph {
         for edge in edges.into_iter() {
             core.add_edge(edge, ());
         }
-        Ok(HGraph { core })
+        Ok(ConGraph { core })
     }
 }
 
@@ -347,11 +317,11 @@ mod test {
 
     use std::{collections::HashSet, path::Path, str::FromStr};
 
-    use crate::HGraph;
+    use crate::{hgraph::ConGraph, EdgeSet};
 
     #[test]
     fn test_creating_and_deleting_nodes() {
-        let mut hg = HGraph::new();
+        let mut hg = ConGraph::new();
         let first_100 = hg.add_nodes(100);
         assert_eq!(first_100, (0_u32..100_u32).collect::<Vec<u32>>());
         let removed = 99_u32;
@@ -362,24 +332,24 @@ mod test {
 
     #[test]
     fn test_edge_creation_removal() {
-        let mut hg = HGraph::new();
+        let mut hg = ConGraph::new();
         let nodes = hg.add_nodes(10);
         hg.add_edge(&nodes[0..5]);
-        hg.add_edge(&nodes[0..6]);
-        hg.remove_edge(&nodes[0..5]);
-        assert!(hg.does_edge_exist(&[nodes[4], nodes[3], nodes[2], nodes[1], nodes[0]]) == false);
-        assert!(hg.does_edge_exist(&nodes[0..6]))
+        let e1 = hg.add_edge(&nodes[0..6]);
+        hg.remove_edge(e1);
+        assert!(hg.does_edge_exist(&[nodes[4], nodes[3], nodes[2], nodes[1], nodes[0]]));
+        assert_eq!(hg.does_edge_exist(&nodes[0..6]), false);
     }
 
     #[test]
     fn test_serialization() {
-        let mut hg = HGraph::new();
+        let mut hg = ConGraph::new();
         hg.add_nodes(10);
         hg.add_edge(&[0, 1]);
         hg.add_edge(&[0, 1, 3, 5]);
         println!("hg:\n{:}", hg);
         let s = hg.to_string();
-        let hg_parsed = HGraph::from_str(&s).expect("no parsing?");
+        let hg_parsed = ConGraph::from_str(&s).expect("no parsing?");
         println!("hg_parsed:\n{:}", hg_parsed);
         dbg!(&hg.core);
         let s3 = serde_json::to_string(&hg).expect("could not serialize next_usable_node");
@@ -388,31 +358,43 @@ mod test {
     }
 
     #[test]
-    fn test_link() {
-        let mut hg = HGraph::new();
+    fn link_and_skeleton() {
+        let mut hg = ConGraph::new();
         let nodes = hg.add_nodes(10);
-        hg.add_edge(&nodes[0..=5]);
-        hg.add_edge(&nodes[5..]);
-        let link = hg.link(HashSet::from([nodes[5], nodes[4]]));
-        println!("hg\n{:}", hg);
-        dbg!(link);
+        let mut edges = Vec::new();
+        for d in 1..=9 {
+            edges.push(hg.add_edge(&nodes[0..=d]));
+        }
+        let mut small_skeleton: Vec<_> = hg.skeleton(4).into_iter().collect();
+        small_skeleton.sort();
+        let mut expected_skeleton = vec![edges[0], edges[1], edges[2]];
+        expected_skeleton.sort();
+        assert_eq!(small_skeleton, expected_skeleton);
+        let mut small_link = hg.link(&nodes[0..=6]);
+        small_link.sort_by(|a, b| a.len().partial_cmp(&b.len()).unwrap());
+        let expected_link = vec![
+            EdgeSet::from(&nodes[7..=7]),
+            EdgeSet::from(&nodes[7..=8]),
+            EdgeSet::from(&nodes[7..=9]),
+        ];
+        dbg!(small_link);
     }
 
     #[test]
     fn test_skeleton() {
-        let mut hg = HGraph::new();
+        let mut hg = ConGraph::new();
         let nodes = hg.add_nodes(10);
         for size in 0..8 {
             hg.add_edge(&nodes[0..=size]);
         }
         for size in 1..10 {
             println!("{:}-skeleton", size);
-            println!("{:?}", hg.k_skeleton(size));
+            println!("{:?}", hg.skeleton(size));
         }
     }
 
-    fn simple_test_hg() -> HGraph {
-        let mut hg = HGraph::new();
+    fn simple_test_hg() -> ConGraph {
+        let mut hg = ConGraph::new();
         let nodes = hg.add_nodes(10);
         hg.add_edge(&nodes[0..=5]);
         hg.add_edge(&nodes[5..]);
@@ -420,7 +402,7 @@ mod test {
     }
     #[test]
     fn test_cut_with_traits() {
-        let mut hg = HGraph::new();
+        let mut hg = ConGraph::new();
         let nodes = hg.add_nodes(10);
         hg.add_edge(&nodes[..2]);
         hg.add_edge(&nodes[..3]);
@@ -433,12 +415,12 @@ mod test {
 
     #[test]
     fn test_node_as_edge() {
-        let mut hg = HGraph::new();
+        let mut hg = ConGraph::new();
         let nodes = hg.add_nodes(3);
         let e0 = hg.add_edge(&[0]);
         let e1 = hg.add_edge(&[0, 1]);
         let e2 = hg.add_edge(&[0, 1, 2]);
-        let star = hg.get_containing_edges_id(&e0);
+        let star = hg.get_containing_edges_by_id(&e0);
         dbg!(star);
         dbg!(&hg);
         println!(

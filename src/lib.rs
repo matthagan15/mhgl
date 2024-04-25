@@ -62,13 +62,15 @@
 //! - Hypergraph (Rust): Appears very limited in scope and not maintained.
 
 #[forbid(unsafe_code)]
+mod generic_graph;
 mod hgraph;
 mod kvgraph;
 mod structs;
 mod traits;
 mod utils;
 
-pub use hgraph::HGraph;
+pub use generic_graph::HGraphCore;
+pub use hgraph::ConGraph;
 pub use kvgraph::KVGraph;
 pub use structs::EdgeSet;
 pub use traits::HgBasis;

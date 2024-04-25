@@ -8,7 +8,7 @@ use polars::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{structs::HGraphCore, EdgeSet};
+use crate::{EdgeSet, HGraphCore};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DataType {
