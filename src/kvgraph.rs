@@ -8,7 +8,7 @@ use polars::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{EdgeSet, HGraphCore};
+use crate::{EdgeSet, HGraph};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DataType {
@@ -276,14 +276,14 @@ impl From<Value> for String {
 }
 
 pub struct KVGraph {
-    core: HGraphCore<HashMap<String, Value>, HashMap<String, Value>, u128, u128>,
+    core: HGraph<HashMap<String, Value>, HashMap<String, Value>, u128, u128>,
     schema: IndexMap<String, String>,
 }
 
 impl KVGraph {
     pub fn new() -> Self {
         Self {
-            core: HGraphCore::new(),
+            core: HGraph::new(),
             schema: IndexMap::from([
                 ("label".to_string(), "String".to_string()),
                 ("id".to_string(), "String".to_string()),
@@ -393,17 +393,19 @@ impl KVGraph {
     /// of nodes {a, b, c, d} and a provided `face` of {a, b} would
     /// yield a link of {c, d}. The link of the graph is then the
     /// union of all the links of each hyperedge.
-    pub fn link<E>(&self, nodes: E) -> Vec<Vec<Uuid>>
+    pub fn link_of_nodes<E>(&self, nodes: E) -> Vec<(Uuid, Vec<Uuid>)>
     where
         E: AsRef<[Uuid]>,
     {
         let node_vec: Vec<_> = nodes.as_ref().iter().map(|id| id.as_u128()).collect();
         self.core
-            .link(node_vec)
+            .link_of_nodes(node_vec)
             .into_iter()
-            .map(|(_, edge)| {
-                let nodes = edge.to_node_vec();
-                nodes.into_iter().map(|id| Uuid::from_u128(id)).collect()
+            .map(|(id, nodes)| {
+                (
+                    Uuid::from_u128(id),
+                    nodes.into_iter().map(|id| Uuid::from_u128(id)).collect(),
+                )
             })
             .collect()
     }
@@ -440,7 +442,7 @@ impl KVGraph {
             .map(|id| id.as_u128())
             .collect();
         self.core
-            .get_containing_edges_strict(node_vec)
+            .edges_containing_nodes(node_vec)
             .into_iter()
             .map(|id| Uuid::from_u128(id))
             .collect()
@@ -456,7 +458,7 @@ impl KVGraph {
             .map(|id| id.as_u128())
             .collect();
         self.core
-            .maximal_containing_edges(node_vec)
+            .maximal_edges_containing_nodes(node_vec)
             .into_iter()
             .map(|id| Uuid::from_u128(id))
             .collect()

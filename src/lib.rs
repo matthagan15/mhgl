@@ -61,16 +61,16 @@
 //! - HypergraphDB (Java): A database backend for storing and querying data
 //! - Hypergraph (Rust): Appears very limited in scope and not maintained.
 
+mod congraph;
 #[forbid(unsafe_code)]
-mod generic_graph;
 mod hgraph;
 mod kvgraph;
 mod structs;
 mod traits;
 mod utils;
 
-pub use generic_graph::HGraphCore;
-pub use hgraph::ConGraph;
+pub use congraph::ConGraph;
+pub use hgraph::HGraph;
 pub use kvgraph::KVGraph;
 pub use structs::EdgeSet;
 pub use traits::HgBasis;
