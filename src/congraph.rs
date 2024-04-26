@@ -169,7 +169,7 @@ impl ConGraph {
     {
         let cut_as_edge: EdgeSet<u32> = cut_nodes.into();
         let mut counted_edges: HashSet<EdgeID> = HashSet::new();
-        for node in cut_as_edge.nodes_ref().iter() {
+        for node in cut_as_edge.0.iter() {
             let out_edges: Vec<EdgeID> = self
                 .core
                 .edges_containing_nodes([*node])

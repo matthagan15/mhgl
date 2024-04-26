@@ -3,11 +3,7 @@ use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
 
-use serde::de::DeserializeOwned;
-use serde::ser::{SerializeStruct, Serializer};
 use serde::{Deserialize, Serialize};
-
-use uuid::Uuid;
 
 use crate::traits::HgNode;
 use crate::EdgeSet;
@@ -67,11 +63,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     where
         E: Into<EdgeSet<NodeID>>,
     {
-        let edge_set: EdgeSet<NodeID> = if self.is_simplex {
-            edge.into().to_simplex()
-        } else {
-            edge.into()
-        };
+        let edge_set: EdgeSet<NodeID> = edge.into();
         if self.find_id(edge_set.node_vec()).is_some() {
             return Err(data);
         }
@@ -115,11 +107,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     where
         E: Into<EdgeSet<NodeID>>,
     {
-        let edge_set: EdgeSet<NodeID> = if self.is_simplex {
-            edge.into().to_simplex()
-        } else {
-            edge.into()
-        };
+        let edge_set: EdgeSet<NodeID> = edge.into();
         if self.find_id(edge_set.node_vec()).is_some() {
             return None;
         }
@@ -341,49 +329,9 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         ret
     }
 
-    /// Under construction for planned simplicial complex.
-    fn make_simplex(&mut self) {
-        if self.is_simplex {
-            return;
-        }
-        let new_edges = self
-            .edges
-            .drain()
-            .map(|(id, e)| {
-                let new_edge = Edge {
-                    nodes: e.nodes.to_simplex(),
-                    data: e.data,
-                };
-                (id, new_edge)
-            })
-            .collect();
-        self.edges = new_edges;
-        self.is_simplex = true;
-    }
-
-    /// Under construction for planned simplicial complex.
-    fn make_undirected(&mut self) {
-        if !self.is_simplex {
-            return;
-        }
-        let new_edges = self
-            .edges
-            .drain()
-            .map(|(id, e)| {
-                let new_edge = Edge {
-                    nodes: e.nodes.make_undirected(),
-                    data: e.data,
-                };
-                (id, new_edge)
-            })
-            .collect();
-        self.edges = new_edges;
-        self.is_simplex = false;
-    }
-
     pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<EdgeData> {
         if let Some(e) = self.edges.remove(&edge_id) {
-            for node in e.nodes.nodes_ref() {
+            for node in e.nodes.0.iter() {
                 let containing_edges = self.nodes.get_mut(node).expect("Why is edge not in here.");
                 containing_edges.containing_edges.remove(&edge_id);
             }
@@ -544,7 +492,6 @@ mod tests {
     #[test]
     fn test_simple_tasks() {
         let mut g = HGraph::<(), (), u8, u8>::new();
-        g.make_simplex();
 
         let nodes: Vec<_> = (0..10).map(|_| g.add_node(())).collect();
         assert_eq!(nodes.len(), 9);
