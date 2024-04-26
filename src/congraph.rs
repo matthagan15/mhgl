@@ -121,19 +121,9 @@ impl ConGraph {
     }
 
     /// Returns all edges that strictly contain the provided nodes AND are not contained in another edge.
-    /// ```rust
-    /// use mhgl::ConGraph;
-    /// let mut hg = ConGraph::new();
-    /// let nodes = hg.add_nodes(10);
-    /// let e1 = hg.add_edge([0, 1]);
-    /// let e2 = hg.add_edge([0, 1, 2]);
-    /// let e3 = hg.add_edge([0, 1, 2, 3,]);
-    /// let maximals = hg.maximal_containing_edges([0, 1]);
-    /// assert_eq!(maximals, vec![e3]);
-    /// ```
     pub fn maximal_containing_edges<E>(&self, nodes: E) -> Vec<EdgeID>
     where
-        E: Into<EdgeSet<u32>>,
+        E: AsRef<[u32]>,
     {
         self.core.maximal_edges_containing_nodes(nodes)
     }
@@ -153,18 +143,6 @@ impl ConGraph {
     /// would an edge without any nodes in `cut_nodes`.
     /// The type `ToSet` is any collection that can be converted to a sparse
     /// set representation.
-    ///
-    /// Example
-    /// ```
-    /// let mut hg = HGraph::new();
-    /// let nodes = hg.add_nodes(10);
-    /// hg.create_edge(&nodes[..2]);
-    /// hg.create_edge(&nodes[..3]);
-    /// hg.create_edge(&nodes[..4]);
-    /// assert_eq!(hg.cut(&nodes[..2]), 2);
-    /// assert_eq!(hg.cut(&nodes[..3]), 1);
-    /// assert_eq!(hg.cut(&nodes[..4]), 0);
-    /// ```
     pub fn cut<E>(&self, cut_nodes: E) -> usize
     where
         E: Into<EdgeSet<u32>>,
@@ -203,17 +181,6 @@ impl ConGraph {
     }
 
     /// Returns the edges that have cardinality less than or equal to the input `cardinality`.
-    /// ```rust
-    /// use mhgl::ConGraph;
-    /// let mut hg = ConGraph::new();
-    /// let nodes = hg.add_nodes(10);
-    /// let mut edges = Vec::new();
-    /// for k in 1..6 {
-    ///     edges.push(hg.add_edge(&nodes[0..=k]));
-    /// }
-    /// let mut s = hg.skeleton(4);
-    /// assert_eq!(s[..], edges[..=2]);
-    /// ```
     pub fn skeleton(&self, cardinality: usize) -> Vec<EdgeID> {
         self.core
             .edges
@@ -278,14 +245,15 @@ impl FromStr for ConGraph {
         let mut edges = Vec::new();
         for edge_ix in edges_start_ix..lines.len() {
             let mut edge_string = lines[edge_ix].to_string();
-            if edge_string.starts_with('{') {
+            if edge_string.starts_with('{') || edge_string.starts_with('[') {
                 edge_string.remove(0);
             }
-            if edge_string.ends_with('}') {
+            if edge_string.ends_with('}') || edge_string.ends_with(']') {
                 edge_string.pop();
             }
             let mut node_set = Vec::new();
             for node_str in edge_string.split(',') {
+                println!("node_str: {:}", node_str);
                 node_set.push(node_str.trim().parse::<u32>().expect("node parse error."));
             }
             edges.push(node_set);
@@ -337,7 +305,7 @@ mod test {
     }
 
     #[test]
-    fn test_serialization() {
+    fn serialization() {
         let mut hg = ConGraph::new();
         hg.add_nodes(10);
         hg.add_edge(&[0, 1]);

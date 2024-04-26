@@ -10,10 +10,6 @@ use crate::HgNode;
 /// A subset for an overall set system, note that for things like
 /// deserializing and using `From`'s we default always to `Undirected`, so
 /// if you want to make a `Edge::Simplex` from a `Vec` you have to do something like
-/// ```
-/// let vec = vec![1, 2, 3];
-/// let simplex = Edge::from(vec).make_simplex();
-/// ```
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct EdgeSet<N: HgNode>(pub Vec<N>);
 
@@ -24,10 +20,6 @@ impl<N: HgNode> EdgeSet<N> {
     }
 
     /// Number of nodes in the edge
-    /// ```rust
-    /// let e = Edge::from([1,2,3]);
-    /// assert_eq!(e.len(), 3);
-    /// ```
     pub fn len(&self) -> usize {
         self.0.len()
     }

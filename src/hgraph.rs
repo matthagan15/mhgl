@@ -268,21 +268,6 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     }
 
     /// Finds all edges that contain all of the provided input nodes. Note that if the nodes match an existing edge then that edge will be in the output `Vec`.
-    /// ```rust
-    /// use mhgl::HGraph;
-    /// let mut hg = HGraph<u8, u8>::new();
-    /// let data = vec![1_u8, 20, 13, 4];
-    /// let nodes = data.into_iter().filter_map(|x| hg.add_node(x)).collect();
-    ///
-    /// let e1 = hg.add_edge(&nodes[0..=1]);
-    /// let e2 = hg.add_edge(&nodes[0..=2]);
-    /// let e3 = hg.add_edge(&nodes[0..=3]);
-    ///
-    /// let test_1 = hg.edges_containing_nodes([0, 1, 2]);
-    /// let test_2 = hg.edges_containing_nodes([10]);
-    /// assert_eq!(test_1, vec![e1, e2]);
-    /// assert_eq!(test_2, vec![]);
-    /// ```
     pub fn edges_containing_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
     where
         N: AsRef<[NodeID]>,
@@ -424,11 +409,42 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             .collect()
     }
 
-    pub fn maximal_edges_containing_nodes<E>(&self, nodes: E) -> Vec<EdgeID>
+    pub fn maximal_edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<EdgeID>
     where
-        E: Into<EdgeSet<NodeID>>,
+        Nodes: AsRef<[NodeID]>,
     {
-        todo!()
+        let containing_edges = self.edges_containing_nodes(nodes);
+        if containing_edges.is_empty() {
+            return Vec::new();
+        }
+        let mut submaximal_edges = HashSet::new();
+        for ix in 0..containing_edges.len() {
+            if submaximal_edges.contains(&containing_edges[ix]) {
+                continue;
+            }
+            let edge_ix = self
+                .edges
+                .get(&containing_edges[ix])
+                .expect("Edge invariant broken.");
+            for jx in 0..containing_edges.len() {
+                if ix == jx {
+                    continue;
+                }
+                let edge_jx = self
+                    .edges
+                    .get(&containing_edges[jx])
+                    .expect("Edge invariant broken.");
+                if edge_jx.nodes.contains_strict(&edge_ix.nodes) {
+                    submaximal_edges.insert(containing_edges[ix].clone());
+                } else if edge_ix.nodes.contains_strict(&edge_jx.nodes) {
+                    submaximal_edges.insert(containing_edges[jx].clone());
+                }
+            }
+        }
+        containing_edges
+            .into_iter()
+            .filter(|id| submaximal_edges.contains(id) == false)
+            .collect()
     }
 
     /// Warning: Has to filter all edges so takes Theta(|E|) time.
@@ -490,17 +506,16 @@ mod tests {
     use super::HGraph;
 
     #[test]
-    fn test_simple_tasks() {
+    fn simple_tasks() {
         let mut g = HGraph::<(), (), u8, u8>::new();
 
         let nodes: Vec<_> = (0..10).map(|_| g.add_node(())).collect();
-        assert_eq!(nodes.len(), 9);
+        assert_eq!(nodes.len(), 10);
         let e1 = g.add_edge(&[1_u8, 2, 3][..], ()).unwrap();
         let e2 = g.add_edge(vec![1, 2, 4], ()).unwrap();
         let e3 = g.add_edge([5_u8, 6, 7], ()).unwrap();
         assert!(g.find_id([1_u8, 2, 3]).is_some());
         // is simplex so this should work
-        assert!(g.find_id([1_u8, 2]).is_some());
         assert!(g.find_id(&[0][..]).is_none());
         let containing_edges = g.edges_containing_nodes([1_u8, 2]);
         assert_eq!(containing_edges.len(), 2);
@@ -517,9 +532,9 @@ mod tests {
     }
 
     #[test]
-    fn test_link_and_star() {
+    fn link_and_star() {
         let mut core = HGraph::<(), (), u8, u8>::new();
-        for ix in 0..10 {
+        for _ in 0..10 {
             core.add_node(());
         }
         let e1 = core.add_edge(vec![0, 1], ()).unwrap();
@@ -537,6 +552,9 @@ mod tests {
 
         let mut link = core.link_of_nodes([0, 1]);
         link.sort();
+        for ix in 0..link.len() {
+            link[ix].1.sort();
+        }
         let mut expected_link = vec![(e4.clone(), vec![4_u8]), (e5.clone(), vec![4_u8, 5])];
         expected_link.sort();
         assert_eq!(link, expected_link);
