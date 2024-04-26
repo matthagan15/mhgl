@@ -251,19 +251,16 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     }
 
     /// In case you forget :)
-    pub fn find_id<E>(&self, edge: E) -> Option<EdgeID>
+    pub fn find_id<E>(&self, nodes: E) -> Option<EdgeID>
     where
-        E: Into<EdgeSet<NodeID>>,
+        E: AsRef<[NodeID]>,
     {
-        let e: EdgeSet<NodeID> = if self.is_simplex {
-            edge.into().to_simplex()
-        } else {
-            edge.into()
-        };
-        if e.is_empty() {
+        let nodes_ref = nodes.as_ref();
+        if nodes_ref.len() == 0 {
             return None;
         }
-        let first = e.get_first_node().unwrap();
+        let nodes_as_edge: EdgeSet<NodeID> = nodes_ref.into();
+        let first = nodes_ref[0];
         if self.nodes.contains_key(&first) == false {
             return None;
         }
@@ -275,7 +272,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
                 .expect("Edge invariant violated.");
             // This is where the "no duplicate edges" is enforced, otherwise
             // we will just return the arbitrary first edge that matches
-            if candidate.nodes == e {
+            if candidate.nodes == nodes_as_edge {
                 return Some(candidate_id.clone());
             }
         }
