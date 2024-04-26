@@ -61,28 +61,15 @@
 //! - HypergraphDB (Java): A database backend for storing and querying data
 //! - Hypergraph (Rust): Appears very limited in scope and not maintained.
 
-mod congraph;
 #[forbid(unsafe_code)]
+mod congraph;
+mod edge;
 mod hgraph;
 mod kvgraph;
-mod structs;
-mod traits;
-mod utils;
+mod node_trait;
 
 pub use congraph::ConGraph;
+pub use edge::EdgeSet;
 pub use hgraph::HGraph;
 pub use kvgraph::KVGraph;
-pub use structs::EdgeSet;
-pub use traits::HgBasis;
-pub use traits::HyperGraph;
-
-mod tests {
-
-    use polars::prelude::*;
-    #[test]
-    fn polars_from() {
-        let x = 1.2_f64;
-        let av = AnyValue::from(x);
-        dbg!(av);
-    }
-}
+pub use node_trait::HgNode;

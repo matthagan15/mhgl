@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashSet;
 use std::fmt::Display;
 use std::fs;
 use std::fs::File;
@@ -8,9 +8,11 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{structs::EdgeID, HGraph};
+use crate::HGraph;
 
-use crate::{traits::*, EdgeSet};
+use crate::{EdgeSet, HgNode};
+
+type EdgeID = u64;
 
 /// A connectivity only hypergraph object.
 #[derive(Debug, Clone, Serialize, Deserialize)]

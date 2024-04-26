@@ -5,7 +5,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::traits::{HgBasis, HgNode};
+use crate::HgNode;
 
 /// A subset for an overall set system, note that for things like
 /// deserializing and using `From`'s we default always to `Undirected`, so
@@ -286,8 +286,6 @@ impl<N: HgNode, R: AsRef<[N]>> From<R> for EdgeSet<N> {
 
 mod test {
     use std::collections::{HashMap, HashSet};
-
-    use crate::HgBasis;
 
     use super::EdgeSet;
 

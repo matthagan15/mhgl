@@ -5,8 +5,8 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::traits::HgNode;
 use crate::EdgeSet;
+use crate::HgNode;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node<NodeData, EdgeID: HgNode> {
