@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{EdgeSet, HGraph};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DataType {
     Bool,
     UInt8,
@@ -65,20 +65,20 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn dtype(&self) -> String {
+    pub fn dtype(&self) -> DataType {
         match self {
-            Value::Bool(_) => "Bool".to_string(),
-            Value::UInt8(_) => "UInt8".to_string(),
-            Value::UInt16(_) => "UInt16".to_string(),
-            Value::UInt32(_) => "UInt32".to_string(),
-            Value::UInt64(_) => "UInt64".to_string(),
-            Value::Int8(_) => "Int8".to_string(),
-            Value::Int16(_) => "Int16".to_string(),
-            Value::Int32(_) => "Int32".to_string(),
-            Value::Int64(_) => "Int64".to_string(),
-            Value::Float32(_) => "Float32".to_string(),
-            Value::Float64(_) => "Float64".to_string(),
-            Value::String(_) => "String".to_string(),
+            Value::Bool(_) => DataType::Bool,
+            Value::UInt8(_) => DataType::UInt8,
+            Value::UInt16(_) => DataType::UInt16,
+            Value::UInt32(_) => DataType::UInt32,
+            Value::UInt64(_) => DataType::UInt64,
+            Value::Int8(_) => DataType::Int8,
+            Value::Int16(_) => DataType::Int16,
+            Value::Int32(_) => DataType::Int32,
+            Value::Int64(_) => DataType::Int64,
+            Value::Float32(_) => DataType::Float32,
+            Value::Float64(_) => DataType::Float64,
+            Value::String(_) => DataType::String,
         }
     }
 }
@@ -277,7 +277,7 @@ impl From<Value> for String {
 
 pub struct KVGraph {
     core: HGraph<HashMap<String, Value>, HashMap<String, Value>, u128, u128>,
-    schema: IndexMap<String, String>,
+    schema: IndexMap<String, DataType>,
 }
 
 impl KVGraph {
@@ -285,10 +285,10 @@ impl KVGraph {
         Self {
             core: HGraph::new(),
             schema: IndexMap::from([
-                ("label".to_string(), "String".to_string()),
-                ("id".to_string(), "String".to_string()),
-                ("nodes".to_string(), "String".to_string()),
-                ("labelled_nodes".to_string(), "String".to_string()),
+                ("label".to_string(), DataType::String),
+                ("id".to_string(), DataType::String),
+                ("nodes".to_string(), DataType::String),
+                ("labelled_nodes".to_string(), DataType::String),
             ]),
         }
     }
@@ -626,7 +626,7 @@ impl KVGraph {
     }
 
     /// Returns a copy of the given schema being used
-    pub fn get_schema(&self) -> Vec<(String, String)> {
+    pub fn get_schema(&self) -> Vec<(String, DataType)> {
         self.schema.clone().into_iter().collect()
     }
 
@@ -665,10 +665,7 @@ impl KVGraph {
                         .with_column(Series::new("labelled_nodes", [node_string]))
                         .expect("What error");
                 } else {
-                    let true_dtype =
-                        DataType::from_str(&dtype[..]).expect("could not parse dtype.");
-
-                    match true_dtype {
+                    match dtype {
                         DataType::Bool => {
                             let s = Series::new(
                                 &key[..],
@@ -844,9 +841,7 @@ impl KVGraph {
                         .with_column(Series::new("labelled_nodes", [node_labels_string]))
                         .expect("What error");
                 } else {
-                    let true_dtype =
-                        DataType::from_str(&dtype[..]).expect("could not parse dtype.");
-                    match true_dtype {
+                    match dtype {
                         DataType::Bool => {
                             let s = Series::new(
                                 &key[..],
