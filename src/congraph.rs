@@ -86,7 +86,7 @@ impl ConGraph {
     /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Does not allow for duplicate edges at the moment.
     pub fn add_edge<E>(&mut self, nodes: E) -> EdgeID
     where
-        E: Into<EdgeSet<u32>>,
+        E: AsRef<[u32]>,
     {
         let id = self.core.add_edge(nodes, ());
         id.expect("Graph did not return a valid ID.")
@@ -175,7 +175,7 @@ impl ConGraph {
     /// union of all the links of each hyperedge.
     pub fn link<E>(&self, nodes: E) -> Vec<(u64, Vec<u32>)>
     where
-        E: Into<EdgeSet<u32>>,
+        E: AsRef<[u32]>,
     {
         self.core.link_of_nodes(nodes).into_iter().collect()
     }
