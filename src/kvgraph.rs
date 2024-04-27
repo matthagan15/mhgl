@@ -630,371 +630,238 @@ impl KVGraph {
         self.schema.clone().into_iter().collect()
     }
 
-    /// Collects all key-value pairs of the given `KVGraph` schema for all nodes
-    /// with `null`'s where given nodes do not contain the key. Rows are given
-    /// in arbitrary ordering.
-    pub fn get_node_dataframe(&self) -> DataFrame {
-        let mut df = DataFrame::default();
-        for (node_id, node_struct) in self.core.nodes.iter() {
-            let node_kv_store = &node_struct.data;
-            let mut node_df = DataFrame::default();
-            let id_string = Uuid::from_u128(*node_id).to_string();
-            // todo: change this to a List type of AnyValue.
-            for (key, dtype) in self.schema.iter() {
-                if &key[..] == "id" {
-                    node_df
-                        .with_column(Series::new("id", [id_string.clone()]))
-                        .expect("couldn't add column.");
-                } else if &key[..] == "nodes" {
-                    let mut node_string = String::from("[");
-                    node_string.push_str(&id_string[..]);
-                    node_string.push(']');
-                    node_df
-                        .with_column(Series::new("nodes", [node_string]))
-                        .expect("What error");
-                } else if &key[..] == "labelled_nodes" {
-                    let mut node_string = String::from("[");
-
-                    let label = node_kv_store
-                        .get(&"label".to_string())
-                        .map(|val| Into::<String>::into(val.clone()))
-                        .expect("Could not get label as string.");
-                    node_string.push_str(&label[..]);
-                    node_string.push(']');
-                    node_df
-                        .with_column(Series::new("labelled_nodes", [node_string]))
-                        .expect("What error");
-                } else {
-                    match dtype {
-                        DataType::Bool => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<bool>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::UInt8 => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<u8>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::UInt16 => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<u16>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::UInt32 => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<u32>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::UInt64 => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<u64>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Int8 => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<i8>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Int16 => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<i16>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Int32 => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<i32>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Int64 => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<i64>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Float32 => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<f32>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Float64 => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<f64>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::String => {
-                            let s = Series::new(
-                                &key[..],
-                                [node_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<String>::into(val.clone()))],
-                            );
-                            node_df.with_column(s).expect("Couldn't add column.");
-                        }
-                    };
-                }
+    fn nodes_string(&self, id: &u128) -> Option<String> {
+        let mut s = String::from("[");
+        if self.core.nodes.contains_key(&id) {
+            s.push_str(&id.to_string()[..]);
+            s.push(']');
+            Some(s)
+        } else if self.core.edges.contains_key(&id) {
+            let edge_set = &self.core.edges.get(&id).unwrap().nodes;
+            for ix in 0..(edge_set.len() - 1) {
+                let node_id = Uuid::from_u128(edge_set.0[ix]);
+                s.push_str(&node_id.to_string()[..]);
+                s.push(',');
             }
-            df.vstack_mut(&node_df).expect("Could not vstack");
+            let last_node_id = Uuid::from_u128(edge_set.0[edge_set.len() - 1]);
+            s.push_str(&last_node_id.to_string()[..]);
+            s.push(']');
+            Some(s)
+        } else {
+            None
         }
+    }
+
+    fn labelled_nodes_string(&self, id: &u128) -> Option<String> {
+        let mut s = String::from("[");
+        if self.core.nodes.contains_key(&id) {
+            let kv_store = &self.core.nodes.get(&id).unwrap().data;
+            let label = kv_store
+                .get(&"label".to_string())
+                .map(|val| Into::<String>::into(val.clone()))
+                .expect("Could not get label as string.");
+            s.push_str(&label[..]);
+            s.push(']');
+            Some(s)
+        } else if self.core.edges.contains_key(&id) {
+            let edge_set = &self.core.edges.get(&id).unwrap().nodes;
+            for ix in 0..(edge_set.len() - 1) {
+                let kv_store = &self
+                    .core
+                    .nodes
+                    .get(&edge_set.0[ix])
+                    .expect("Broken edge encountered when trying to get labels of neighbors.")
+                    .data;
+                let label = kv_store
+                    .get(&"label".to_string())
+                    .map(|val| Into::<String>::into(val.clone()))
+                    .expect("Could not get label as string.");
+                s.push_str(&label[..]);
+                s.push(',');
+            }
+            let last_node_id = edge_set.0[edge_set.len() - 1];
+            let kv_store = &self
+                .core
+                .nodes
+                .get(&last_node_id)
+                .expect("Broken edge encountered when trying to get labels of neighbors.")
+                .data;
+            let label = kv_store
+                .get(&"label".to_string())
+                .map(|val| Into::<String>::into(val.clone()))
+                .expect("Could not get label as string.");
+            s.push_str(&label[..]);
+            s.push(']');
+            Some(s)
+        } else {
+            None
+        }
+    }
+
+    pub fn dataframe_of_ids<IDs>(&self, ids: IDs) -> DataFrame
+    where
+        IDs: AsRef<[Uuid]>,
+    {
+        let mut df = DataFrame::default();
+        ids.as_ref()
+            .into_iter()
+            .map(|id| (id.as_u128(), id.to_string()))
+            .filter(|(id, _)| self.core.nodes.contains_key(id) || self.core.edges.contains_key(id))
+            .for_each(|(id, id_string)| {
+                let mut id_df = DataFrame::default();
+                let kv_store = if self.core.nodes.contains_key(&id) {
+                    &self.core.nodes.get(&id).unwrap().data
+                } else {
+                    &self.core.edges.get(&id).unwrap().data
+                };
+
+                for (key, dtype) in self.schema.iter() {
+                    if &key[..] == "id" {
+                        id_df
+                            .with_column(Series::new("id", [id_string.clone()]))
+                            .expect("couldn't add column.");
+                    } else if &key[..] == "nodes" {
+                        let node_string = self
+                            .nodes_string(&id)
+                            .expect("ID was checked in previous filter.");
+                        id_df
+                            .with_column(Series::new("nodes", [node_string]))
+                            .expect("What error");
+                    } else if &key[..] == "labelled_nodes" {
+                        let labelled_nodes = self
+                            .labelled_nodes_string(&id)
+                            .expect("ID was checked in previous filter.");
+                        id_df
+                            .with_column(Series::new("labelled_nodes", [labelled_nodes]))
+                            .expect("What error");
+                    } else {
+                        match dtype {
+                            DataType::Bool => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store.get(key).map(|val| Into::<bool>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                            DataType::UInt8 => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store.get(key).map(|val| Into::<u8>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                            DataType::UInt16 => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store.get(key).map(|val| Into::<u16>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                            DataType::UInt32 => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store.get(key).map(|val| Into::<u32>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                            DataType::UInt64 => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store.get(key).map(|val| Into::<u64>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                            DataType::Int8 => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store.get(key).map(|val| Into::<i8>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                            DataType::Int16 => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store.get(key).map(|val| Into::<i16>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                            DataType::Int32 => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store.get(key).map(|val| Into::<i32>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                            DataType::Int64 => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store.get(key).map(|val| Into::<i64>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                            DataType::Float32 => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store.get(key).map(|val| Into::<f32>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                            DataType::Float64 => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store.get(key).map(|val| Into::<f64>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                            DataType::String => {
+                                let s = Series::new(
+                                    &key[..],
+                                    [kv_store
+                                        .get(key)
+                                        .map(|val| Into::<String>::into(val.clone()))],
+                                );
+                                id_df.with_column(s).expect("Couldn't add column.");
+                            }
+                        };
+                    }
+                }
+                df.vstack_mut(&id_df).expect("Could not vstack");
+            });
         df
     }
-    pub fn get_edge_dataframe(&self) -> DataFrame {
-        let mut df = DataFrame::default();
-        for (edge_id, edge_struct) in self.core.edges.iter() {
-            let edge_kv_store = &edge_struct.data;
-            let mut edge_df = DataFrame::default();
-            let id_string = Uuid::from_u128(*edge_id).to_string();
-            // todo: change this to a List type of AnyValue.
-            for (key, dtype) in self.schema.iter() {
-                if &key[..] == "id" {
-                    edge_df
-                        .with_column(Series::new("id", [id_string.clone()]))
-                        .expect("couldn't add column.");
-                } else if &key[..] == "nodes" {
-                    let mut node_labels_string = String::from("[");
-                    let node_labels: Vec<_> = edge_struct
-                        .nodes
-                        .node_vec()
-                        .into_iter()
-                        .map(|id| Uuid::from_u128(id).to_string())
-                        .collect();
-                    for label in node_labels {
-                        node_labels_string.push_str(&label[..]);
-                        node_labels_string.push_str(", ");
-                    }
-                    node_labels_string.pop();
-                    node_labels_string.pop();
-                    node_labels_string.push(']');
-                    edge_df
-                        .with_column(Series::new("nodes", [node_labels_string]))
-                        .expect("What error");
-                } else if &key[..] == "labelled_nodes" {
-                    let mut node_labels_string = String::from("[");
-                    let node_labels: Vec<_> = edge_struct
-                        .nodes
-                        .node_vec()
-                        .into_iter()
-                        .map(|id| {
-                            let node_kv_store = self
-                                .core
-                                .nodes
-                                .get(&id)
-                                .expect("Could not find data for node in given edge.");
-                            let node_label = node_kv_store
-                                .data
-                                .get("label")
-                                .expect("Could not find node label.");
-                            Into::<String>::into(node_label.clone())
-                        })
-                        .collect();
-                    for label in node_labels {
-                        node_labels_string.push_str(&label[..]);
-                        node_labels_string.push_str(", ");
-                    }
-                    node_labels_string.pop();
-                    node_labels_string.pop();
-                    node_labels_string.push(']');
-                    edge_df
-                        .with_column(Series::new("labelled_nodes", [node_labels_string]))
-                        .expect("What error");
-                } else {
-                    match dtype {
-                        DataType::Bool => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<bool>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::UInt8 => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<u8>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::UInt16 => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<u16>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::UInt32 => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<u32>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::UInt64 => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<u64>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Int8 => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<i8>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Int16 => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<i16>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Int32 => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<i32>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Int64 => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<i64>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Float32 => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<f32>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::Float64 => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<f64>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                        DataType::String => {
-                            let s = Series::new(
-                                &key[..],
-                                [edge_kv_store
-                                    .get(key)
-                                    .map(|val| Into::<String>::into(val.clone()))],
-                            );
-                            edge_df.with_column(s).expect("Couldn't add column.");
-                        }
-                    };
-                }
-            }
-            df.vstack_mut(&edge_df).expect("Could not vstack");
-        }
-        df
+    /// Collects the dataframe for all nodes in the hypergraph. If a key is not
+    /// present for a node then 'null' is used in the dataframe.
+    pub fn dataframe_of_nodes(&self) -> DataFrame {
+        self.dataframe_of_ids(
+            self.core
+                .nodes
+                .keys()
+                .map(|id| Uuid::from_u128(*id))
+                .collect::<Vec<_>>(),
+        )
+    }
+
+    /// Collects the dataframe for all edges in the hypergraph. If a key is not
+    /// present for an edge then 'null' is used in the dataframe.
+    pub fn dataframe_of_edges(&self) -> DataFrame {
+        self.dataframe_of_ids(
+            self.core
+                .edges
+                .keys()
+                .map(|id| Uuid::from_u128(*id))
+                .collect::<Vec<_>>(),
+        )
     }
 
     /// Computes the dataframe of both nodes and edges, starting with nodes at
     /// the top followed by the edges. Just a vertical stack of
     /// `get_node_dataframe` and `get_edge_dataframe`.
-    pub fn get_dataframe(&self) -> DataFrame {
-        let node_df = self.get_node_dataframe();
-        let edge_df = self.get_edge_dataframe();
+    pub fn dataframe(&self) -> DataFrame {
+        let node_df = self.dataframe_of_nodes();
+        let edge_df = self.dataframe_of_edges();
         node_df
             .vstack(&edge_df)
             .expect("Cannot stack node and edge dataframes")
-    }
-
-    /// Clones the given id's key-value pairs.
-    /// The result is wrapped in an option to help the user distinguish between an empty `id`
-    /// with no key-value pairs or the id is incorrect.
-    pub fn get_all_kv_pairs(&self, id: &Uuid) -> Option<Vec<(String, Value)>> {
-        let id = id.as_u128();
-        if self.core.nodes.contains_key(&id) {
-            Some(
-                self.core
-                    .borrow_node(&id)
-                    .unwrap()
-                    .clone()
-                    .into_iter()
-                    .collect(),
-            )
-        } else if self.core.edges.contains_key(&id) {
-            Some(
-                self.core
-                    .borrow_edge(&id)
-                    .unwrap()
-                    .clone()
-                    .into_iter()
-                    .collect(),
-            )
-        } else {
-            None
-        }
     }
 }
 
@@ -1009,22 +876,24 @@ mod tests {
         let n1 = hg.add_node();
         let n2 = hg.add_node();
         let n3 = hg.add_node_with_label("node 3");
-        hg.label(&n1, "node 1");
-        hg.label(&n2, "node 2");
+        hg.label(&n1, "node 1").unwrap();
+        hg.label(&n2, "node 2").unwrap();
         hg.insert(&n1, "test", "failure".to_string()).unwrap();
         hg.insert(&n1, "weight", 1.0_f32).unwrap();
         hg.insert(&n1, "booty", true).unwrap();
-        hg.insert(&n2, "weight", 2.2_f32);
-        hg.insert(&n2, "booty", false);
-        hg.insert(&n2, "defense", 0_u8);
+        hg.insert(&n2, "weight", 2.2_f32).unwrap();
+        hg.insert(&n2, "booty", false).unwrap();
+        hg.insert(&n2, "defense", 0_u8).unwrap();
         let nodes = vec![n1, n2, n3];
         let e1 = hg.add_edge(&[n1, n2]).unwrap();
         let e2 = hg.add_edge(&[nodes[0], nodes[2]]).unwrap();
-        hg.insert(&e1, "defense", 3_u8);
+        hg.insert(&e1, "defense", 3_u8).unwrap();
 
+        // I'm not sure how to validate the output dataframes
+        // other than manual inspection at the moment.
         dbg!(hg.get(&n1, "test"));
-        println!("{:}", hg.get_node_dataframe());
-        println!("{:}", hg.get_edge_dataframe());
-        println!("{:}", hg.get_dataframe());
+        println!("{:}", hg.dataframe_of_nodes());
+        println!("{:}", hg.dataframe_of_edges());
+        println!("{:}", hg.dataframe());
     }
 }
