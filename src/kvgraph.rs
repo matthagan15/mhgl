@@ -8,7 +8,7 @@ use polars::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{EdgeSet, HGraph};
+use crate::{EdgeSet, HGraph, HyperGraph};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DataType {

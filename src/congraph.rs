@@ -8,7 +8,7 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::HGraph;
+use crate::{HGraph, HyperGraph};
 
 use crate::{EdgeSet, HgNode};
 

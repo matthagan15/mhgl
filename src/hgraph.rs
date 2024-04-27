@@ -5,8 +5,8 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::EdgeSet;
 use crate::HgNode;
+use crate::{EdgeSet, HyperGraph};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node<NodeData, EdgeID: HgNode> {
@@ -267,12 +267,32 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         None
     }
 
-    /// Finds all edges that contain all of the provided input nodes. Note that if the nodes match an existing edge then that edge will be in the output `Vec`.
-    pub fn edges_containing_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
+    pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<EdgeData> {
+        if let Some(e) = self.edges.remove(&edge_id) {
+            for node in e.nodes.0.iter() {
+                let containing_edges = self.nodes.get_mut(node).expect("Why is edge not in here.");
+                containing_edges.containing_edges.remove(&edge_id);
+            }
+            Some(e.data)
+        } else {
+            None
+        }
+    }
+}
+
+impl<N, E, NData, EData> HyperGraph for HGraph<NData, EData, N, E>
+where
+    N: HgNode,
+    E: HgNode,
+{
+    type NodeID = N;
+    type EdgeID = E;
+
+    fn edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
     where
-        N: AsRef<[NodeID]>,
+        Nodes: AsRef<[Self::NodeID]>,
     {
-        let nodes_set: EdgeSet<NodeID> = nodes.into();
+        let nodes_set: EdgeSet<Self::NodeID> = nodes.into();
         let first = nodes_set.get_first_node().unwrap();
         if self.nodes.contains_key(&first) == false {
             return vec![];
@@ -291,14 +311,11 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         ret
     }
 
-    /// Finds all edges that contain the provided input edge. As duplicate
-    /// edges are not allowed this only returns edges that strictly contain the
-    /// given edge. Note that an input edge that is maximal, meaning it has no edges containing it, will yield an empty `Vec`.
-    pub fn edges_containing_edge(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
-        if self.edges.contains_key(edge_id) == false {
+    fn edges_containing_edge(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        if self.edges.contains_key(edge) == false {
             return Vec::new();
         }
-        let edge = self.edges.get(edge_id).unwrap();
+        let edge = self.edges.get(edge).unwrap();
         let first = edge.nodes.get_first_node().unwrap();
         let candidate_ids = self.nodes.get(&first).unwrap();
         let mut ret = Vec::new();
@@ -314,29 +331,12 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         ret
     }
 
-    pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<EdgeData> {
-        if let Some(e) = self.edges.remove(&edge_id) {
-            for node in e.nodes.0.iter() {
-                let containing_edges = self.nodes.get_mut(node).expect("Why is edge not in here.");
-                containing_edges.containing_edges.remove(&edge_id);
-            }
-            Some(e.data)
-        } else {
-            None
-        }
-    }
-
-    /// Computes the link of the provided nodes by pairs of edge ids and what
-    /// the link of the provided nodes are within the associated id.
-    /// Ex: If the graph has edges {1, 2, 3}, {2, 3, 4}, {3, 4, 5}, and {2, 3} with
-    /// ids 1,2, 3, and 4 respectively, then the link of edge_id = 4 would be
-    /// vec![(1, [1]), (2, [2])].
-    pub fn link(&self, edge_id: &EdgeID) -> Vec<(EdgeID, Vec<NodeID>)> {
-        if self.edges.contains_key(edge_id) == false {
+    fn link(&self, edge: &Self::EdgeID) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
+        if self.edges.contains_key(edge) == false {
             return Vec::new();
         }
-        let containing_edges = self.edges_containing_edge(edge_id);
-        let edge = self.edges.get(edge_id).unwrap();
+        let containing_edges = self.edges_containing_edge(edge);
+        let edge = self.edges.get(edge).unwrap();
         containing_edges
             .into_iter()
             .filter_map(|id| {
@@ -355,16 +355,11 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             .collect()
     }
 
-    /// Computes the link of the provided nodes by pairs of edge ids and what
-    /// the link of the provided nodes are within the associated id.
-    /// Ex: If the graph has edges {1, 2, 3}, {2, 3, 4}, and {3, 4, 5}, with
-    /// ids 1,2, and 3 respectively, then the link of [3] would be
-    /// vec![(1, [1, 2]), (2, [2, 4]), (3, [4, 5])].
-    pub fn link_of_nodes<E>(&self, nodes: E) -> Vec<(EdgeID, Vec<NodeID>)>
+    fn link_of_nodes<Nodes>(&self, nodes: Nodes) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)>
     where
-        E: AsRef<[NodeID]>,
+        Nodes: AsRef<[Self::NodeID]>,
     {
-        let edge: EdgeSet<NodeID> = nodes.into();
+        let edge: EdgeSet<Self::NodeID> = nodes.into();
         let containing_edges = self.edges_containing_nodes(edge.node_vec());
         containing_edges
             .into_iter()
@@ -384,12 +379,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             .collect()
     }
 
-    /// Finds the edges containing the edge associated with the provided
-    /// ID that are not contained in any other edge. If the edge of the
-    /// provided ID is maximal, it is not included in its return.
-    /// Ex: {1, 2, 3}, {1,2, 3, 4}, {1, 2, 3, 4, 5} and you give the id
-    /// of {1, 2, 3}, then the id of {1, 2, 3, 4, 5} will be returned.
-    pub fn maximal_edges_containing_edge(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
+    fn maximal_edges_containing_edge(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
         let containing_edges = self.edges_containing_edge(edge_id);
         if containing_edges.is_empty() {
             return Vec::new();
@@ -424,12 +414,9 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             .collect()
     }
 
-    /// finds all edges containing provided nodes that are not contained
-    /// in any other edge. If the provided nodes are a maximal edge, then
-    /// that edges ID is returned.
-    pub fn maximal_edges_containing_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
+    fn maximal_edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
     where
-        N: AsRef<[NodeID]>,
+        Nodes: AsRef<[Self::NodeID]>,
     {
         let containing_edges = self.edges_containing_nodes(nodes);
         if containing_edges.is_empty() {
@@ -465,8 +452,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             .collect()
     }
 
-    /// Warning: Has to filter all edges so takes Theta(|E|) time.
-    pub fn edges_of_size(&self, card: usize) -> Vec<EdgeID> {
+    fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID> {
         self.edges
             .iter()
             .filter(|(id, e)| e.nodes.len() == card)
@@ -475,11 +461,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             .collect()
     }
 
-    /// Returns edges that constitute the boundary up operator, which
-    /// adds a single node to the provided edge.
-    /// Example: If a graph has edges {1, 2}, {1,2, 3}, {1,2,4}, and {1, 2, 3, 4} with ids 1, 2, 3, and 4 respectively, then `boundary_up(1)` would give
-    /// vec![2, 3].
-    pub fn boundary_up(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
+    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
         let containing_edges = self.edges_containing_edge(edge_id);
         if containing_edges.is_empty() {
             return Vec::new();
@@ -503,11 +485,25 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         boundary
     }
 
-    /// Finds all edges which contain one more node than the provided
-    /// node.
-    pub fn boundary_up_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
+    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        if self.edges.contains_key(edge_id) == false {
+            return Vec::new();
+        }
+        let edge_set = &self.edges.get(edge_id).unwrap().nodes;
+        let mut boundary: Vec<Self::EdgeID> = Vec::new();
+        for ix in 0..edge_set.len() {
+            let mut possible = edge_set.node_vec();
+            possible.remove(ix);
+            if let Some(id) = self.find_id(possible) {
+                boundary.push(id);
+            }
+        }
+        boundary
+    }
+
+    fn boundary_up_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
     where
-        N: AsRef<[NodeID]>,
+        Nodes: AsRef<[Self::NodeID]>,
     {
         let nodes_ref = nodes.as_ref();
         let given_nodes_len = nodes_ref.len();
@@ -528,33 +524,12 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         boundary
     }
 
-    /// Finds the edges that are the same as the provided edge_id but
-    /// have a single node removed. For example, {1, 2} would be in
-    /// boundary_down of {1, 2, 3} if both edges were present.
-    /// Returns an empty vec if the edge_id is incorrect.
-    pub fn boundary_down(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
-        if self.edges.contains_key(edge_id) == false {
-            return Vec::new();
-        }
-        let edge_set = &self.edges.get(edge_id).unwrap().nodes;
-        let mut boundary: Vec<EdgeID> = Vec::new();
-        for ix in 0..edge_set.len() {
-            let mut possible = edge_set.node_vec();
-            possible.remove(ix);
-            if let Some(id) = self.find_id(possible) {
-                boundary.push(id);
-            }
-        }
-        boundary
-    }
-
-    /// Finds all edges that have one node removed from the provided nodes.
-    pub fn boundary_down_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
+    fn boundary_down_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
     where
-        N: AsRef<[NodeID]>,
+        Nodes: AsRef<[Self::NodeID]>,
     {
-        let edge_set: EdgeSet<NodeID> = nodes.into();
-        let mut boundary: Vec<EdgeID> = Vec::new();
+        let edge_set: EdgeSet<Self::NodeID> = nodes.into();
+        let mut boundary: Vec<Self::EdgeID> = Vec::new();
         for ix in 0..edge_set.len() {
             let mut possible = edge_set.node_vec();
             possible.remove(ix);
@@ -565,8 +540,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         boundary
     }
 
-    /// Returns the edges that have cardinality less than or equal to the input `cardinality`.
-    pub fn skeleton(&self, cardinality: usize) -> Vec<EdgeID> {
+    fn skeleton(&self, cardinality: usize) -> Vec<Self::EdgeID> {
         self.edges
             .iter()
             .filter(|(_, e)| e.nodes.len() <= cardinality)
@@ -607,7 +581,7 @@ where
 }
 
 mod tests {
-    use crate::EdgeSet;
+    use crate::{EdgeSet, HyperGraph};
 
     use super::HGraph;
 

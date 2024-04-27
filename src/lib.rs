@@ -65,11 +65,13 @@
 mod congraph;
 mod edge;
 mod hgraph;
+mod hypergraph;
 mod kvgraph;
 mod node_trait;
 
 pub use congraph::ConGraph;
 pub use edge::EdgeSet;
 pub use hgraph::HGraph;
+pub use hypergraph::HyperGraph;
 pub use kvgraph::KVGraph;
 pub use node_trait::HgNode;
