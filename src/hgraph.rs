@@ -427,9 +427,9 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     /// finds all edges containing provided nodes that are not contained
     /// in any other edge. If the provided nodes are a maximal edge, then
     /// that edges ID is returned.
-    pub fn maximal_edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<EdgeID>
+    pub fn maximal_edges_containing_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
     where
-        Nodes: AsRef<[NodeID]>,
+        N: AsRef<[NodeID]>,
     {
         let containing_edges = self.edges_containing_nodes(nodes);
         if containing_edges.is_empty() {
@@ -472,17 +472,6 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             .filter(|(id, e)| e.nodes.len() == card)
             .map(|(id, e)| id)
             .cloned()
-            .collect()
-    }
-
-    /// Returns the set of edge of size less than or equal to `k`,
-    /// inclusive. Also note that `k` refers to the cardinality of the
-    /// provided sets, not the dimension (An edge {1, 2} would be included in a k-skeleton with k >= 2.)
-    pub fn k_skeleton(&self, k: usize) -> HashSet<EdgeID> {
-        self.edges
-            .iter()
-            .filter(|(_, e)| e.nodes.len() <= k)
-            .map(|(id, _)| id.clone())
             .collect()
     }
 
@@ -575,6 +564,15 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         }
         boundary
     }
+
+    /// Returns the edges that have cardinality less than or equal to the input `cardinality`.
+    pub fn skeleton(&self, cardinality: usize) -> Vec<EdgeID> {
+        self.edges
+            .iter()
+            .filter(|(_, e)| e.nodes.len() <= cardinality)
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
 }
 
 impl<NodeData, EdgeData, NodeID, EdgeID> HGraph<NodeData, EdgeData, NodeID, EdgeID>
@@ -640,7 +638,7 @@ mod tests {
     }
 
     #[test]
-    fn link_and_star() {
+    fn link_and_maximal() {
         let mut core = HGraph::<(), (), u8, u8>::new();
         for _ in 0..10 {
             core.add_node(());

@@ -14,7 +14,9 @@ use crate::{EdgeSet, HgNode};
 
 type EdgeID = u64;
 
-/// A connectivity only hypergraph object.
+/// A connectivity only hypergraph object. Essentially a wrapper
+/// around `HGraph` with simpler add nodes/edges and simpler
+/// serialization to and from disk.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConGraph {
     core: HGraph<(), ()>,
@@ -106,31 +108,46 @@ impl ConGraph {
     where
         E: AsRef<[u32]>,
     {
-        self.core.find_id(nodes.as_ref())
+        self.core.find_id(nodes)
     }
 
     /// Warning: Has to filter all edges so takes Theta(|E|) time.
     pub fn edges_of_size(&self, card: usize) -> Vec<EdgeID> {
-        self.core
-            .edges
-            .iter()
-            .filter(|(id, e)| e.nodes.len() == card)
-            .map(|(id, e)| id)
-            .cloned()
-            .collect()
+        self.core.edges_of_size(card)
     }
 
-    /// Returns all edges that strictly contain the provided nodes AND are not contained in another edge.
-    pub fn maximal_containing_edges<E>(&self, nodes: E) -> Vec<EdgeID>
+    /// finds all edges containing provided nodes that are not contained
+    /// in any other edge. If the provided nodes are a maximal edge, then
+    /// that edges ID is returned.
+    pub fn maximal_edges_containing_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
     where
-        E: AsRef<[u32]>,
+        N: AsRef<[u32]>,
     {
         self.core.maximal_edges_containing_nodes(nodes)
     }
 
-    /// Returns IDs of all edges that strictly contain the provided nodes.
+    /// Finds the edges containing the edge associated with the provided
+    /// ID that are not contained in any other edge. If the edge of the
+    /// provided ID is maximal, it is not included in its return.
+    /// Ex: {1, 2, 3}, {1,2, 3, 4}, {1, 2, 3, 4, 5} and you give the id
+    /// of {1, 2, 3}, then the id of {1, 2, 3, 4, 5} will be returned.
+    pub fn maximal_edges_containing_edge(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
+        self.core.maximal_edges_containing_edge(edge_id)
+    }
+
+    /// Finds all edges that contain the provided input edge. As duplicate
+    /// edges are not allowed this only returns edges that strictly contain the
+    /// given edge. Note that if an input edge that is maximal, meaning it has no edges containing it, this function will return an empty `Vec`.
     pub fn edges_containing_edge(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
         self.core.edges_containing_edge(edge_id)
+    }
+
+    /// Finds all edges that contain all of the provided input nodes. Note that if the nodes match an existing edge then that edge will be in the output `Vec`.
+    pub fn edges_containing_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
+    where
+        N: AsRef<[u32]>,
+    {
+        self.core.edges_containing_nodes(nodes)
     }
 
     pub fn edges(&self) -> Vec<EdgeID> {
@@ -168,26 +185,63 @@ impl ConGraph {
         counted_edges.len()
     }
 
-    /// Computes the link of the provided set. The link of a single
-    /// hyperedge is computed using the complement, so a hyperedge
-    /// of nodes {a, b, c, d} and a provided `face` of {a, b} would
-    /// yield a link of {c, d}. The link of the graph is then the
-    /// union of all the links of each hyperedge.
-    pub fn link<E>(&self, nodes: E) -> Vec<(u64, Vec<u32>)>
+    /// Computes the link of the provided nodes by pairs of edge ids and what
+    /// the link of the provided nodes are within the associated id.
+    /// Ex: If the graph has edges {1, 2, 3}, {2, 3, 4}, and {3, 4, 5}, with
+    /// ids 1,2, and 3 respectively, then the link of [3] would be
+    /// vec![(1, [1, 2]), (2, [2, 4]), (3, [4, 5])].
+    pub fn link_of_nodes<E>(&self, nodes: E) -> Vec<(u64, Vec<u32>)>
     where
         E: AsRef<[u32]>,
     {
-        self.core.link_of_nodes(nodes).into_iter().collect()
+        self.core.link_of_nodes(nodes)
+    }
+
+    /// Computes the link of the provided nodes by pairs of edge ids and what
+    /// the link of the provided nodes are within the associated id.
+    /// Ex: If the graph has edges {1, 2, 3}, {2, 3, 4}, {3, 4, 5}, and {2, 3} with
+    /// ids 1,2, 3, and 4 respectively, then the link of edge_id = 4 would be
+    /// vec![(1, [1]), (2, [2])].
+    pub fn link(&self, edge_id: &EdgeID) -> Vec<(EdgeID, Vec<u32>)> {
+        self.core.link(edge_id)
     }
 
     /// Returns the edges that have cardinality less than or equal to the input `cardinality`.
     pub fn skeleton(&self, cardinality: usize) -> Vec<EdgeID> {
-        self.core
-            .edges
-            .iter()
-            .filter(|(_, e)| e.nodes.len() <= cardinality)
-            .map(|(id, _)| id.clone())
-            .collect()
+        self.skeleton(cardinality)
+    }
+
+    /// Returns edges that constitute the boundary up operator, which
+    /// adds a single node to the provided edge.
+    /// Example: If a graph has edges {1, 2}, {1,2, 3}, {1,2,4}, and {1, 2, 3, 4} with ids 1, 2, 3, and 4 respectively, then `boundary_up(1)` would give
+    /// vec![2, 3].
+    pub fn boundary_up(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
+        self.core.boundary_up(edge_id)
+    }
+
+    /// Finds all edges which contain one more node than the provided
+    /// node.
+    pub fn boundary_up_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
+    where
+        N: AsRef<[u32]>,
+    {
+        self.core.boundary_up_nodes(nodes)
+    }
+
+    /// Finds the edges that are the same as the provided edge_id but
+    /// have a single node removed. For example, {1, 2} would be in
+    /// boundary_down of {1, 2, 3} if both edges were present.
+    /// Returns an empty vec if the edge_id is incorrect.
+    pub fn boundary_down(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
+        self.core.boundary_down(edge_id)
+    }
+
+    /// Finds all edges that have one node removed from the provided nodes.
+    pub fn boundary_down_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
+    where
+        N: AsRef<[u32]>,
+    {
+        self.core.boundary_down_nodes(nodes)
     }
 }
 
@@ -333,7 +387,7 @@ mod test {
         let mut expected_skeleton = vec![edges[0], edges[1], edges[2]];
         expected_skeleton.sort();
         assert_eq!(small_skeleton, expected_skeleton);
-        let mut small_link = hg.link(&nodes[0..=6]);
+        let mut small_link = hg.link_of_nodes(&nodes[0..=6]);
         small_link.sort_by(|a, b| a.1.len().partial_cmp(&b.1.len()).unwrap());
         let expected_link = vec![
             EdgeSet::from(&nodes[7..=7]),
