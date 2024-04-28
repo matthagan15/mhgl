@@ -452,7 +452,8 @@ impl KVGraph {
     fn nodes_string(&self, id: &u128) -> Option<String> {
         let mut s = String::from("[");
         if self.core.nodes.contains_key(&id) {
-            s.push_str(&id.to_string()[..]);
+            let node_id = Uuid::from_u128(*id);
+            s.push_str(&node_id.to_string()[..]);
             s.push(']');
             Some(s)
         } else if self.core.edges.contains_key(&id) {
