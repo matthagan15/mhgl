@@ -1,10 +1,11 @@
+#[cfg(feature = "polars")]
+use polars::prelude::*;
 use std::{
     collections::{HashMap, HashSet},
     str::FromStr,
 };
 
 use indexmap::IndexMap;
-use polars::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -146,6 +147,7 @@ impl From<String> for Value {
     }
 }
 
+#[cfg(feature = "polars")]
 impl<'a> From<Value> for AnyValue<'a> {
     fn from(value: Value) -> Self {
         match value {
@@ -515,6 +517,7 @@ impl KVGraph {
         }
     }
 
+    #[cfg(feature = "polars")]
     pub fn dataframe_of_ids<IDs>(&self, ids: IDs) -> DataFrame
     where
         IDs: AsRef<[Uuid]>,
@@ -648,6 +651,7 @@ impl KVGraph {
     }
     /// Collects the dataframe for all nodes in the hypergraph. If a key is not
     /// present for a node then 'null' is used in the dataframe.
+    #[cfg(feature = "polars")]
     pub fn dataframe_of_nodes(&self) -> DataFrame {
         self.dataframe_of_ids(
             self.core
@@ -660,6 +664,7 @@ impl KVGraph {
 
     /// Collects the dataframe for all edges in the hypergraph. If a key is not
     /// present for an edge then 'null' is used in the dataframe.
+    #[cfg(feature = "polars")]
     pub fn dataframe_of_edges(&self) -> DataFrame {
         self.dataframe_of_ids(
             self.core
@@ -673,6 +678,7 @@ impl KVGraph {
     /// Computes the dataframe of both nodes and edges, starting with nodes at
     /// the top followed by the edges. Just a vertical stack of
     /// `get_node_dataframe` and `get_edge_dataframe`.
+    #[cfg(feature = "polars")]
     pub fn dataframe(&self) -> DataFrame {
         let node_df = self.dataframe_of_nodes();
         let edge_df = self.dataframe_of_edges();
@@ -842,11 +848,13 @@ impl HyperGraph for KVGraph {
 }
 
 mod tests {
-    use polars::datatypes::AnyValue;
+    #[cfg(feature = "polars")]
+    use polars::prelude::*;
 
     use crate::KVGraph;
 
     #[test]
+    #[cfg(feature = "polars")]
     fn create_read_update_delete() {
         let mut hg = KVGraph::new();
         let n1 = hg.add_node();

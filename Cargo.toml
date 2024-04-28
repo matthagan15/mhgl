@@ -10,13 +10,9 @@ repository = "https://github.com/matthagan15/mhgl"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bitvec = { version = "1.0.1", features = ["serde"] }
 indexmap = { version = "2.2.6", features = ["serde"] }
-num-integer = "0.1.45"
-polars = { version = "0.39.2", features = ["dtype-u8", "dtype-u16", "dtype-i8", "dtype-i16"] }
+polars = { version = "0.39.2", features = ["dtype-u8", "dtype-u16", "dtype-i8", "dtype-i16"], optional = true }
 rand = "0.8.5"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.91"
-serde_json_any_key = "2.0.0"
-serde_with = { version = "3.3.0", features = ["json"] }
 uuid = { version = "1.2.2", features = ["v4", "fast-rng", "serde", "macro-diagnostics"] }
