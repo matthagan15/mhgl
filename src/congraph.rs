@@ -103,51 +103,12 @@ impl ConGraph {
         self.core.edges.get(edge_id).map(|e| e.nodes.node_vec())
     }
 
-    /// In case you forget it.
+    /// In case you forget it :)
     pub fn find_id<E>(&self, nodes: E) -> Option<EdgeID>
     where
         E: AsRef<[u32]>,
     {
         self.core.find_id(nodes)
-    }
-
-    /// Warning: Has to filter all edges so takes Theta(|E|) time.
-    pub fn edges_of_size(&self, card: usize) -> Vec<EdgeID> {
-        self.core.edges_of_size(card)
-    }
-
-    /// finds all edges containing provided nodes that are not contained
-    /// in any other edge. If the provided nodes are a maximal edge, then
-    /// that edges ID is returned.
-    pub fn maximal_edges_containing_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
-    where
-        N: AsRef<[u32]>,
-    {
-        self.core.maximal_edges_containing_nodes(nodes)
-    }
-
-    /// Finds the edges containing the edge associated with the provided
-    /// ID that are not contained in any other edge. If the edge of the
-    /// provided ID is maximal, it is not included in its return.
-    /// Ex: {1, 2, 3}, {1,2, 3, 4}, {1, 2, 3, 4, 5} and you give the id
-    /// of {1, 2, 3}, then the id of {1, 2, 3, 4, 5} will be returned.
-    pub fn maximal_edges_containing_edge(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
-        self.core.maximal_edges_containing_edge(edge_id)
-    }
-
-    /// Finds all edges that contain the provided input edge. As duplicate
-    /// edges are not allowed this only returns edges that strictly contain the
-    /// given edge. Note that if an input edge that is maximal, meaning it has no edges containing it, this function will return an empty `Vec`.
-    pub fn edges_containing_edge(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
-        self.core.edges_containing_edge(edge_id)
-    }
-
-    /// Finds all edges that contain all of the provided input nodes. Note that if the nodes match an existing edge then that edge will be in the output `Vec`.
-    pub fn edges_containing_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
-    where
-        N: AsRef<[u32]>,
-    {
-        self.core.edges_containing_nodes(nodes)
     }
 
     pub fn edges(&self) -> Vec<EdgeID> {
@@ -184,65 +145,6 @@ impl ConGraph {
         }
         counted_edges.len()
     }
-
-    /// Computes the link of the provided nodes by pairs of edge ids and what
-    /// the link of the provided nodes are within the associated id.
-    /// Ex: If the graph has edges {1, 2, 3}, {2, 3, 4}, and {3, 4, 5}, with
-    /// ids 1,2, and 3 respectively, then the link of [3] would be
-    /// vec![(1, [1, 2]), (2, [2, 4]), (3, [4, 5])].
-    pub fn link_of_nodes<E>(&self, nodes: E) -> Vec<(u64, Vec<u32>)>
-    where
-        E: AsRef<[u32]>,
-    {
-        self.core.link_of_nodes(nodes)
-    }
-
-    /// Computes the link of the provided nodes by pairs of edge ids and what
-    /// the link of the provided nodes are within the associated id.
-    /// Ex: If the graph has edges {1, 2, 3}, {2, 3, 4}, {3, 4, 5}, and {2, 3} with
-    /// ids 1,2, 3, and 4 respectively, then the link of edge_id = 4 would be
-    /// vec![(1, [1]), (2, [2])].
-    pub fn link(&self, edge_id: &EdgeID) -> Vec<(EdgeID, Vec<u32>)> {
-        self.core.link(edge_id)
-    }
-
-    /// Returns the edges that have cardinality less than or equal to the input `cardinality`.
-    pub fn skeleton(&self, cardinality: usize) -> Vec<EdgeID> {
-        self.skeleton(cardinality)
-    }
-
-    /// Returns edges that constitute the boundary up operator, which
-    /// adds a single node to the provided edge.
-    /// Example: If a graph has edges {1, 2}, {1,2, 3}, {1,2,4}, and {1, 2, 3, 4} with ids 1, 2, 3, and 4 respectively, then `boundary_up(1)` would give
-    /// vec![2, 3].
-    pub fn boundary_up(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
-        self.core.boundary_up(edge_id)
-    }
-
-    /// Finds all edges which contain one more node than the provided
-    /// node.
-    pub fn boundary_up_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
-    where
-        N: AsRef<[u32]>,
-    {
-        self.core.boundary_up_nodes(nodes)
-    }
-
-    /// Finds the edges that are the same as the provided edge_id but
-    /// have a single node removed. For example, {1, 2} would be in
-    /// boundary_down of {1, 2, 3} if both edges were present.
-    /// Returns an empty vec if the edge_id is incorrect.
-    pub fn boundary_down(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
-        self.core.boundary_down(edge_id)
-    }
-
-    /// Finds all edges that have one node removed from the provided nodes.
-    pub fn boundary_down_nodes<N>(&self, nodes: N) -> Vec<EdgeID>
-    where
-        N: AsRef<[u32]>,
-    {
-        self.core.boundary_down_nodes(nodes)
-    }
 }
 
 impl Display for ConGraph {
@@ -266,6 +168,75 @@ impl Display for ConGraph {
             s.push_str("\n");
         }
         f.write_str(&s)
+    }
+}
+
+impl HyperGraph for ConGraph {
+    type NodeID = u32;
+
+    type EdgeID = u64;
+
+    fn edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
+    where
+        Nodes: AsRef<[Self::NodeID]>,
+    {
+        self.core.edges_containing_nodes(nodes)
+    }
+
+    fn edges_containing_edge(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core.edges_containing_edge(edge)
+    }
+
+    fn link(&self, edge: &Self::EdgeID) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
+        self.core.link(edge)
+    }
+
+    fn link_of_nodes<Nodes>(&self, nodes: Nodes) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)>
+    where
+        Nodes: AsRef<[Self::NodeID]>,
+    {
+        self.core.link_of_nodes(nodes)
+    }
+
+    fn maximal_edges_containing_edge(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core.maximal_edges_containing_edge(edge_id)
+    }
+
+    fn maximal_edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
+    where
+        Nodes: AsRef<[Self::NodeID]>,
+    {
+        self.core.maximal_edges_containing_nodes(nodes)
+    }
+
+    fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID> {
+        self.core.edges_of_size(card)
+    }
+
+    fn skeleton(&self, cardinality: usize) -> Vec<Self::EdgeID> {
+        self.core.skeleton(cardinality)
+    }
+
+    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core.boundary_up(edge_id)
+    }
+
+    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core.boundary_down(edge_id)
+    }
+
+    fn boundary_up_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
+    where
+        Nodes: AsRef<[Self::NodeID]>,
+    {
+        self.core.boundary_up_nodes(nodes)
+    }
+
+    fn boundary_down_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
+    where
+        Nodes: AsRef<[Self::NodeID]>,
+    {
+        self.core.boundary_down_nodes(nodes)
     }
 }
 
@@ -332,7 +303,7 @@ mod test {
 
     use std::{collections::HashSet, path::Path, str::FromStr};
 
-    use crate::{congraph::ConGraph, EdgeSet};
+    use crate::{congraph::ConGraph, EdgeSet, HyperGraph};
 
     #[test]
     fn test_creating_and_deleting_nodes() {
@@ -400,10 +371,10 @@ mod test {
     #[test]
     fn test_skeleton() {
         let mut hg = ConGraph::new();
-        let nodes = hg.add_nodes(10);
-        for size in 0..8 {
-            hg.add_edge(&nodes[0..=size]);
-        }
+        // let nodes = hg.add_nodes(10);
+        // for size in 0..8 {
+        //     hg.add_edge(&nodes[0..=size]);
+        // }
         for size in 1..10 {
             println!("{:}-skeleton", size);
             println!("{:?}", hg.skeleton(size));

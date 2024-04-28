@@ -15,10 +15,6 @@ pub struct Node<NodeData, EdgeID: HgNode> {
 }
 
 impl<NodeData, EdgeID: HgNode> Node<NodeData, EdgeID> {
-    ///
-    /// ```rust
-    /// let n = Node::new();
-    /// ```
     pub fn new(data: NodeData) -> Self {
         Node {
             containing_edges: HashSet::new(),

@@ -355,7 +355,7 @@ impl KVGraph {
         self.add_edge_with_label(nodes, "")
     }
 
-    pub fn remove_edge_id(&mut self, edge_id: Uuid) {
+    pub fn remove_edge(&mut self, edge_id: Uuid) {
         self.core.remove_edge(edge_id.as_u128());
     }
 
@@ -376,189 +376,6 @@ impl KVGraph {
     {
         let node_vec: Vec<_> = nodes.as_ref().iter().map(|id| id.as_u128()).collect();
         self.core.find_id(node_vec).map(|id| Uuid::from_u128(id))
-    }
-
-    /// Computes the link of the provided nodes by pairs of edge ids and what
-    /// the link of the provided nodes are within the associated id.
-    /// Ex: If the graph has edges {1, 2, 3}, {2, 3, 4}, {3, 4, 5}, and {2, 3} with
-    /// ids 1,2, 3, and 4 respectively, then the link of edge_id = 4 would be
-    /// vec![(1, [1]), (2, [2])].
-    pub fn link(&self, edge_id: &Uuid) -> Vec<(Uuid, Vec<Uuid>)> {
-        self.core
-            .link(&edge_id.clone().as_u128())
-            .into_iter()
-            .map(|(id, nodes)| {
-                (
-                    Uuid::from_u128(id),
-                    nodes.into_iter().map(|id| Uuid::from_u128(id)).collect(),
-                )
-            })
-            .collect()
-    }
-
-    /// Computes the link of the provided nodes by pairs of edge ids and what
-    /// the link of the provided nodes are within the associated id.
-    /// Ex: If the graph has edges {1, 2, 3}, {2, 3, 4}, and {3, 4, 5}, with
-    /// ids 1,2, and 3 respectively, then the link of [3] would be
-    /// vec![(1, [1, 2]), (2, [2, 4]), (3, [4, 5])].
-    pub fn link_of_nodes<N>(&self, nodes: N) -> Vec<(Uuid, Vec<Uuid>)>
-    where
-        N: AsRef<[Uuid]>,
-    {
-        let node_vec: Vec<_> = nodes.as_ref().iter().map(|id| id.as_u128()).collect();
-        self.core
-            .link_of_nodes(node_vec)
-            .into_iter()
-            .map(|(id, nodes)| {
-                (
-                    Uuid::from_u128(id),
-                    nodes.into_iter().map(|id| Uuid::from_u128(id)).collect(),
-                )
-            })
-            .collect()
-    }
-
-    /// Returns the set of edge of size less than or equal to `k`,
-    /// inclusive. Also note that `k` refers to the cardinality of the
-    /// provided sets, not the dimension.
-    pub fn skeleton(&self, k: usize) -> HashSet<Uuid> {
-        self.core
-            .edges
-            .iter()
-            .filter(|(_, e)| e.nodes.len() <= k)
-            .map(|(id, _)| Uuid::from_u128(*id))
-            .collect()
-    }
-
-    /// Warning: Has to filter all edges so takes Theta(|E|) time.
-    pub fn edges_of_size(&self, card: usize) -> Vec<Uuid> {
-        self.core
-            .edges
-            .iter()
-            .filter(|(id, e)| e.nodes.len() == card)
-            .map(|(id, e)| Uuid::from_u128(*id))
-            .collect()
-    }
-
-    /// Finds all edges that contain the provided input edge. As duplicate
-    /// edges are not allowed this only returns edges that strictly contain the
-    /// given edge. Note that an input edge that is maximal, meaning it has no edges containing it, will yield an empty `Vec`.
-    pub fn edges_containing_edge(&self, edge_id: &Uuid) -> Vec<Uuid> {
-        self.core
-            .edges_containing_edge(&edge_id.as_u128())
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
-    }
-
-    /// Finds all edges that contain all of the provided input nodes. Note that if the nodes match an existing edge then that edge will be in the output `Vec`.
-    pub fn edges_containing_nodes<N>(&self, nodes: N) -> Vec<Uuid>
-    where
-        N: AsRef<[Uuid]>,
-    {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
-        self.core
-            .edges_containing_nodes(node_vec)
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
-    }
-
-    /// finds all edges containing provided nodes that are not contained
-    /// in any other edge. If the provided nodes are a maximal edge, then
-    /// that edges ID is returned.
-    pub fn maximal_edges_containing_nodes<N>(&self, nodes: N) -> Vec<Uuid>
-    where
-        N: AsRef<[Uuid]>,
-    {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
-        self.core
-            .maximal_edges_containing_nodes(node_vec)
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
-    }
-
-    /// finds all edges containing provided nodes that are not contained
-    /// in any other edge. If the provided nodes are a maximal edge, then
-    /// that edges ID is returned.
-    pub fn maximal_edges_containing_edge(&self, edge_id: &Uuid) -> Vec<Uuid> {
-        self.core
-            .maximal_edges_containing_edge(&edge_id.clone().as_u128())
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
-    }
-
-    /// Returns edges that constitute the boundary up operator, which
-    /// adds a single node to the provided edge.
-    /// Example: If a graph has edges {1, 2}, {1,2, 3}, {1,2,4}, and {1, 2, 3, 4} with ids 1, 2, 3, and 4 respectively, then `boundary_up(1)` would give
-    /// vec![2, 3].
-    pub fn boundary_up(&self, edge_id: &Uuid) -> Vec<Uuid> {
-        self.core
-            .boundary_up(&edge_id.as_u128())
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
-    }
-
-    /// Finds all edges which contain one more node than the provided
-    /// node.
-    pub fn boundary_up_nodes<N>(&self, nodes: N) -> Vec<Uuid>
-    where
-        N: AsRef<[Uuid]>,
-    {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
-        self.core
-            .boundary_up_nodes(node_vec)
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
-    }
-
-    /// Finds the edges that are the same as the provided edge_id but
-    /// have a single node removed. For example, {1, 2} would be in
-    /// boundary_down of {1, 2, 3} if both edges were present.
-    /// Returns an empty vec if the edge_id is incorrect.
-    pub fn boundary_down(&self, edge_id: &Uuid) -> Vec<Uuid> {
-        self.core
-            .boundary_down(&edge_id.as_u128())
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
-    }
-
-    /// Finds all edges that have one node removed from the provided nodes.
-    pub fn boundary_down_nodes<N>(&self, nodes: N) -> Vec<Uuid>
-    where
-        N: AsRef<[Uuid]>,
-    {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
-        self.core
-            .boundary_down_nodes(node_vec)
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
     }
 
     /// Adds a `key`-`value` pair to the provided `id`, whether `id` correspond to
@@ -862,6 +679,165 @@ impl KVGraph {
         node_df
             .vstack(&edge_df)
             .expect("Cannot stack node and edge dataframes")
+    }
+}
+
+impl HyperGraph for KVGraph {
+    type NodeID = Uuid;
+
+    type EdgeID = Uuid;
+
+    fn edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
+    where
+        Nodes: AsRef<[Self::NodeID]>,
+    {
+        let node_vec: Vec<_> = nodes
+            .as_ref()
+            .iter()
+            .cloned()
+            .map(|id| id.as_u128())
+            .collect();
+        self.core
+            .edges_containing_nodes(node_vec)
+            .into_iter()
+            .map(|id| Uuid::from_u128(id))
+            .collect()
+    }
+
+    fn edges_containing_edge(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core
+            .edges_containing_edge(&edge.as_u128())
+            .into_iter()
+            .map(|id| Uuid::from_u128(id))
+            .collect()
+    }
+
+    fn link(&self, edge: &Self::EdgeID) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
+        self.core
+            .link(&edge.as_u128())
+            .into_iter()
+            .map(|(id, nodes)| {
+                (
+                    Uuid::from_u128(id),
+                    nodes.into_iter().map(|id| Uuid::from_u128(id)).collect(),
+                )
+            })
+            .collect()
+    }
+
+    fn link_of_nodes<Nodes>(&self, nodes: Nodes) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)>
+    where
+        Nodes: AsRef<[Self::NodeID]>,
+    {
+        let node_vec: Vec<_> = nodes
+            .as_ref()
+            .iter()
+            .cloned()
+            .map(|id| id.as_u128())
+            .collect();
+        self.core
+            .link_of_nodes(node_vec)
+            .into_iter()
+            .map(|(id, nodes)| {
+                (
+                    Uuid::from_u128(id),
+                    nodes.into_iter().map(|id| Uuid::from_u128(id)).collect(),
+                )
+            })
+            .collect()
+    }
+
+    fn maximal_edges_containing_edge(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core
+            .maximal_edges_containing_edge(&edge_id.clone().as_u128())
+            .into_iter()
+            .map(|id| Uuid::from_u128(id))
+            .collect()
+    }
+
+    fn maximal_edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
+    where
+        Nodes: AsRef<[Self::NodeID]>,
+    {
+        let node_vec: Vec<_> = nodes
+            .as_ref()
+            .iter()
+            .cloned()
+            .map(|id| id.as_u128())
+            .collect();
+        self.core
+            .maximal_edges_containing_nodes(node_vec)
+            .into_iter()
+            .map(|id| Uuid::from_u128(id))
+            .collect()
+    }
+
+    fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID> {
+        self.core
+            .edges
+            .iter()
+            .filter(|(_, e)| e.nodes.len() == card)
+            .map(|(id, _)| Uuid::from_u128(*id))
+            .collect()
+    }
+
+    fn skeleton(&self, cardinality: usize) -> Vec<Self::EdgeID> {
+        self.core
+            .edges
+            .iter()
+            .filter(|(_, e)| e.nodes.len() <= cardinality)
+            .map(|(id, _)| Uuid::from_u128(*id))
+            .collect()
+    }
+
+    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core
+            .boundary_up(&edge_id.as_u128())
+            .into_iter()
+            .map(|id| Uuid::from_u128(id))
+            .collect()
+    }
+
+    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core
+            .boundary_down(&edge_id.as_u128())
+            .into_iter()
+            .map(|id| Uuid::from_u128(id))
+            .collect()
+    }
+
+    fn boundary_up_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
+    where
+        Nodes: AsRef<[Self::NodeID]>,
+    {
+        let node_vec: Vec<_> = nodes
+            .as_ref()
+            .iter()
+            .cloned()
+            .map(|id| id.as_u128())
+            .collect();
+        self.core
+            .boundary_up_nodes(node_vec)
+            .into_iter()
+            .map(|id| Uuid::from_u128(id))
+            .collect()
+    }
+
+    fn boundary_down_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
+    where
+        Nodes: AsRef<[Self::NodeID]>,
+    {
+        let node_vec: Vec<_> = nodes
+            .as_ref()
+            .iter()
+            .cloned()
+            .map(|id| id.as_u128())
+            .collect();
+        self.core
+            .boundary_down_nodes(node_vec)
+            .into_iter()
+            .map(|id| Uuid::from_u128(id))
+            .collect()
     }
 }
 
