@@ -351,10 +351,10 @@ where
             .collect()
     }
 
-    fn link_of_nodes<Nodes>(&self, nodes: Nodes) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
+    fn link_of_nodes(
+        &self,
+        nodes: impl AsRef<[Self::NodeID]>,
+    ) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
         let edge: EdgeSet<Self::NodeID> = nodes.into();
         let containing_edges = self.edges_containing_nodes(edge.node_vec());
         containing_edges
@@ -410,10 +410,10 @@ where
             .collect()
     }
 
-    fn maximal_edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
+    fn maximal_edges_containing_nodes(
+        &self,
+        nodes: impl AsRef<[Self::NodeID]>,
+    ) -> Vec<Self::EdgeID> {
         let containing_edges = self.edges_containing_nodes(nodes);
         if containing_edges.is_empty() {
             return Vec::new();
@@ -497,10 +497,7 @@ where
         boundary
     }
 
-    fn boundary_up_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
+    fn boundary_up_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
         let nodes_ref = nodes.as_ref();
         let given_nodes_len = nodes_ref.len();
         let containing_edges = self.edges_containing_nodes(nodes);
@@ -520,10 +517,7 @@ where
         boundary
     }
 
-    fn boundary_down_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
+    fn boundary_down_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
         let edge_set: EdgeSet<Self::NodeID> = nodes.into();
         let mut boundary: Vec<Self::EdgeID> = Vec::new();
         for ix in 0..edge_set.len() {

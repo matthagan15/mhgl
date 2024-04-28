@@ -17,6 +17,7 @@
 //! - Hypergraph (Rust): Appears very limited in scope and not maintained.
 
 #[forbid(unsafe_code)]
+mod algs;
 mod congraph;
 mod edge;
 mod hgraph;

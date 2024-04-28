@@ -1,6 +1,8 @@
+use crate::HgNode;
+
 pub trait HyperGraph {
-    type NodeID;
-    type EdgeID;
+    type NodeID: HgNode;
+    type EdgeID: HgNode;
 
     fn edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
     where
@@ -20,9 +22,10 @@ pub trait HyperGraph {
     /// Ex: If the graph has edges {1, 2, 3}, {2, 3, 4}, and {3, 4, 5}, with
     /// ids 1,2, and 3 respectively, then the link of [3] would be
     /// vec![(1, [1, 2]), (2, [2, 4]), (3, [4, 5])].
-    fn link_of_nodes<Nodes>(&self, nodes: Nodes) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)>
-    where
-        Nodes: AsRef<[Self::NodeID]>;
+    fn link_of_nodes(
+        &self,
+        nodes: impl AsRef<[Self::NodeID]>,
+    ) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)>;
 
     /// Finds the edges containing the edge associated with the provided
     /// ID that are not contained in any other edge. If the edge of the
@@ -34,9 +37,10 @@ pub trait HyperGraph {
     /// finds all edges containing provided nodes that are not contained
     /// in any other edge. If the provided nodes are a maximal edge, then
     /// that edges ID is returned.
-    fn maximal_edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>;
+    fn maximal_edges_containing_nodes(
+        &self,
+        nodes: impl AsRef<[Self::NodeID]>,
+    ) -> Vec<Self::EdgeID>;
 
     /// Warning: Has to filter all edges so takes Theta(|E|) time.
     fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID>;
@@ -58,12 +62,8 @@ pub trait HyperGraph {
 
     /// Finds all edges which contain one more node than the provided
     /// node.
-    fn boundary_up_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>;
+    fn boundary_up_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
 
     /// Finds all edges that have one node removed from the provided nodes.
-    fn boundary_down_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>;
+    fn boundary_down_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
 }

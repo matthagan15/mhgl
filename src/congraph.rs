@@ -191,10 +191,10 @@ impl HyperGraph for ConGraph {
         self.core.link(edge)
     }
 
-    fn link_of_nodes<Nodes>(&self, nodes: Nodes) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
+    fn link_of_nodes(
+        &self,
+        nodes: impl AsRef<[Self::NodeID]>,
+    ) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
         self.core.link_of_nodes(nodes)
     }
 
@@ -202,10 +202,10 @@ impl HyperGraph for ConGraph {
         self.core.maximal_edges_containing_edge(edge_id)
     }
 
-    fn maximal_edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
+    fn maximal_edges_containing_nodes(
+        &self,
+        nodes: impl AsRef<[Self::NodeID]>,
+    ) -> Vec<Self::EdgeID> {
         self.core.maximal_edges_containing_nodes(nodes)
     }
 
@@ -225,17 +225,11 @@ impl HyperGraph for ConGraph {
         self.core.boundary_down(edge_id)
     }
 
-    fn boundary_up_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
+    fn boundary_up_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
         self.core.boundary_up_nodes(nodes)
     }
 
-    fn boundary_down_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
+    fn boundary_down_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
         self.core.boundary_down_nodes(nodes)
     }
 }

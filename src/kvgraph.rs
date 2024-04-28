@@ -278,7 +278,7 @@ impl From<Value> for String {
 }
 
 pub struct KVGraph {
-    core: HGraph<HashMap<String, Value>, HashMap<String, Value>, u128, u128>,
+    core: HGraph<HashMap<String, Value>, HashMap<String, Value>, Uuid, Uuid>,
     schema: IndexMap<String, DataType>,
 }
 
@@ -296,8 +296,7 @@ impl KVGraph {
     }
     pub fn add_node(&mut self) -> Uuid {
         let id = Uuid::new_v4();
-        self.core
-            .add_node_with_id(HashMap::new(), id.clone().as_u128());
+        self.core.add_node_with_id(HashMap::new(), id.clone());
         self.insert(&id, "label", "".to_string()).unwrap();
         id
     }
@@ -311,16 +310,16 @@ impl KVGraph {
         S: ToString,
     {
         let id = Uuid::new_v4();
-        self.core
-            .add_node_with_id(HashMap::new(), id.clone().as_u128());
+        self.core.add_node_with_id(HashMap::new(), id.clone());
         self.insert(&id, "label", label.to_string()).unwrap();
         id
     }
 
     /// Removes a node from the node set. The deleted node will be added to a
     /// dequeue to be reused later once all possible nodes have been created.
+    /// The data stored will be dropped.
     pub fn remove_node(&mut self, node: Uuid) {
-        self.core.remove_node(node.as_u128());
+        self.core.remove_node(node);
     }
 
     /// Removes a collection of nodes. The deleted nodes will be added
@@ -331,18 +330,13 @@ impl KVGraph {
     /// Creates an undirected edge among the given nodes. Duplicate input nodes are removed.
     /// Returns `None` if an edge among those nodes already exists (Duplicate edges not allowed) or
     /// if less than 2 nodes are provided.
-    pub fn add_edge_with_label<E>(&mut self, nodes: E, label: &str) -> Option<Uuid>
-    where
-        E: AsRef<[Uuid]>,
-    {
-        let node_vec: Vec<_> = nodes.as_ref().iter().map(|id| id.as_u128()).collect();
-        let edge: EdgeSet<u128> = EdgeSet::from(node_vec);
+    pub fn add_edge_with_label(&mut self, nodes: impl AsRef<[Uuid]>, label: &str) -> Option<Uuid> {
+        let edge: EdgeSet<Uuid> = EdgeSet::from(nodes.as_ref());
         if edge.len() == 1 {
             return None;
         }
         let id = Uuid::new_v4();
-        self.core
-            .add_edge_with_id(edge, HashMap::new(), id.clone().as_u128());
+        self.core.add_edge_with_id(edge, HashMap::new(), id.clone());
         self.insert(&id, "label", label.to_string()).unwrap();
         Some(id)
     }
@@ -350,46 +344,33 @@ impl KVGraph {
     /// Creates an undirected edge among the given nodes. Duplicate input nodes are removed.
     /// Returns `None` if an edge among those nodes already exists (Duplicate edges not allowed) or
     /// if less than 2 nodes are provided.
-    pub fn add_edge<E>(&mut self, nodes: E) -> Option<Uuid>
-    where
-        E: AsRef<[Uuid]>,
-    {
+    pub fn add_edge(&mut self, nodes: impl AsRef<[Uuid]>) -> Option<Uuid> {
         self.add_edge_with_label(nodes, "")
     }
 
     pub fn remove_edge(&mut self, edge_id: Uuid) {
-        self.core.remove_edge(edge_id.as_u128());
+        self.core.remove_edge(edge_id);
     }
 
     /// Returns the vec of nodes associated with the edge_id.
     pub fn get_nodes_of_edge_id(&self, edge_id: &Uuid) -> Option<Vec<Uuid>> {
-        self.core.edges.get(&edge_id.as_u128()).map(|e| {
-            e.nodes
-                .node_vec()
-                .into_iter()
-                .map(|id| Uuid::from_u128(id))
-                .collect()
-        })
+        self.core.edges.get(&edge_id).map(|e| e.nodes.node_vec())
     }
 
-    pub fn find_id<N>(&self, nodes: N) -> Option<Uuid>
-    where
-        N: AsRef<[Uuid]>,
-    {
-        let node_vec: Vec<_> = nodes.as_ref().iter().map(|id| id.as_u128()).collect();
-        self.core.find_id(node_vec).map(|id| Uuid::from_u128(id))
+    pub fn find_id<N>(&self, nodes: impl AsRef<[Uuid]>) -> Option<Uuid> {
+        self.core.find_id(nodes.as_ref())
     }
 
     /// Adds a `key`-`value` pair to the provided `id`, whether `id` correspond to
     /// a node or edge. The provided pair must match the schema associated with the
     /// hypergraph, if the `key` has not been seen before it automatically creates
     /// a new schema in the structure.
-    pub fn insert<S, V>(&mut self, id: &Uuid, key: S, value: V) -> Result<(), ()>
-    where
-        S: ToString,
-        V: Into<Value>,
-    {
-        let id = id.as_u128();
+    pub fn insert(
+        &mut self,
+        id: &Uuid,
+        key: impl ToString,
+        value: impl Into<Value>,
+    ) -> Result<(), ()> {
         let key_string = key.to_string();
         let val: Value = value.into();
         let unchangeables = vec![
@@ -423,8 +404,9 @@ impl KVGraph {
             Err(())
         }
     }
+
+    /// Retrieve the value stored for the given `id` and `key`.
     pub fn get(&self, id: &Uuid, key: &str) -> Option<&Value> {
-        let id = id.as_u128();
         if self.core.nodes.contains_key(&id) {
             let query = key.to_string();
             self.core.borrow_node(&id).unwrap().get(&query)
@@ -437,10 +419,7 @@ impl KVGraph {
     }
 
     /// A shorthand for `self.insert(id, "label", label)`.
-    pub fn label<S>(&mut self, id: &Uuid, label: S) -> Result<(), ()>
-    where
-        S: ToString,
-    {
+    pub fn label(&mut self, id: &Uuid, label: impl ToString) -> Result<(), ()> {
         self.insert(id, "label", label.to_string())
     }
 
@@ -449,22 +428,19 @@ impl KVGraph {
         self.schema.clone().into_iter().collect()
     }
 
-    fn nodes_string(&self, id: &u128) -> Option<String> {
+    fn nodes_string(&self, id: &Uuid) -> Option<String> {
         let mut s = String::from("[");
         if self.core.nodes.contains_key(&id) {
-            let node_id = Uuid::from_u128(*id);
-            s.push_str(&node_id.to_string()[..]);
+            s.push_str(&id.to_string()[..]);
             s.push(']');
             Some(s)
         } else if self.core.edges.contains_key(&id) {
             let edge_set = &self.core.edges.get(&id).unwrap().nodes;
             for ix in 0..(edge_set.len() - 1) {
-                let node_id = Uuid::from_u128(edge_set.0[ix]);
-                s.push_str(&node_id.to_string()[..]);
+                s.push_str(&id.to_string()[..]);
                 s.push(',');
             }
-            let last_node_id = Uuid::from_u128(edge_set.0[edge_set.len() - 1]);
-            s.push_str(&last_node_id.to_string()[..]);
+            s.push_str(&edge_set.0[edge_set.len() - 1].to_string()[..]);
             s.push(']');
             Some(s)
         } else {
@@ -472,7 +448,7 @@ impl KVGraph {
         }
     }
 
-    fn labelled_nodes_string(&self, id: &u128) -> Option<String> {
+    fn labelled_nodes_string(&self, id: &Uuid) -> Option<String> {
         let mut s = String::from("[");
         if self.core.nodes.contains_key(&id) {
             let kv_store = &self.core.nodes.get(&id).unwrap().data;
@@ -519,14 +495,11 @@ impl KVGraph {
     }
 
     #[cfg(feature = "polars")]
-    pub fn dataframe_of_ids<IDs>(&self, ids: IDs) -> DataFrame
-    where
-        IDs: AsRef<[Uuid]>,
-    {
+    pub fn dataframe_of_ids(&self, ids: impl AsRef<[Uuid]>) -> DataFrame {
         let mut df = DataFrame::default();
         ids.as_ref()
             .into_iter()
-            .map(|id| (id.as_u128(), id.to_string()))
+            .map(|id| (id, id.to_string()))
             .filter(|(id, _)| self.core.nodes.contains_key(id) || self.core.edges.contains_key(id))
             .for_each(|(id, id_string)| {
                 let mut id_df = DataFrame::default();
@@ -654,26 +627,14 @@ impl KVGraph {
     /// present for a node then 'null' is used in the dataframe.
     #[cfg(feature = "polars")]
     pub fn dataframe_of_nodes(&self) -> DataFrame {
-        self.dataframe_of_ids(
-            self.core
-                .nodes
-                .keys()
-                .map(|id| Uuid::from_u128(*id))
-                .collect::<Vec<_>>(),
-        )
+        self.dataframe_of_ids(self.core.nodes.keys().cloned().collect::<Vec<_>>())
     }
 
     /// Collects the dataframe for all edges in the hypergraph. If a key is not
     /// present for an edge then 'null' is used in the dataframe.
     #[cfg(feature = "polars")]
     pub fn dataframe_of_edges(&self) -> DataFrame {
-        self.dataframe_of_ids(
-            self.core
-                .edges
-                .keys()
-                .map(|id| Uuid::from_u128(*id))
-                .collect::<Vec<_>>(),
-        )
+        self.dataframe_of_ids(self.core.edges.keys().cloned().collect::<Vec<_>>())
     }
 
     /// Computes the dataframe of both nodes and edges, starting with nodes at
@@ -698,153 +659,57 @@ impl HyperGraph for KVGraph {
     where
         Nodes: AsRef<[Self::NodeID]>,
     {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
-        self.core
-            .edges_containing_nodes(node_vec)
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
+        self.core.edges_containing_nodes(nodes.as_ref())
     }
 
     fn edges_containing_edge(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
-        self.core
-            .edges_containing_edge(&edge.as_u128())
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
+        self.core.edges_containing_edge(edge)
     }
 
     fn link(&self, edge: &Self::EdgeID) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
-        self.core
-            .link(&edge.as_u128())
-            .into_iter()
-            .map(|(id, nodes)| {
-                (
-                    Uuid::from_u128(id),
-                    nodes.into_iter().map(|id| Uuid::from_u128(id)).collect(),
-                )
-            })
-            .collect()
+        self.core.link(edge)
     }
 
-    fn link_of_nodes<Nodes>(&self, nodes: Nodes) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
-        self.core
-            .link_of_nodes(node_vec)
-            .into_iter()
-            .map(|(id, nodes)| {
-                (
-                    Uuid::from_u128(id),
-                    nodes.into_iter().map(|id| Uuid::from_u128(id)).collect(),
-                )
-            })
-            .collect()
+    fn link_of_nodes(
+        &self,
+        nodes: impl AsRef<[Self::NodeID]>,
+    ) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
+        self.core.link_of_nodes(nodes)
     }
 
     fn maximal_edges_containing_edge(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
-        self.core
-            .maximal_edges_containing_edge(&edge_id.clone().as_u128())
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
+        self.core.maximal_edges_containing_edge(edge_id)
     }
 
-    fn maximal_edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
-        self.core
-            .maximal_edges_containing_nodes(node_vec)
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
+    fn maximal_edges_containing_nodes(
+        &self,
+        nodes: impl AsRef<[Self::NodeID]>,
+    ) -> Vec<Self::EdgeID> {
+        self.core.maximal_edges_containing_nodes(nodes)
     }
 
     fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID> {
-        self.core
-            .edges
-            .iter()
-            .filter(|(_, e)| e.nodes.len() == card)
-            .map(|(id, _)| Uuid::from_u128(*id))
-            .collect()
+        self.core.edges_of_size(card)
     }
 
     fn skeleton(&self, cardinality: usize) -> Vec<Self::EdgeID> {
-        self.core
-            .edges
-            .iter()
-            .filter(|(_, e)| e.nodes.len() <= cardinality)
-            .map(|(id, _)| Uuid::from_u128(*id))
-            .collect()
+        self.core.skeleton(cardinality)
     }
 
     fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
-        self.core
-            .boundary_up(&edge_id.as_u128())
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
+        self.core.boundary_up(edge_id)
     }
 
     fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
-        self.core
-            .boundary_down(&edge_id.as_u128())
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
+        self.core.boundary_down(edge_id)
     }
 
-    fn boundary_up_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
-        self.core
-            .boundary_up_nodes(node_vec)
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
+    fn boundary_up_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+        self.core.boundary_up_nodes(nodes)
     }
 
-    fn boundary_down_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
-        let node_vec: Vec<_> = nodes
-            .as_ref()
-            .iter()
-            .cloned()
-            .map(|id| id.as_u128())
-            .collect();
-        self.core
-            .boundary_down_nodes(node_vec)
-            .into_iter()
-            .map(|id| Uuid::from_u128(id))
-            .collect()
+    fn boundary_down_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+        self.core.boundary_down_nodes(nodes)
     }
 }
 
