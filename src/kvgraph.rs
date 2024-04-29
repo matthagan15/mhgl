@@ -370,7 +370,7 @@ impl KVGraph {
         id: &Uuid,
         key: impl ToString,
         value: impl Into<Value>,
-    ) -> Result<(), ()> {
+    ) -> Result<Option<Value>, String> {
         let key_string = key.to_string();
         let val: Value = value.into();
         let unchangeables = vec![
@@ -379,29 +379,31 @@ impl KVGraph {
             "labelled_nodes".to_string(),
         ];
         if unchangeables.contains(&key_string) {
-            return Err(());
+            return Err(String::from("Cannot change this key."));
         }
         if self.schema.contains_key(&key_string) == false {
             self.schema.insert(key_string.clone(), val.dtype());
         } else {
             if *self.schema.get(&key_string).unwrap() != val.dtype() {
-                return Err(());
+                return Err(String::from(
+                    "Data type of Value provided does not match the schema.",
+                ));
             }
         }
         if self.core.nodes.contains_key(&id) {
-            self.core
+            Ok(self
+                .core
                 .borrow_node_mut(&id)
                 .unwrap()
-                .insert(key_string, val);
-            Ok(())
+                .insert(key_string, val))
         } else if self.core.edges.contains_key(&id) {
-            self.core
+            Ok(self
+                .core
                 .borrow_edge_mut(&id)
                 .unwrap()
-                .insert(key_string, val);
-            Ok(())
+                .insert(key_string, val))
         } else {
-            Err(())
+            Err(String::from("KVGraph does not contain this ID."))
         }
     }
 
@@ -419,7 +421,7 @@ impl KVGraph {
     }
 
     /// A shorthand for `self.insert(id, "label", label)`.
-    pub fn label(&mut self, id: &Uuid, label: impl ToString) -> Result<(), ()> {
+    pub fn label(&mut self, id: &Uuid, label: impl ToString) -> Result<Option<Value>, String> {
         self.insert(id, "label", label.to_string())
     }
 
