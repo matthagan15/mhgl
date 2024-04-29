@@ -176,6 +176,10 @@ impl HyperGraph for ConGraph {
 
     type EdgeID = u64;
 
+    fn query_edge(&self, edge: &Self::EdgeID) -> Option<Vec<Self::NodeID>> {
+        self.core.query_edge(edge)
+    }
+
     fn edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
     where
         Nodes: AsRef<[Self::NodeID]>,

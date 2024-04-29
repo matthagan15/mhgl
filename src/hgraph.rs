@@ -284,6 +284,12 @@ where
     type NodeID = N;
     type EdgeID = E;
 
+    fn query_edge(&self, edge: &Self::EdgeID) -> Option<Vec<Self::NodeID>> {
+        self.edges
+            .get(edge)
+            .map(|big_edge| big_edge.nodes.node_vec())
+    }
+
     fn edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
     where
         Nodes: AsRef<[Self::NodeID]>,
