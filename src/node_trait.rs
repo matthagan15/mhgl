@@ -5,8 +5,7 @@ use std::str::FromStr;
 
 use uuid::Uuid;
 
-/// # Nodes
-///
+/// A trait used to mark which types can be used as a NodeID or EdgeID.
 pub trait HgNode:
     Debug + Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize + FromStr
 {

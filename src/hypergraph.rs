@@ -5,9 +5,7 @@ pub trait HyperGraph {
     type EdgeID: HgNode;
 
     fn query_edge(&self, edge: &Self::EdgeID) -> Option<Vec<Self::NodeID>>;
-    fn edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>;
+    fn edges_containing_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
 
     fn edges_containing_edge(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID>;
 

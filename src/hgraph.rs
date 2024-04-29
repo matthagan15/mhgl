@@ -9,7 +9,7 @@ use crate::HgNode;
 use crate::{EdgeSet, HyperGraph};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Node<NodeData, EdgeID: HgNode> {
+pub(crate) struct Node<NodeData, EdgeID: HgNode> {
     pub containing_edges: HashSet<EdgeID>,
     pub data: NodeData,
 }
@@ -24,19 +24,23 @@ impl<NodeData, EdgeID: HgNode> Node<NodeData, EdgeID> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Edge<N: HgNode, EdgeData> {
+pub(crate) struct Edge<N: HgNode, EdgeData> {
     pub nodes: EdgeSet<N>,
     pub data: EdgeData,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// Defaults to undirected hypergraph, user has to declare it a simplex.
+/// An undirected hypergraph structure that is generic over structs stored
+/// for nodes and edges, as well as the ID types used for both (with defaults of `u32` and `u64`). Does not allow for duplicate edges and panics if the data type used for either type of IDs runs out of options. IDs are simple counters and IDs cannot be reused if the node or edge is deleted.
+///
+/// Currently this structure just uses `HashMap`s and edge lists to organize
+/// everything, as that was the easiest path to a working structure. This may
+/// change to a trie-type structure used in projects such as
 pub struct HGraph<NodeData, EdgeData, NodeID: HgNode = u32, EdgeID: HgNode = u64> {
     next_node_id: NodeID,
     next_edge_id: EdgeID,
-    pub edges: HashMap<EdgeID, Edge<NodeID, EdgeData>>,
-    pub nodes: HashMap<NodeID, Node<NodeData, EdgeID>>,
-    is_simplex: bool,
+    pub(crate) edges: HashMap<EdgeID, Edge<NodeID, EdgeData>>,
+    pub(crate) nodes: HashMap<NodeID, Node<NodeData, EdgeID>>,
 }
 
 impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
@@ -48,8 +52,27 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             next_edge_id: EdgeID::zero(),
             edges: HashMap::new(),
             nodes: HashMap::new(),
-            is_simplex: false,
         }
+    }
+
+    /// Returns the new id if a node can be added, returns `None` if the graph
+    /// is out of space to add new nodes.
+    pub fn add_node(&mut self, node: NodeData) -> Option<NodeID> {
+        let node_id = self.next_node_id;
+        if self.next_node_id == NodeID::max_number() {
+            return None;
+        }
+        self.next_node_id.plus_one();
+
+        let new_node = Node {
+            containing_edges: HashSet::new(),
+            data: node,
+        };
+        let insert = self.nodes.insert(node_id, new_node);
+        if insert.is_some() {
+            panic!("For some reason we encountered the same node_id twice.")
+        }
+        Some(node_id)
     }
 
     /// Does not allow for duplicate edges. Returns an error if all nodes in the
@@ -93,6 +116,18 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         Ok(id)
     }
 
+    /// Solely for use by KVGraph, which needs to generate Uuids for each entry.
+    /// Returns existing `NodeData` if it was there.
+    pub(crate) fn add_node_with_id(&mut self, node: NodeData, id: NodeID) -> Option<NodeData> {
+        let new_node = Node {
+            containing_edges: HashSet::new(),
+            data: node,
+        };
+        self.nodes
+            .insert(id, new_node)
+            .map(|old_node| old_node.data)
+    }
+
     /// For `KVGraph` only.
     pub(crate) fn add_edge_with_id<E>(
         &mut self,
@@ -130,40 +165,8 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             .map(|edge_struct| edge_struct.data)
     }
 
-    /// Returns the new id if a node can be added, returns `None` if the graph
-    /// is out of space to add new nodes.
-    pub fn add_node(&mut self, node: NodeData) -> Option<NodeID> {
-        let node_id = self.next_node_id;
-        if self.next_node_id == NodeID::max_number() {
-            return None;
-        }
-        self.next_node_id.plus_one();
-
-        let new_node = Node {
-            containing_edges: HashSet::new(),
-            data: node,
-        };
-        let insert = self.nodes.insert(node_id, new_node);
-        if insert.is_some() {
-            panic!("For some reason we encountered the same node_id twice.")
-        }
-        Some(node_id)
-    }
-
-    /// Solely for use by KVGraph, which needs to generate Uuids for each entry.
-    /// Returns existing `NodeData` if it was there.
-    pub(crate) fn add_node_with_id(&mut self, node: NodeData, id: NodeID) -> Option<NodeData> {
-        let new_node = Node {
-            containing_edges: HashSet::new(),
-            data: node,
-        };
-        self.nodes
-            .insert(id, new_node)
-            .map(|old_node| old_node.data)
-    }
-
     /// This will remove the node from the graph and any edges containing it.
-    /// The node will not be reused in the future. Also if this leaves an edge
+    /// The node will not be reused in the future. If this leaves an edge
     /// empty the edge will be removed from the graph.
     pub fn remove_node(&mut self, node: NodeID) -> NodeData {
         let removed_node = self.nodes.remove(&node).expect("Node not found.");
@@ -182,6 +185,20 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             self.remove_edge(edge_id);
         }
         removed_node.data
+    }
+
+    /// Returns the `EdgeData` of the associated edge if it existed and `None`
+    /// if an incorrect edge was provided.
+    pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<EdgeData> {
+        if let Some(e) = self.edges.remove(&edge_id) {
+            for node in e.nodes.0.iter() {
+                let containing_edges = self.nodes.get_mut(node).expect("Why is edge not in here.");
+                containing_edges.containing_edges.remove(&edge_id);
+            }
+            Some(e.data)
+        } else {
+            None
+        }
     }
 
     /// Returns the previously existing data of the provided node, returns
@@ -235,10 +252,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     }
 
     /// In case you forget :)
-    pub fn find_id<E>(&self, nodes: E) -> Option<EdgeID>
-    where
-        E: AsRef<[NodeID]>,
-    {
+    pub fn find_id(&self, nodes: impl AsRef<[NodeID]>) -> Option<EdgeID> {
         let nodes_ref = nodes.as_ref();
         if nodes_ref.len() == 0 {
             return None;
@@ -262,18 +276,6 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         }
         None
     }
-
-    pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<EdgeData> {
-        if let Some(e) = self.edges.remove(&edge_id) {
-            for node in e.nodes.0.iter() {
-                let containing_edges = self.nodes.get_mut(node).expect("Why is edge not in here.");
-                containing_edges.containing_edges.remove(&edge_id);
-            }
-            Some(e.data)
-        } else {
-            None
-        }
-    }
 }
 
 impl<N, E, NData, EData> HyperGraph for HGraph<NData, EData, N, E>
@@ -290,10 +292,7 @@ where
             .map(|big_edge| big_edge.nodes.node_vec())
     }
 
-    fn edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
+    fn edges_containing_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
         let nodes_set: EdgeSet<Self::NodeID> = nodes.into();
         let first = nodes_set.get_first_node().unwrap();
         if self.nodes.contains_key(&first) == false {

@@ -180,10 +180,7 @@ impl HyperGraph for ConGraph {
         self.core.query_edge(edge)
     }
 
-    fn edges_containing_nodes<Nodes>(&self, nodes: Nodes) -> Vec<Self::EdgeID>
-    where
-        Nodes: AsRef<[Self::NodeID]>,
-    {
+    fn edges_containing_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
         self.core.edges_containing_nodes(nodes)
     }
 
