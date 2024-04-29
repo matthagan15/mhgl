@@ -35,7 +35,9 @@ pub(crate) struct Edge<N: HgNode, EdgeData> {
 ///
 /// Currently this structure just uses `HashMap`s and edge lists to organize
 /// everything, as that was the easiest path to a working structure. This may
-/// change to a trie-type structure used in projects such as
+/// change to a trie-type structure called a Simplex Tree used in projects such
+/// as Gudhi. On my first evaluation it did not seem particularly beneficial
+/// asymptotically for computing links, but it may be worth investigating.
 pub struct HGraph<NodeData, EdgeData, NodeID: HgNode = u32, EdgeID: HgNode = u64> {
     next_node_id: NodeID,
     next_edge_id: EdgeID,

@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::{EdgeSet, HGraph, HyperGraph};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum DataType {
+pub enum ValueTypes {
     Bool,
     UInt8,
     UInt16,
@@ -27,23 +27,23 @@ pub enum DataType {
     String,
 }
 
-impl FromStr for DataType {
+impl FromStr for ValueTypes {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match &s.to_lowercase()[..] {
-            "bool" => Ok(DataType::Bool),
-            "uint8" => Ok(DataType::UInt8),
-            "uint16" => Ok(DataType::UInt16),
-            "uint32" => Ok(DataType::UInt32),
-            "uint64" => Ok(DataType::UInt64),
-            "int8" => Ok(DataType::Int8),
-            "int16" => Ok(DataType::Int16),
-            "int32" => Ok(DataType::Int32),
-            "int64" => Ok(DataType::Int64),
-            "float32" => Ok(DataType::Float32),
-            "float64" => Ok(DataType::Float64),
-            "string" => Ok(DataType::String),
+            "bool" => Ok(ValueTypes::Bool),
+            "uint8" => Ok(ValueTypes::UInt8),
+            "uint16" => Ok(ValueTypes::UInt16),
+            "uint32" => Ok(ValueTypes::UInt32),
+            "uint64" => Ok(ValueTypes::UInt64),
+            "int8" => Ok(ValueTypes::Int8),
+            "int16" => Ok(ValueTypes::Int16),
+            "int32" => Ok(ValueTypes::Int32),
+            "int64" => Ok(ValueTypes::Int64),
+            "float32" => Ok(ValueTypes::Float32),
+            "float64" => Ok(ValueTypes::Float64),
+            "string" => Ok(ValueTypes::String),
             _ => Err(()),
         }
     }
@@ -66,20 +66,20 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn dtype(&self) -> DataType {
+    pub fn dtype(&self) -> ValueTypes {
         match self {
-            Value::Bool(_) => DataType::Bool,
-            Value::UInt8(_) => DataType::UInt8,
-            Value::UInt16(_) => DataType::UInt16,
-            Value::UInt32(_) => DataType::UInt32,
-            Value::UInt64(_) => DataType::UInt64,
-            Value::Int8(_) => DataType::Int8,
-            Value::Int16(_) => DataType::Int16,
-            Value::Int32(_) => DataType::Int32,
-            Value::Int64(_) => DataType::Int64,
-            Value::Float32(_) => DataType::Float32,
-            Value::Float64(_) => DataType::Float64,
-            Value::String(_) => DataType::String,
+            Value::Bool(_) => ValueTypes::Bool,
+            Value::UInt8(_) => ValueTypes::UInt8,
+            Value::UInt16(_) => ValueTypes::UInt16,
+            Value::UInt32(_) => ValueTypes::UInt32,
+            Value::UInt64(_) => ValueTypes::UInt64,
+            Value::Int8(_) => ValueTypes::Int8,
+            Value::Int16(_) => ValueTypes::Int16,
+            Value::Int32(_) => ValueTypes::Int32,
+            Value::Int64(_) => ValueTypes::Int64,
+            Value::Float32(_) => ValueTypes::Float32,
+            Value::Float64(_) => ValueTypes::Float64,
+            Value::String(_) => ValueTypes::String,
         }
     }
 }
@@ -279,7 +279,7 @@ impl From<Value> for String {
 
 pub struct KVGraph {
     core: HGraph<HashMap<String, Value>, HashMap<String, Value>, Uuid, Uuid>,
-    schema: IndexMap<String, DataType>,
+    schema: IndexMap<String, ValueTypes>,
 }
 
 impl KVGraph {
@@ -287,10 +287,10 @@ impl KVGraph {
         Self {
             core: HGraph::new(),
             schema: IndexMap::from([
-                ("label".to_string(), DataType::String),
-                ("id".to_string(), DataType::String),
-                ("nodes".to_string(), DataType::String),
-                ("labelled_nodes".to_string(), DataType::String),
+                ("label".to_string(), ValueTypes::String),
+                ("id".to_string(), ValueTypes::String),
+                ("nodes".to_string(), ValueTypes::String),
+                ("labelled_nodes".to_string(), ValueTypes::String),
             ]),
         }
     }
@@ -426,7 +426,7 @@ impl KVGraph {
     }
 
     /// Returns a copy of the given schema being used
-    pub fn get_schema(&self) -> Vec<(String, DataType)> {
+    pub fn get_schema(&self) -> Vec<(String, ValueTypes)> {
         self.schema.clone().into_iter().collect()
     }
 
@@ -532,84 +532,84 @@ impl KVGraph {
                             .expect("What error");
                     } else {
                         match dtype {
-                            DataType::Bool => {
+                            ValueTypes::Bool => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store.get(key).map(|val| Into::<bool>::into(val.clone()))],
                                 );
                                 id_df.with_column(s).expect("Couldn't add column.");
                             }
-                            DataType::UInt8 => {
+                            ValueTypes::UInt8 => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store.get(key).map(|val| Into::<u8>::into(val.clone()))],
                                 );
                                 id_df.with_column(s).expect("Couldn't add column.");
                             }
-                            DataType::UInt16 => {
+                            ValueTypes::UInt16 => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store.get(key).map(|val| Into::<u16>::into(val.clone()))],
                                 );
                                 id_df.with_column(s).expect("Couldn't add column.");
                             }
-                            DataType::UInt32 => {
+                            ValueTypes::UInt32 => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store.get(key).map(|val| Into::<u32>::into(val.clone()))],
                                 );
                                 id_df.with_column(s).expect("Couldn't add column.");
                             }
-                            DataType::UInt64 => {
+                            ValueTypes::UInt64 => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store.get(key).map(|val| Into::<u64>::into(val.clone()))],
                                 );
                                 id_df.with_column(s).expect("Couldn't add column.");
                             }
-                            DataType::Int8 => {
+                            ValueTypes::Int8 => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store.get(key).map(|val| Into::<i8>::into(val.clone()))],
                                 );
                                 id_df.with_column(s).expect("Couldn't add column.");
                             }
-                            DataType::Int16 => {
+                            ValueTypes::Int16 => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store.get(key).map(|val| Into::<i16>::into(val.clone()))],
                                 );
                                 id_df.with_column(s).expect("Couldn't add column.");
                             }
-                            DataType::Int32 => {
+                            ValueTypes::Int32 => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store.get(key).map(|val| Into::<i32>::into(val.clone()))],
                                 );
                                 id_df.with_column(s).expect("Couldn't add column.");
                             }
-                            DataType::Int64 => {
+                            ValueTypes::Int64 => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store.get(key).map(|val| Into::<i64>::into(val.clone()))],
                                 );
                                 id_df.with_column(s).expect("Couldn't add column.");
                             }
-                            DataType::Float32 => {
+                            ValueTypes::Float32 => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store.get(key).map(|val| Into::<f32>::into(val.clone()))],
                                 );
                                 id_df.with_column(s).expect("Couldn't add column.");
                             }
-                            DataType::Float64 => {
+                            ValueTypes::Float64 => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store.get(key).map(|val| Into::<f64>::into(val.clone()))],
                                 );
                                 id_df.with_column(s).expect("Couldn't add column.");
                             }
-                            DataType::String => {
+                            ValueTypes::String => {
                                 let s = Series::new(
                                     &key[..],
                                     [kv_store

@@ -1,3 +1,4 @@
+use core::panic;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -24,8 +25,7 @@ impl HgNode for Uuid {
     }
 
     fn plus_one(&mut self) {
-        let as_u128 = self.as_u128();
-        *self = Uuid::from_u128(as_u128 + 1);
+        panic!("You should never use this.")
     }
 }
 
