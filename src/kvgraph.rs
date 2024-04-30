@@ -278,7 +278,7 @@ impl From<Value> for String {
 }
 
 pub struct KVGraph {
-    core: HGraph<HashMap<String, Value>, HashMap<String, Value>, Uuid, Uuid>,
+    pub(crate) core: HGraph<HashMap<String, Value>, HashMap<String, Value>, Uuid, Uuid>,
     schema: IndexMap<String, ValueTypes>,
 }
 

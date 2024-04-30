@@ -5,7 +5,7 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::HgNode;
+use crate::{ConGraph, HgNode};
 use crate::{EdgeSet, HyperGraph};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,6 +43,57 @@ pub struct HGraph<NodeData, EdgeData, NodeID: HgNode = u32, EdgeID: HgNode = u64
     next_edge_id: EdgeID,
     pub(crate) edges: HashMap<EdgeID, Edge<NodeID, EdgeData>>,
     pub(crate) nodes: HashMap<NodeID, Node<NodeData, EdgeID>>,
+}
+
+impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
+    /// If you have a `ConGraph` and data for each node and edge you can
+    /// build a `HGraph`.
+    pub fn from_congraph<NodeFn, EdgeFn>(
+        cgraph: ConGraph,
+        node_data: NodeFn,
+        edge_data: EdgeFn,
+    ) -> Self
+    where
+        NodeFn: Fn(&u32) -> NodeData,
+        EdgeFn: Fn(&u64) -> EdgeData,
+    {
+        let next_node_id = cgraph.core.next_node_id;
+        let next_edge_id = cgraph.core.next_edge_id;
+        let nodes = cgraph
+            .core
+            .nodes
+            .into_iter()
+            .map(|(id, node)| {
+                (
+                    id,
+                    Node {
+                        containing_edges: node.containing_edges,
+                        data: node_data(&id),
+                    },
+                )
+            })
+            .collect();
+        let edges = cgraph
+            .core
+            .edges
+            .into_iter()
+            .map(|(id, edge)| {
+                (
+                    id,
+                    Edge {
+                        nodes: edge.nodes,
+                        data: edge_data(&id),
+                    },
+                )
+            })
+            .collect();
+        Self {
+            next_node_id,
+            next_edge_id,
+            edges,
+            nodes,
+        }
+    }
 }
 
 impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>

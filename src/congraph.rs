@@ -19,7 +19,7 @@ type EdgeID = u64;
 /// serialization to and from disk.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConGraph {
-    core: HGraph<(), ()>,
+    pub(crate) core: HGraph<(), ()>,
 }
 
 impl ConGraph {
