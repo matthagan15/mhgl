@@ -22,6 +22,12 @@ pub struct ConGraph {
     pub(crate) core: HGraph<(), ()>,
 }
 
+impl Default for ConGraph {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConGraph {
     pub fn new() -> ConGraph {
         ConGraph {
@@ -75,10 +81,9 @@ impl ConGraph {
     /// Removes a collection of nodes. The deleted nodes will be added
     /// to a dequeue to be reused later once all possible nodes have been created
     pub fn remove_nodes(&mut self, nodes: Vec<u32>) {
-        nodes
-            .into_iter()
-            .map(|node| self.core.remove_node(node))
-            .collect()
+        for node in nodes {
+            self.core.remove_node(node);
+        }
     }
 
     pub fn nodes(&self) -> Vec<u32> {
@@ -86,10 +91,7 @@ impl ConGraph {
     }
 
     /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Does not allow for duplicate edges at the moment.
-    pub fn add_edge<E>(&mut self, nodes: E) -> EdgeID
-    where
-        E: AsRef<[u32]>,
-    {
+    pub fn add_edge(&mut self, nodes: impl AsRef<[u32]>) -> EdgeID {
         let id = self.core.add_edge(nodes, ());
         id.expect("Graph did not return a valid ID.")
     }

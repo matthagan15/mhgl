@@ -10,9 +10,10 @@
 //! to store NodeIDs and EdgeIDs with `u32` and `u64` as the default for the respective IDs.
 //! 3. `KVGraph` - A key-value hypergraph where each node and edge allows you
 //! to store simple values modeled after a simple subset of the Polars data
-//! types. There are two features for this crate, "uuid" is necessary for the
-//! `KVGraph` struct as they are used for both node and edge ids and "polars"
-//! is necessary to retreive dataframes out of the hypergraph.  
+//! types. There are two features for this crate, "uuid" which is necessary to use the
+//! `KVGraph` struct as `Uuid`s are used for both node and edge ids and "polars"
+//! is necessary if you want to retreive dataframes out of the hypergraph.
+//!
 //! `ConGraph` and `KVGraph` are essentially wrappers around `HGraph` with
 //! slightly tweaked apis for adding and deleting nodes or edges (for example
 //! you don't need to provide data for adding nodes to a `ConGraph` but you do
@@ -31,11 +32,17 @@
 //! The only other trait in the crate for now is the `HgNode` trait which is
 //! used to mark the types suitable for `HGraph`.
 //!
+//! ```rust
+//! use mhgl::*;
+//! let mut cg = ConGraph::new();
+//! let n0 = cg.add_node();
+//! assert_eq!(n0, 0);
+//! ```
+//!
 //!# Algorithms
 //! Mostly under construction, currently we only have random walks (link,
 //! boundary_up * boundary_down, and boundary_down * boundary_up). I plan to
-//! port some algorithms from `HyperNetX` over here, such as homology and
-//! connected components.
+//! port some algorithms, such as the connected components, s_walk, and homology algorithms from `HyperNetX` to this library over time.
 //!
 //! # Alternative Hypergraph Libraries
 //! - HyperNetX (Python): The most complete hypergraph library with algorithms
@@ -50,6 +57,7 @@ mod congraph;
 mod edge;
 mod hgraph;
 mod hypergraph;
+#[cfg(feature = "uuid")]
 mod kvgraph;
 mod node_trait;
 
@@ -57,5 +65,7 @@ pub use congraph::ConGraph;
 pub use edge::EdgeSet;
 pub use hgraph::HGraph;
 pub use hypergraph::HyperGraph;
+#[cfg(feature = "uuid")]
 pub use kvgraph::KVGraph;
+
 pub use node_trait::HgNode;

@@ -4,9 +4,10 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::str::FromStr;
 
+#[cfg(feature = "uuid")]
 use uuid::Uuid;
 
-/// A trait used to mark which types can be used as a NodeID or EdgeID.
+/// A trait used to mark which types can be used as a NodeID or EdgeID, currently only use `u8` through `u128` and `Uuid` for `KVGraph`.
 pub trait HgNode:
     Debug + Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize + FromStr
 {
@@ -15,6 +16,7 @@ pub trait HgNode:
     fn plus_one(&mut self);
 }
 
+#[cfg(feature = "uuid")]
 impl HgNode for Uuid {
     fn max_number() -> Self {
         Uuid::from_u128(u128::MAX)

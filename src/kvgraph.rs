@@ -1,9 +1,7 @@
 #[cfg(feature = "polars")]
 use polars::prelude::*;
-use std::{
-    collections::{HashMap, HashSet},
-    str::FromStr,
-};
+
+use std::{collections::HashMap, str::FromStr};
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -11,6 +9,7 @@ use uuid::Uuid;
 
 use crate::{EdgeSet, HGraph, HyperGraph};
 
+/// The data types of the possible values that can be stored in a `KVGraph`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ValueTypes {
     Bool,
@@ -49,6 +48,9 @@ impl FromStr for ValueTypes {
     }
 }
 
+/// The possible values that can be stored in a `KVGraph`, essentially a subset
+/// of the polars `AnyValue<'a>` so that `KVGraph` can avoid generic lifetimes.
+/// Helper conversions are implemented.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Value {
     Bool(bool),
@@ -277,9 +279,29 @@ impl From<Value> for String {
     }
 }
 
+/// A hypergraph where you can store key-value pairs in the form of
+/// `String`s for keys and a [`Value`] enum, a simple subset of the polars `AnyValue<'a>`. `Uuid`s are used for `NodeID` and `EdgeID` so that way
+/// nodes and edges can be present in an output dataframe without confusion.
+/// A schema is used to maintain consistency of data types across nodes and
+/// edges for later collection into dataframes. See [`ValueTypes`] for which types can be stored. Note that the schema does not have to be set by the
+/// user and is determined by the values passed in on `insert`. If a `key`
+/// has never been seen before then the datatype is inferred from the `value` and the key - type pairing is added to the schema. Currently `KVGraph` does not keep track of when a specific key is completely removed from the `KVGraph`, so once a `key` is set to a specific type that can only be reset after calling [`remove_all_keys`]. The current schema can be retrieved as a `HashMap<String, ValueType>` with [`get_schema`](KVGraph::get_schema).
+///
+/// There are a few special keys, `id`, `nodes` and `labelled_nodes` cannot be
+/// modified. `label` is used as an easy name for the user to visualize a
+/// node or edge and can be modified with `graph.label(id, label)` as a shorthand for `graph.insert(id, "label", label)`, or set upon
+/// node or edge creation. Currently it does not allow for the user to provide a `Uuid`
+/// upon creation of a node or edge and new uuids are generated for each new
+/// node or edge.
 pub struct KVGraph {
     pub(crate) core: HGraph<HashMap<String, Value>, HashMap<String, Value>, Uuid, Uuid>,
     schema: IndexMap<String, ValueTypes>,
+}
+
+impl Default for KVGraph {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl KVGraph {
@@ -318,15 +340,10 @@ impl KVGraph {
     /// Removes a node from the node set. The deleted node will be added to a
     /// dequeue to be reused later once all possible nodes have been created.
     /// The data stored will be dropped.
-    pub fn remove_node(&mut self, node: Uuid) {
-        self.core.remove_node(node);
+    pub fn remove_node(&mut self, node: Uuid) -> Option<HashMap<String, Value>> {
+        self.core.remove_node(node)
     }
 
-    /// Removes a collection of nodes. The deleted nodes will be added
-    /// to a dequeue to be reused later once all possible nodes have been created
-    pub fn remove_nodes(&mut self, nodes: Vec<Uuid>) {
-        let _: Vec<_> = nodes.into_iter().map(|id| self.remove_node(id)).collect();
-    }
     /// Creates an undirected edge among the given nodes. Duplicate input nodes are removed.
     /// Returns `None` if an edge among those nodes already exists (Duplicate edges not allowed) or
     /// if less than 2 nodes are provided.
@@ -348,8 +365,8 @@ impl KVGraph {
         self.add_edge_with_label(nodes, "")
     }
 
-    pub fn remove_edge(&mut self, edge_id: Uuid) {
-        self.core.remove_edge(edge_id);
+    pub fn remove_edge(&mut self, edge_id: Uuid) -> Option<HashMap<String, Value>> {
+        self.core.remove_edge(edge_id)
     }
 
     /// Returns the vec of nodes associated with the edge_id.
@@ -426,8 +443,32 @@ impl KVGraph {
     }
 
     /// Returns a copy of the given schema being used
-    pub fn get_schema(&self) -> Vec<(String, ValueTypes)> {
+    pub fn get_schema(&self) -> HashMap<String, ValueTypes> {
         self.schema.clone().into_iter().collect()
+    }
+
+    /// Removes the input key from the schema for future change to a different
+    /// data type. Has to traverse the entire graph so could take a while.
+    pub fn remove_all_keys(&mut self, key: &str) -> Vec<(Uuid, Value)> {
+        if self.schema.contains_key(key) == false {
+            return Vec::new();
+        }
+        let key_string = key.to_string();
+        let mut ret = Vec::new();
+        for (node_id, node_data) in self.core.nodes.iter_mut() {
+            let node_kv_store = &mut node_data.data;
+            if node_kv_store.contains_key(&key_string) {
+                ret.push((node_id.clone(), node_kv_store.remove(&key_string).unwrap()));
+            }
+        }
+        for (edge_id, edge_data) in self.core.edges.iter_mut() {
+            let edge_kv_store = &mut edge_data.data;
+            if edge_kv_store.contains_key(&key_string) {
+                ret.push((edge_id.clone(), edge_kv_store.remove(&key_string).unwrap()));
+            }
+        }
+        self.schema.swap_remove(&key_string);
+        ret
     }
 
     fn nodes_string(&self, id: &Uuid) -> Option<String> {

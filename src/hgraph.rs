@@ -33,6 +33,10 @@ pub(crate) struct Edge<N: HgNode, EdgeData> {
 /// An undirected hypergraph structure that is generic over structs stored
 /// for nodes and edges, as well as the ID types used for both (with defaults of `u32` and `u64`). Does not allow for duplicate edges and panics if the data type used for either type of IDs runs out of options. IDs are simple counters and IDs cannot be reused if the node or edge is deleted.
 ///
+/// Nodes are added with `add_node(data)` and edges with `add_edge(node_slice, data)` and removed similarly. Data of a node or edge can be accessed with the
+/// `borrow_node`, `borrow_edge` functions and their mutable variants. If you forget the id associated with a collection of nodes you can query the `HGraph`
+/// with `find_id(node_slice)` to retrieve the edge's id, if one exists.
+///
 /// Currently this structure just uses `HashMap`s and edge lists to organize
 /// everything, as that was the easiest path to a working structure. This may
 /// change to a trie-type structure called a Simplex Tree used in projects such
@@ -131,10 +135,11 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     /// Does not allow for duplicate edges. Returns an error if all nodes in the
     /// provided edge are not in the graph. Will `panic!` if you run out of
     /// EdgeIDs to  use.
-    pub fn add_edge<E>(&mut self, edge: E, data: EdgeData) -> Result<EdgeID, EdgeData>
-    where
-        E: AsRef<[NodeID]>,
-    {
+    pub fn add_edge(
+        &mut self,
+        edge: impl AsRef<[NodeID]>,
+        data: EdgeData,
+    ) -> Result<EdgeID, EdgeData> {
         let edge_set: EdgeSet<NodeID> = edge.into();
         if self.find_id(edge_set.node_vec()).is_some() {
             return Err(data);
@@ -221,8 +226,11 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     /// This will remove the node from the graph and any edges containing it.
     /// The node will not be reused in the future. If this leaves an edge
     /// empty the edge will be removed from the graph.
-    pub fn remove_node(&mut self, node: NodeID) -> NodeData {
-        let removed_node = self.nodes.remove(&node).expect("Node not found.");
+    pub fn remove_node(&mut self, node: NodeID) -> Option<NodeData> {
+        if self.nodes.contains_key(&node) == false {
+            return None;
+        }
+        let removed_node = self.nodes.remove(&node).unwrap();
         let mut edges_to_be_removed = Vec::new();
         for effected_edge_id in removed_node.containing_edges.iter() {
             let effected_edge = self
@@ -237,7 +245,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         for edge_id in edges_to_be_removed {
             self.remove_edge(edge_id);
         }
-        removed_node.data
+        Some(removed_node.data)
     }
 
     /// Returns the `EdgeData` of the associated edge if it existed and `None`

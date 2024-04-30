@@ -1,12 +1,19 @@
 use crate::HgNode;
 
+/// The connectivity features of a hypergraph, used for developing algorithms
+/// in a struct independent way.
 pub trait HyperGraph {
     type NodeID: HgNode;
     type EdgeID: HgNode;
 
+    /// Retrieve the nodes associated with the given `EdgeID`
     fn query_edge(&self, edge: &Self::EdgeID) -> Option<Vec<Self::NodeID>>;
+
+    /// Find all edge ids such that the given nodes are a subset or equal to
+    /// the edge.
     fn edges_containing_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
 
+    /// Find all edges such that the nodes of a given edge are a **strict** subset of.
     fn edges_containing_edge(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID>;
 
     /// Computes the link of the provided nodes by pairs of edge ids and what
