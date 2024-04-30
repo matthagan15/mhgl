@@ -612,17 +612,19 @@ where
     NodeData: Serialize + for<'a> Deserialize<'a>,
     EdgeData: Serialize + for<'a> Deserialize<'a>,
 {
+    /// Serializes the struct using `serde_json` and writes it to disk. `panic`s if anything fails.
     pub fn to_disk(&self, path: &Path) {
         let s = serde_json::to_string(self).expect("could not serialize NEGraph");
         let mut file = File::create(path).expect("Cannot create File.");
         file.write_all(s.as_bytes()).expect("Cannot write");
     }
 
-    pub fn from_file(path: &Path) -> Option<Self> {
-        if path.is_file() == false {
+    /// Attempts to deserialize using `serde_json` from the input file.
+    pub fn from_file(file: &Path) -> Option<Self> {
+        if file.is_file() == false {
             return None;
         }
-        if let Ok(file) = File::open(path) {
+        if let Ok(file) = File::open(file) {
             let reader = BufReader::new(file);
             let out = serde_json::from_reader(reader);
             if out.is_ok() {
