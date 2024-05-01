@@ -48,7 +48,7 @@ pub fn random_walk<Walker: HyperGraph>(
             let mut current_location: Option<Walker::EdgeID> = None;
             for _ in 0..num_steps {
                 let up_out = if current_location.is_none() {
-                    hgraph.boundary_up_nodes(start.as_ref())
+                    hgraph.boundary_up_of_nodes(start.as_ref())
                 } else {
                     hgraph.boundary_up(&current_location.unwrap())
                 };
@@ -69,7 +69,7 @@ pub fn random_walk<Walker: HyperGraph>(
             let mut current_location: Option<Walker::EdgeID> = None;
             for _ in 0..num_steps {
                 let down_out = if current_location.is_none() {
-                    hgraph.boundary_down_nodes(start.as_ref())
+                    hgraph.boundary_down_of_nodes(start.as_ref())
                 } else {
                     hgraph.boundary_down(&current_location.unwrap())
                 };

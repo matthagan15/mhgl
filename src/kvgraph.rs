@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{EdgeSet, HGraph, HyperGraph};
+use crate::{ConGraph, EdgeSet, HGraph, HyperGraph};
 
 /// The data types of the possible values that can be stored in a `KVGraph`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -316,6 +316,7 @@ impl KVGraph {
             ]),
         }
     }
+
     pub fn add_node(&mut self) -> Uuid {
         let id = Uuid::new_v4();
         self.core.add_node_with_id(HashMap::new(), id.clone());
@@ -702,12 +703,12 @@ impl HyperGraph for KVGraph {
         self.core.query_edge(edge)
     }
 
-    fn edges_containing_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
-        self.core.edges_containing_nodes(nodes.as_ref())
+    fn containing_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+        self.core.containing_edges_of_nodes(nodes.as_ref())
     }
 
-    fn edges_containing_edge(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
-        self.core.edges_containing_edge(edge)
+    fn containing_edges(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core.containing_edges(edge)
     }
 
     fn link(&self, edge: &Self::EdgeID) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
@@ -721,15 +722,12 @@ impl HyperGraph for KVGraph {
         self.core.link_of_nodes(nodes)
     }
 
-    fn maximal_edges_containing_edge(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
-        self.core.maximal_edges_containing_edge(edge_id)
+    fn maximal_edges(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core.maximal_edges(edge_id)
     }
 
-    fn maximal_edges_containing_nodes(
-        &self,
-        nodes: impl AsRef<[Self::NodeID]>,
-    ) -> Vec<Self::EdgeID> {
-        self.core.maximal_edges_containing_nodes(nodes)
+    fn maximal_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+        self.core.maximal_edges_of_nodes(nodes)
     }
 
     fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID> {
@@ -748,12 +746,12 @@ impl HyperGraph for KVGraph {
         self.core.boundary_down(edge_id)
     }
 
-    fn boundary_up_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
-        self.core.boundary_up_nodes(nodes)
+    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+        self.core.boundary_up_of_nodes(nodes)
     }
 
-    fn boundary_down_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
-        self.core.boundary_down_nodes(nodes)
+    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+        self.core.boundary_down_of_nodes(nodes)
     }
 }
 

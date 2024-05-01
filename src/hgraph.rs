@@ -112,12 +112,12 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         }
     }
 
-    /// Returns the new id if a node can be added, returns `None` if the graph
+    /// Returns the new id if a node can be added, `panic`s if the graph
     /// is out of space to add new nodes.
-    pub fn add_node(&mut self, node: NodeData) -> Option<NodeID> {
+    pub fn add_node(&mut self, node: NodeData) -> NodeID {
         let node_id = self.next_node_id;
         if self.next_node_id == NodeID::max_number() {
-            return None;
+            panic!("The storage type for NodeIDs ran out of space.")
         }
         self.next_node_id.plus_one();
 
@@ -129,7 +129,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         if insert.is_some() {
             panic!("For some reason we encountered the same node_id twice.")
         }
-        Some(node_id)
+        node_id
     }
 
     /// Does not allow for duplicate edges. Returns an error if all nodes in the
@@ -353,7 +353,7 @@ where
             .map(|big_edge| big_edge.nodes.node_vec())
     }
 
-    fn edges_containing_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn containing_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
         let nodes_set: EdgeSet<Self::NodeID> = nodes.into();
         let first = nodes_set.get_first_node().unwrap();
         if self.nodes.contains_key(&first) == false {
@@ -373,7 +373,7 @@ where
         ret
     }
 
-    fn edges_containing_edge(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn containing_edges(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
         if self.edges.contains_key(edge) == false {
             return Vec::new();
         }
@@ -397,7 +397,7 @@ where
         if self.edges.contains_key(edge) == false {
             return Vec::new();
         }
-        let containing_edges = self.edges_containing_edge(edge);
+        let containing_edges = self.containing_edges(edge);
         let edge = self.edges.get(edge).unwrap();
         containing_edges
             .into_iter()
@@ -422,7 +422,7 @@ where
         nodes: impl AsRef<[Self::NodeID]>,
     ) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
         let edge: EdgeSet<Self::NodeID> = nodes.into();
-        let containing_edges = self.edges_containing_nodes(edge.node_vec());
+        let containing_edges = self.containing_edges_of_nodes(edge.node_vec());
         containing_edges
             .into_iter()
             .filter_map(|id| {
@@ -441,8 +441,8 @@ where
             .collect()
     }
 
-    fn maximal_edges_containing_edge(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
-        let containing_edges = self.edges_containing_edge(edge_id);
+    fn maximal_edges(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        let containing_edges = self.containing_edges(edge_id);
         if containing_edges.is_empty() {
             return Vec::new();
         }
@@ -476,11 +476,8 @@ where
             .collect()
     }
 
-    fn maximal_edges_containing_nodes(
-        &self,
-        nodes: impl AsRef<[Self::NodeID]>,
-    ) -> Vec<Self::EdgeID> {
-        let containing_edges = self.edges_containing_nodes(nodes);
+    fn maximal_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+        let containing_edges = self.containing_edges_of_nodes(nodes);
         if containing_edges.is_empty() {
             return Vec::new();
         }
@@ -524,7 +521,7 @@ where
     }
 
     fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
-        let containing_edges = self.edges_containing_edge(edge_id);
+        let containing_edges = self.containing_edges(edge_id);
         if containing_edges.is_empty() {
             return Vec::new();
         }
@@ -563,10 +560,10 @@ where
         boundary
     }
 
-    fn boundary_up_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
         let nodes_ref = nodes.as_ref();
         let given_nodes_len = nodes_ref.len();
-        let containing_edges = self.edges_containing_nodes(nodes);
+        let containing_edges = self.containing_edges_of_nodes(nodes);
         if containing_edges.is_empty() {
             return Vec::new();
         }
@@ -583,7 +580,7 @@ where
         boundary
     }
 
-    fn boundary_down_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
         let edge_set: EdgeSet<Self::NodeID> = nodes.into();
         let mut boundary: Vec<Self::EdgeID> = Vec::new();
         for ix in 0..edge_set.len() {
@@ -655,11 +652,11 @@ mod tests {
         assert!(g.find_id([1_u8, 2, 3]).is_some());
         // is simplex so this should work
         assert!(g.find_id(&[0][..]).is_none());
-        let containing_edges = g.edges_containing_nodes([1_u8, 2]);
+        let containing_edges = g.containing_edges_of_nodes([1_u8, 2]);
         assert_eq!(containing_edges.len(), 2);
         assert!(containing_edges.contains(&e1));
         assert!(containing_edges.contains(&e2));
-        let affected_edges = g.edges_containing_nodes([2]);
+        let affected_edges = g.containing_edges_of_nodes([2]);
         g.remove_node(2);
         assert!(affected_edges.contains(&e1));
         assert!(affected_edges.contains(&e2));
@@ -681,8 +678,8 @@ mod tests {
         let e4 = core.add_edge(vec![0, 1, 4], ()).unwrap();
         let e5 = core.add_edge(vec![0, 1, 4, 5], ()).unwrap();
         let e6 = core.add_edge(vec![0, 2, 6], ()).unwrap();
-        let containers = core.edges_containing_nodes([0]);
-        let mut maximal_edges = core.maximal_edges_containing_nodes([0]);
+        let containers = core.containing_edges_of_nodes([0]);
+        let mut maximal_edges = core.maximal_edges_of_nodes([0]);
         maximal_edges.sort();
         let mut expected = vec![e3, e5, e6];
         expected.sort();
@@ -718,11 +715,11 @@ mod tests {
         assert_eq!(test_2, expected);
 
         let expected_3 = vec![e4];
-        let test_3 = hg.boundary_up_nodes(vec![0, 1, 2]);
+        let test_3 = hg.boundary_up_of_nodes(vec![0, 1, 2]);
         assert_eq!(test_3, expected_3);
 
         let expected_4 = vec![e1];
-        let test_4 = hg.boundary_down_nodes(vec![0, 1, 3]);
+        let test_4 = hg.boundary_down_of_nodes(vec![0, 1, 3]);
         assert_eq!(test_4, expected_4);
     }
 }

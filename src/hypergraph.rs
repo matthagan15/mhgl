@@ -11,10 +11,10 @@ pub trait HyperGraph {
 
     /// Find all edge ids such that the given nodes are a subset or equal to
     /// the edge.
-    fn edges_containing_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
+    fn containing_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
 
     /// Find all edges such that the nodes of a given edge are a **strict** subset of.
-    fn edges_containing_edge(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID>;
+    fn containing_edges(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID>;
 
     /// Computes the link of the provided nodes by pairs of edge ids and what
     /// the link of the provided nodes are within the associated id.
@@ -38,15 +38,12 @@ pub trait HyperGraph {
     /// provided ID is maximal, it is not included in its return.
     /// Ex: {1, 2, 3}, {1,2, 3, 4}, {1, 2, 3, 4, 5} and you give the id
     /// of {1, 2, 3}, then the id of {1, 2, 3, 4, 5} will be returned.
-    fn maximal_edges_containing_edge(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID>;
+    fn maximal_edges(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID>;
 
-    /// finds all edges containing provided nodes that are not contained
+    /// Finds all edges containing provided nodes that are not contained
     /// in any other edge. If the provided nodes are a maximal edge, then
     /// that edges ID is returned.
-    fn maximal_edges_containing_nodes(
-        &self,
-        nodes: impl AsRef<[Self::NodeID]>,
-    ) -> Vec<Self::EdgeID>;
+    fn maximal_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
 
     /// Warning: Has to filter all edges so takes Theta(|E|) time.
     fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID>;
@@ -68,8 +65,8 @@ pub trait HyperGraph {
 
     /// Finds all edges which contain one more node than the provided
     /// node.
-    fn boundary_up_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
+    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
 
     /// Finds all edges that have one node removed from the provided nodes.
-    fn boundary_down_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
+    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
 }

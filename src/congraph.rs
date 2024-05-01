@@ -58,16 +58,14 @@ impl ConGraph {
 
     /// Panics if new node cannot be added.
     pub fn add_node(&mut self) -> u32 {
-        self.core.add_node(()).unwrap()
+        self.core.add_node(())
     }
 
     /// Adds `num_nodes` nodes to the graph, returning a vector containing
     /// the nodes created. The number of nodes returned may be less than
     /// the number of nodes requested due to the use of u32 to store nodes.
     pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<u32> {
-        (0..num_nodes)
-            .map(|_| self.core.add_node(()).unwrap())
-            .collect()
+        (0..num_nodes).map(|_| self.core.add_node(())).collect()
     }
 
     /// Note this will delete any edges that are empty, but singleton edges are
@@ -132,7 +130,7 @@ impl ConGraph {
         for node in cut_as_edge.0.iter() {
             let out_edges: Vec<EdgeID> = self
                 .core
-                .edges_containing_nodes([*node])
+                .containing_edges_of_nodes([*node])
                 .into_iter()
                 .filter(|e_id| counted_edges.contains(e_id) == false)
                 .collect();
@@ -182,12 +180,12 @@ impl HyperGraph for ConGraph {
         self.core.query_edge(edge)
     }
 
-    fn edges_containing_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
-        self.core.edges_containing_nodes(nodes)
+    fn containing_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+        self.core.containing_edges_of_nodes(nodes)
     }
 
-    fn edges_containing_edge(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
-        self.core.edges_containing_edge(edge)
+    fn containing_edges(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core.containing_edges(edge)
     }
 
     fn link(&self, edge: &Self::EdgeID) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
@@ -201,15 +199,12 @@ impl HyperGraph for ConGraph {
         self.core.link_of_nodes(nodes)
     }
 
-    fn maximal_edges_containing_edge(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
-        self.core.maximal_edges_containing_edge(edge_id)
+    fn maximal_edges(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+        self.core.maximal_edges(edge_id)
     }
 
-    fn maximal_edges_containing_nodes(
-        &self,
-        nodes: impl AsRef<[Self::NodeID]>,
-    ) -> Vec<Self::EdgeID> {
-        self.core.maximal_edges_containing_nodes(nodes)
+    fn maximal_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+        self.core.maximal_edges_of_nodes(nodes)
     }
 
     fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID> {
@@ -228,12 +223,12 @@ impl HyperGraph for ConGraph {
         self.core.boundary_down(edge_id)
     }
 
-    fn boundary_up_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
-        self.core.boundary_up_nodes(nodes)
+    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+        self.core.boundary_up_of_nodes(nodes)
     }
 
-    fn boundary_down_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
-        self.core.boundary_down_nodes(nodes)
+    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+        self.core.boundary_down_of_nodes(nodes)
     }
 }
 
@@ -398,7 +393,7 @@ mod test {
         let e0 = hg.add_edge(&[0]);
         let e1 = hg.add_edge(&[0, 1]);
         let e2 = hg.add_edge(&[0, 1, 2]);
-        let star = hg.edges_containing_edge(&e0);
+        let star = hg.containing_edges(&e0);
         dbg!(star);
         dbg!(&hg);
     }

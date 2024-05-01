@@ -35,15 +35,64 @@
 //! ```rust
 //! use mhgl::*;
 //! let mut cg = ConGraph::new();
-//! let n0 = cg.add_node();
-//! assert_eq!(n0, 0);
+//! let nodes = cg.add_nodes(5);
+//! let mut edges = Vec::new();
+//! for ix in 1..nodes.len() {
+//!     let edge = cg.add_edge(&nodes[0..=ix]);
+//!     edges.push(edge);
+//! }
+//! let maxs_of_edge = cg.maximal_edges(&edges[0]);
+//! let maxs_of_nodes = cg.maximal_edges_of_nodes([0, 1, 2]);
+//!
+//! assert_eq!(maxs_of_edge[0], edges[edges.len() - 1]);
+//! assert_eq!(maxs_of_nodes[0], edges[edges.len() - 1]);
+//! assert_eq!(cg.boundary_up(&edges[0]), vec![edges[1]]);
+//!
+//! #[derive(Debug)]
+//! struct Foo(u8);
+//!
+//! #[derive(Debug)]
+//! struct Bar(u32);
+//!
+//! let mut hg = HGraph::<Foo, Bar>::new();
+//! let n0 = hg.add_node(Foo(1));
+//! let n1 = hg.add_node(Foo(2));
+//! let e = hg.add_edge(&[n0, n1], Bar(42)).unwrap();
+//! let e_mut = hg.borrow_edge_mut(&e).unwrap();
+//! e_mut.0 = 12;
+//! let bar = hg.remove_edge(e).unwrap();
+//! assert_eq!(bar.0, 12);
+//!
+//! let mut kvgraph = KVGraph::new();
+//! let n0 = kvgraph.add_node_with_label("toronto");
+//! let n1 = kvgraph.add_node_with_label("seattle");
+//! let edge = kvgraph.add_edge_with_label(&[n0, n1], "AC123").unwrap();
+//! kvgraph.insert(&n0, "darkness", 0.6);
+//! kvgraph.insert(&n1, "darkness", 0.8);
+//! let df = kvgraph.dataframe();
+//! println!("{:}", df);
 //! ```
+//! The last line in the above code will output:
+//! ```text
+//!┌────────────┬───────────────────────────────────┬───────────────────────────────────┬───────────────────┬──────────┐
+//! │ label      ┆ id                                ┆ nodes                             ┆ labelled_nodes    ┆ darkness │
+//! │ ---        ┆ ---                               ┆ ---                               ┆ ---               ┆ ---      │
+//! │ str        ┆ str                               ┆ str                               ┆ str               ┆ f64      │
+//! ╞════════════╪═══════════════════════════════════╪═══════════════════════════════════╪═══════════════════╪══════════╡
+//! │ toronto    ┆ 6347a42e-0bde-4d80-aad3-7e8c59d3… ┆ [6347a42e-0bde-4d80-aad3-7e8c59d… ┆ [toronto]         ┆ 0.6      │
+//! │ seattle    ┆ 032e1a16-ec39-4045-8ebd-381c2b06… ┆ [032e1a16-ec39-4045-8ebd-381c2b0… ┆ [seattle]         ┆ 0.8      │
+//! │ AC123      ┆ 1b233128-22d2-4158-850d-b4b814d5… ┆ [1b233128-22d2-4158-850d-b4b814d… ┆ [seattle,toronto] ┆ null     │
+//! └────────────┴───────────────────────────────────┴───────────────────────────────────┴───────────────────┴──────────┘
+//! ```
+//! Currently data schema is shared between nodes and edges, which is
+//! unfortunate.
 //!
 //!# Algorithms
-//! Mostly under construction, currently we only have random walks (link,
-//! boundary_up * boundary_down, and boundary_down * boundary_up). I plan to
+//! Mostly under construction, currently there is only a simple random walk either using link,
+//! boundary_up * boundary_down, and boundary_down * boundary_up to determine the next subset to move to. I plan to
 //! port some algorithms, such as the connected components, s_walk, and homology algorithms from `HyperNetX` to this library over time.
 //!
+//! This library should be considered as an **alpha** version. Here are a few hypergraph libraries I found, the most mature of which is HyperNetX developed by Pacific Northwest National Laboratory (PNNL).
 //! # Alternative Hypergraph Libraries
 //! - HyperNetX (Python): The most complete hypergraph library with algorithms
 //! for homology computations. Based on python and the underlying datastructure
@@ -69,3 +118,20 @@ pub use hypergraph::HyperGraph;
 pub use kvgraph::KVGraph;
 
 pub use node_trait::HgNode;
+
+mod tests {
+    #[cfg(feature = "polars")]
+    #[test]
+    fn simple_dataframe() {
+        use crate::KVGraph;
+
+        let mut kvgraph = KVGraph::new();
+        let n0 = kvgraph.add_node_with_label("toronto");
+        let n1 = kvgraph.add_node_with_label("seattle");
+        let edge = kvgraph.add_edge_with_label(&[n0, n1], "AC123").unwrap();
+        kvgraph.insert(&n0, "darkness", 0.6);
+        kvgraph.insert(&n1, "darkness", 0.8);
+        let df = kvgraph.dataframe();
+        println!("{:}", df);
+    }
+}
