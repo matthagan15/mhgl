@@ -1,9 +1,9 @@
 [package]
 name = "mhgl"
-version = "0.1.5"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
-description = "Matts HyperGraph Library (MHGL). A straightforward library for hypergraph datastructures. Not a database."
+description = "Matts HyperGraph Library (MHGL). A straightforward library for hypergraph datastructures."
 repository = "https://github.com/matthagan15/mhgl"
 
 

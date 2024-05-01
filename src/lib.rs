@@ -121,6 +121,7 @@ pub use node_trait::HgNode;
 
 mod tests {
     #[cfg(feature = "polars")]
+    #[cfg(feature = "uuid")]
     #[test]
     fn simple_dataframe() {
         use crate::KVGraph;
