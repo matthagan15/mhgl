@@ -514,8 +514,8 @@ where
     fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID> {
         self.edges
             .iter()
-            .filter(|(id, e)| e.nodes.len() == card)
-            .map(|(id, e)| id)
+            .filter(|(_, e)| e.nodes.len() == card)
+            .map(|(id, _)| id)
             .cloned()
             .collect()
     }

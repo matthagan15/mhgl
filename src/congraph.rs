@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{HGraph, HyperGraph};
 
-use crate::{EdgeSet, HgNode};
+use crate::EdgeSet;
 
 type EdgeID = u64;
 

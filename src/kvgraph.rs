@@ -480,7 +480,7 @@ impl KVGraph {
             Some(s)
         } else if self.core.edges.contains_key(&id) {
             let edge_set = &self.core.edges.get(&id).unwrap().nodes;
-            for ix in 0..(edge_set.len() - 1) {
+            for _ix in 0..(edge_set.len() - 1) {
                 s.push_str(&id.to_string()[..]);
                 s.push(',');
             }

@@ -109,8 +109,8 @@
 //! for homology computations. Based on python and the underlying datastructure
 //! seems to be pandas arrays.
 //! - [HypergraphDB](https://hypergraphdb.org/) (Java): A database backend for storing and querying data, seems unmaintained but probably was ahead of its time.
-//! - [Hypergraph](https://crates.io/crates/hypergraph) (Rust): Very limited in
-//! scope and seemed overly complicated to me.
+//! - [Hypergraph](https://crates.io/crates/hypergraph) (Rust): Seemed limited in scope and a bit complicated to me.
+//! - [Gudhi](https://gudhi.inria.fr/index.html) (C++): This library is focused on computing persistent homology bargraphs. As such it has datastructures for simplicial complexes and more.
 
 #[forbid(unsafe_code)]
 mod algs;
