@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //!# Matt's HyperGraph Library (mhgl)
 //!
 //! A library for working with undirected [hypergraphs](https://en.wikipedia.org/wiki/Hypergraph), which are a generalization of a normal graph. A hypergraph consists of a set of nodes, denoted `N`, and a collection of edges  where each edge is a subset of `N`. For a normal graph each edge is required to be of size 2, for example an edge `(u, v)` between nodes `u` and `v`, whereas in a hypergraph there is no limit on the size of an edge. Each node and edge are assigned IDs, with the type for the ID depending on the struct used. The [`HyperGraph`] trait provides a common api for developing struct independent algorithms.
@@ -74,7 +75,7 @@
 //! unfortunate.
 //!
 //! # Features
-//! There are 2 features related to the [`KVGraph`] module
+//! There are 2 features related to the [`KVGraph`](`crate::kvgraph`) module
 //! - **"uuid"** to enable the use of [`KVGraph`] as it uses `Uuid`s as the ID
 //! type for both nodes and edges.
 //! - **"polars"** to compute [`polars`](https://www.pola.rs) dataframes of
@@ -97,6 +98,9 @@
 //! node and edge IDs (spoiler: `u8`, `u16, `u32`, `u64`, and `u132`. Don't use `Uuid`s even though they implement the trait.)
 //!
 //!# Algorithms
+//!
+//! [`algs`](`crate::algs`)
+//!
 //! Mostly under construction, currently there is only a simple random walk either using link,
 //! `boundary_up` * `boundary_down`, and `boundary_down` * `boundary_up` to determine the next subset to move to. I plan to
 //! port some algorithms, such as the connected components, s_walk, and homology algorithms from `HyperNetX` to this library over time.
@@ -111,9 +115,7 @@
 //! - [HypergraphDB](https://hypergraphdb.org/) (Java): A database backend for storing and querying data, seems unmaintained but probably was ahead of its time.
 //! - [Hypergraph](https://crates.io/crates/hypergraph) (Rust): Seemed limited in scope and a bit complicated to me.
 //! - [Gudhi](https://gudhi.inria.fr/index.html) (C++): This library is focused on computing persistent homology bargraphs. As such it has datastructures for simplicial complexes and more.
-
-#[forbid(unsafe_code)]
-mod algs;
+pub mod algs;
 mod congraph;
 mod edge;
 mod hgraph;
@@ -126,6 +128,7 @@ pub use congraph::ConGraph;
 use edge::EdgeSet;
 pub use hgraph::HGraph;
 pub use hypergraph::HyperGraph;
+
 #[cfg(feature = "uuid")]
 pub use kvgraph::KVGraph;
 

@@ -2,38 +2,24 @@
 
 ## Matt's HyperGraph Library (mhgl)
 
-A small library that provides three undirected hypergraph structures:
-1.`ConGraph` - a connectivity only option that uses `u32`'s as IDs for
-nodes and `u64`'s for edge IDs. No data that can be stored within the
-`ConGraph` structure itself and NodeIDs and EdgeIDs are simple incremented
-counters started at 0.
-2. `HGraph` - An option generic over the types stored in both the nodes and
-edges. Additionally generic over the size of integers `u8` through `u128`
+A library for working with undirected [hypergraphs](https://en.wikipedia.org/wiki/Hypergraph), which are a generalization of a normal graph. A hypergraph consists of a set of nodes, denoted `N`, and a collection of edges  where each edge is a subset of `N`. For a normal graph each edge is required to be of size 2, for example an edge `(u, v)` between nodes `u` and `v`, whereas in a hypergraph there is no limit on the size of an edge. Each node and edge are assigned IDs, with the type for the ID depending on the struct used. The [`HyperGraph`] trait provides a common api for developing struct independent algorithms.
+
+## Hypergraph Structs
+- [`ConGraph`] - a connectivity only option that uses `u32`'s as IDs for
+nodes and `u64`'s for edge IDs with each being a simple counter starting at 0. No data that can be stored within the
+`ConGraph` structure itself.
+- [`HGraph`] - A struct generic over four types: the node data, the edge data, the node IDs, and the edge IDs. There are no trait bounds on the node and edge typesaAdditionally generic over the size of integers `u8` through `u128`
 to store NodeIDs and EdgeIDs with `u32` and `u64` as the default for the respective IDs.
-3. `KVGraph` - A key-value hypergraph where each node and edge allows you
-to store simple values modeled after a simple subset of the Polars data
-types. There are two features for this crate, "uuid" which is necessary to use the
-`KVGraph` struct as `Uuid`s are used for both node and edge ids and "polars"
-is necessary if you want to retreive dataframes out of the hypergraph.
+- [`KVGraph`] - A key-value hypergraph where each node and edge allows you
+to store simple [`kvgraph::Value`]s modeled after a simple subset of the Polars `AnyValue<'a>`.
 
 `ConGraph` and `KVGraph` are essentially wrappers around `HGraph` with
-slightly tweaked apis for adding and deleting nodes or edges (for example
+slightly tweaked function signatures for adding and deleting nodes or edges
+(for example
 you don't need to provide data for adding nodes to a `ConGraph` but you do
 for `HGraph`).
 
-The common behavior between these three structures is collected in the
-`HyperGraph` trait, which mostly consists of various ways of collecting
-"local" information about a node or a set of nodes within the hypergraph.
-With a `HyperGraph` object you can query for the link of an edge or a set
-of nodes, the maximal edges that contain a given edge, or the action of
-boundary up and down operators on an edge or set of nodes. Consistent
-throughout the trait is the ability to interact with a `HyperGraph` either
-through edge ids or any type that can be
-cast `AsRef` into a slice &[NodeID]. Whenever a slice or such is passed the
-hypergraph will clone the NodeIDs, sort, and make sure no duplicates exist.
-The only other trait in the crate for now is the `HgNode` trait which is
-used to mark the types suitable for `HGraph`.
-
+## Example
 ```rust
 use mhgl::*;
 let mut cg = ConGraph::new();
@@ -74,7 +60,7 @@ kvgraph.insert(&n1, "darkness", 0.8);
 let df = kvgraph.dataframe();
 println!("{:}", df);
 ```
-The above code will output:
+The last line in the above code when ran output:
 ```
 ┌────────────┬───────────────────────────────────┬───────────────────────────────────┬───────────────────┬──────────┐
 │ label      ┆ id                                ┆ nodes                             ┆ labelled_nodes    ┆ darkness │
@@ -86,16 +72,49 @@ The above code will output:
 │ AC123      ┆ 1b233128-22d2-4158-850d-b4b814d5… ┆ [1b233128-22d2-4158-850d-b4b814d… ┆ [seattle,toronto] ┆ null     │
 └────────────┴───────────────────────────────────┴───────────────────────────────────┴───────────────────┴──────────┘
 ```
+Currently data schema is shared between nodes and edges, which is
+unfortunate.
+
+## Features
+There are 2 features related to the [`KVGraph`](`crate::kvgraph`) module
+- **"uuid"** to enable the use of [`KVGraph`] as it uses `Uuid`s as the ID
+type for both nodes and edges.
+- **"polars"** to compute [`polars`](https://www.pola.rs) dataframes of
+any collection of nodes or edges.
+
+## Traits
+- [`HyperGraph`] - A collection of functions for querying the adjacency
+structure of a hypergraph. There are a few main functions, each of which
+takes as an input an edge ID and returns related edges in the hypergraph.
+Each function also has an "of_nodes" variant which allows you to find the
+same info but instead of requiring an input edge of the hypergraph you can
+provide a slice of nodes.
+    - [`containing_edges`](`HyperGraph::containing_edges`) finds all edges which are strict supersets of the input edge.
+    - [`maximal_edges`](`HyperGraph::maximal_edges`) finds all edges containing the input edge that are not themselves contained in another edge.
+    - [`link`](`HyperGraph::link`) takes all edges which contain the given edge and computes the complement of the input within that edge.
+    - [`boundary_up`](`HyperGraph::boundary_up`) the boundary up operator comes from topology and the terminology of simplicial complexes. It takes the input edge and finds all edges that are only a single extra node added to the input.
+    - [`boundary_down`](`HyperGraph::boundary_down`) similar to the `boundary_up` operator but removes a node.
+
+- [`HgNode`] - A marker trait for indicating which types are usuable for
+node and edge IDs (spoiler: `u8`, `u16, `u32`, `u64`, and `u132`. Don't use `Uuid`s even though they implement the trait.)
+
 ## Algorithms
-Mostly under construction, currently we only have random walks (link,
-boundary_up * boundary_down, and boundary_down * boundary_up). I plan to
+
+[`algs`](`crate::algs`)
+
+Mostly under construction, currently there is only a simple random walk either using link,
+`boundary_up` * `boundary_down`, and `boundary_down` * `boundary_up` to determine the next subset to move to. I plan to
 port some algorithms, such as the connected components, s_walk, and homology algorithms from `HyperNetX` to this library over time.
 
 ## Alternative Hypergraph Libraries
-- HyperNetX (Python): The most complete hypergraph library with algorithms
+This library should be considered as an **alpha** version. Here are a few
+hypergraph libraries I found, the most mature of which is HyperNetX
+developed by Pacific Northwest National Laboratory (PNNL).
+- [HyperNetX](https://pnnl.github.io/HyperNetX/) (Python): The most complete hypergraph library with algorithms
 for homology computations. Based on python and the underlying datastructure
 seems to be pandas arrays.
-- HypergraphDB (Java): A database backend for storing and querying data, seems unmaintained but probably was ahead of its time.
-- Hypergraph (Rust): Appears very limited in scope and not maintained.
+- [HypergraphDB](https://hypergraphdb.org/) (Java): A database backend for storing and querying data, seems unmaintained but probably was ahead of its time.
+- [Hypergraph](https://crates.io/crates/hypergraph) (Rust): Seemed limited in scope and a bit complicated to me.
+- [Gudhi](https://gudhi.inria.fr/index.html) (C++): This library is focused on computing persistent homology bargraphs. As such it has datastructures for simplicial complexes and more.
 
 License: MIT
