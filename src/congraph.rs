@@ -35,55 +35,34 @@ impl ConGraph {
         }
     }
 
-    pub fn to_disk(&self, path: &Path) {
-        let s = self.to_string();
-        let mut file = File::create(path).expect("Cannot create File.");
-        file.write_all(s.as_bytes()).expect("Cannot write");
-    }
-
-    pub fn from_file(path: &Path) -> Option<Self> {
-        if path.is_file() == false {
-            return None;
-        }
-        if let Ok(hg_string) = fs::read_to_string(path) {
-            if let Ok(serde_out) = ConGraph::from_str(&hg_string) {
-                Some(serde_out)
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
     /// Panics if new node cannot be added.
     pub fn add_node(&mut self) -> u32 {
         self.core.add_node(())
     }
 
     /// Adds `num_nodes` nodes to the graph, returning a vector containing
-    /// the nodes created. The number of nodes returned may be less than
-    /// the number of nodes requested due to the use of u32 to store nodes.
+    /// the nodes created. `panic`s if it runs out of nodes to allocate.
     pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<u32> {
         (0..num_nodes).map(|_| self.core.add_node(())).collect()
     }
 
-    /// Note this will delete any edges that are empty, but singleton edges are
-    /// allowed. For example, if I have the edge {1, 2} and then I remove 2 from the graph I will still have the edge {1} so that way further nodes can
-    /// be added back to the edge but if I then remove 1 I will also delete the
-    /// edge.
+    /// Removes the node and any empty edges if the provided node is the last on in the edge. Singleton edges are allowed. For example, if you remove 2
+    /// from the edge {1, 2} the graph will
+    /// retain the edge {1} so that way further nodes can
+    /// be added back to the edge. If 1 is then removed the empty edge will be
+    /// deleted.
     pub fn remove_node(&mut self, node: u32) {
         self.core.remove_node(node);
     }
 
-    /// Removes a collection of nodes. The deleted nodes will be added
-    /// to a dequeue to be reused later once all possible nodes have been created
+    /// Removes a collection of nodes and any resulting empty edges.
     pub fn remove_nodes(&mut self, nodes: Vec<u32>) {
         for node in nodes {
             self.core.remove_node(node);
         }
     }
 
+    /// All node IDs that are currently in use.
     pub fn nodes(&self) -> Vec<u32> {
         self.core.nodes.keys().cloned().collect()
     }
@@ -98,11 +77,6 @@ impl ConGraph {
         self.core.remove_edge(edge_id);
     }
 
-    /// Returns the vec of nodes associated with the edge_id.
-    pub fn query_edge_id(&self, edge_id: &EdgeID) -> Option<Vec<u32>> {
-        self.core.edges.get(edge_id).map(|e| e.nodes.node_vec())
-    }
-
     /// In case you forget it :)
     pub fn find_id<E>(&self, nodes: E) -> Option<EdgeID>
     where
@@ -111,6 +85,7 @@ impl ConGraph {
         self.core.find_id(nodes)
     }
 
+    /// All edge IDs currently in use within the hypergraph.
     pub fn edges(&self) -> Vec<EdgeID> {
         self.core.edges.keys().cloned().collect()
     }
@@ -121,10 +96,7 @@ impl ConGraph {
     /// would an edge without any nodes in `cut_nodes`.
     /// The type `ToSet` is any collection that can be converted to a sparse
     /// set representation.
-    pub fn cut<E>(&self, cut_nodes: E) -> usize
-    where
-        E: Into<EdgeSet<u32>>,
-    {
+    pub fn cut(&self, cut_nodes: impl AsRef<[u32]>) -> usize {
         let cut_as_edge: EdgeSet<u32> = cut_nodes.into();
         let mut counted_edges: HashSet<EdgeID> = HashSet::new();
         for node in cut_as_edge.0.iter() {
@@ -144,6 +116,29 @@ impl ConGraph {
             }
         }
         counted_edges.len()
+    }
+
+    /// Saves the disk in the same format as the graph is displayed. `panic`s
+    /// if the `path` is incorrect or the file cannot be written.
+    pub fn to_disk(&self, path: &Path) {
+        let s = self.to_string();
+        let mut file = File::create(path).expect("Cannot create File.");
+        file.write_all(s.as_bytes()).expect("Cannot write");
+    }
+
+    pub fn from_file(path: &Path) -> Option<Self> {
+        if path.is_file() == false {
+            return None;
+        }
+        if let Ok(hg_string) = fs::read_to_string(path) {
+            if let Ok(serde_out) = ConGraph::from_str(&hg_string) {
+                Some(serde_out)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 }
 

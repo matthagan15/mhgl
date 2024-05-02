@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{ConGraph, EdgeSet, HGraph, HyperGraph};
+use crate::{EdgeSet, HGraph, HyperGraph};
 
 /// The data types of the possible values that can be stored in a `KVGraph`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -285,7 +285,7 @@ impl From<Value> for String {
 /// A schema is used to maintain consistency of data types across nodes and
 /// edges for later collection into dataframes. See [`ValueTypes`] for which types can be stored. Note that the schema does not have to be set by the
 /// user and is determined by the values passed in on `insert`. If a `key`
-/// has never been seen before then the datatype is inferred from the `value` and the key - type pairing is added to the schema. Currently `KVGraph` does not keep track of when a specific key is completely removed from the `KVGraph`, so once a `key` is set to a specific type that can only be reset after calling [`remove_all_keys`]. The current schema can be retrieved as a `HashMap<String, ValueType>` with [`get_schema`](KVGraph::get_schema).
+/// has never been seen before then the datatype is inferred from the `value` and the key - type pairing is added to the schema. Currently `KVGraph` does not keep track of when a specific key is completely removed from the `KVGraph`, so once a `key` is set to a specific type that can only be reset after calling [`KVGraph::remove_all_keys`]. The current schema can be retrieved as a `HashMap<String, ValueType>` with [`get_schema`](KVGraph::get_schema).
 ///
 /// There are a few special keys, `id`, `nodes` and `labelled_nodes` cannot be
 /// modified. `label` is used as an easy name for the user to visualize a
