@@ -68,9 +68,13 @@ impl ConGraph {
     }
 
     /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Does not allow for duplicate edges at the moment.
-    pub fn add_edge(&mut self, nodes: impl AsRef<[u32]>) -> EdgeID {
+    pub fn add_edge(&mut self, nodes: impl AsRef<[u32]>) -> Option<EdgeID> {
         let id = self.core.add_edge(nodes, ());
-        id.expect("Graph did not return a valid ID.")
+        if id.is_ok() {
+            Some(id.unwrap())
+        } else {
+            None
+        }
     }
 
     pub fn remove_edge(&mut self, edge_id: EdgeID) {
