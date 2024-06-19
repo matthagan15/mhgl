@@ -510,10 +510,6 @@ where
                 submaximal_edges.insert(containing_edges[ix]);
             }
         }
-        // containing_edges
-        //     .into_iter()
-        //     .filter(|id| submaximal_edges.contains(id) == false)
-        //     .collect()
         submaximal_edges.into_iter().collect()
     }
 
@@ -679,7 +675,7 @@ mod tests {
             core.add_node(());
         }
         let e1 = core.add_edge(vec![0, 1], ()).unwrap();
-        let e2 = core.add_edge(vec![0, 2], ()).unwrap();
+        let e2 = core.add_edge(vec![0, 6], ()).unwrap();
         let e3 = core.add_edge(vec![0, 3], ()).unwrap();
         let e4 = core.add_edge(vec![0, 1, 4], ()).unwrap();
         let e5 = core.add_edge(vec![0, 1, 4, 5], ()).unwrap();

@@ -157,36 +157,27 @@ impl<N: HgNode> EdgeSet<N> {
         self.0.shrink_to_fit();
     }
 
-    /// This is equivalent to self \subseteq other
+    /// This is equivalent to other \subseteq self
     pub fn contains(&self, other: &Self) -> bool {
-        let mut left_ix = 0;
-        let mut right_ix = 0;
-        while right_ix < other.0.len() {
-            if left_ix == self.0.len() {
+        let mut self_ix = 0;
+        let mut other_ix = 0;
+        while other_ix < other.0.len() {
+            if self_ix == self.0.len() {
                 return false;
             }
-            if self.0[left_ix] == other.0[right_ix] {
-                right_ix += 1;
+            if self.0[self_ix] == other.0[other_ix] {
+                other_ix += 1;
             } else {
-                left_ix += 1;
+                self_ix += 1;
             }
         }
         true
     }
+
+    /// This is equivalent to other \subset self
     pub fn contains_strict(&self, other: &Self) -> bool {
-        let mut left_ix = 0;
-        let mut right_ix = 0;
-        while right_ix < other.0.len() {
-            if left_ix == self.0.len() {
-                return false;
-            }
-            if self.0[left_ix] == other.0[right_ix] {
-                right_ix += 1;
-            } else {
-                left_ix += 1;
-            }
-        }
-        left_ix < self.0.len() - 1
+        // WARNING: this relies on no duplicate nodes!
+        self.contains(other) && self.0.len() > other.0.len()
     }
 }
 
@@ -309,5 +300,12 @@ mod test {
         assert_eq!(e1, e3);
         assert_eq!(e1, e4);
         assert_eq!(e1, e5);
+    }
+
+    #[test]
+    fn maximal() {
+        let e1 = EdgeSet::from([1_u8, 2, 3]);
+        let e2 = EdgeSet::from([1_u8, 3]);
+        assert!(e1.contains_strict(&e2));
     }
 }
