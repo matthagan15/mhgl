@@ -3,6 +3,8 @@ use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
 
+#[cfg(feature = "polars")]
+use polars::chunked_array::collect::ChunkedCollectInferIterExt;
 use serde::{Deserialize, Serialize};
 
 use crate::{ConGraph, HgNode};
@@ -490,6 +492,7 @@ where
                 .edges
                 .get(&containing_edges[ix])
                 .expect("Edge invariant broken.");
+            let mut is_edge_ix_maximal = true;
             for jx in 0..containing_edges.len() {
                 if ix == jx {
                     continue;
@@ -499,16 +502,19 @@ where
                     .get(&containing_edges[jx])
                     .expect("Edge invariant broken.");
                 if edge_jx.nodes.contains_strict(&edge_ix.nodes) {
-                    submaximal_edges.insert(containing_edges[ix].clone());
-                } else if edge_ix.nodes.contains_strict(&edge_jx.nodes) {
-                    submaximal_edges.insert(containing_edges[jx].clone());
+                    is_edge_ix_maximal = false;
+                    break;
                 }
             }
+            if is_edge_ix_maximal {
+                submaximal_edges.insert(containing_edges[ix]);
+            }
         }
-        containing_edges
-            .into_iter()
-            .filter(|id| submaximal_edges.contains(id) == false)
-            .collect()
+        // containing_edges
+        //     .into_iter()
+        //     .filter(|id| submaximal_edges.contains(id) == false)
+        //     .collect()
+        submaximal_edges.into_iter().collect()
     }
 
     fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID> {

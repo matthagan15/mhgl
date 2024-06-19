@@ -312,7 +312,7 @@ mod test {
         let mut hg = ConGraph::new();
         let nodes = hg.add_nodes(10);
         hg.add_edge(&nodes[0..5]);
-        let e1 = hg.add_edge(&nodes[0..6]);
+        let e1 = hg.add_edge(&nodes[0..6]).unwrap();
         hg.remove_edge(e1);
         assert!(hg
             .find_id(&[nodes[4], nodes[3], nodes[2], nodes[1], nodes[0]])
@@ -342,7 +342,7 @@ mod test {
         let nodes = hg.add_nodes(10);
         let mut edges = Vec::new();
         for d in 1..=9 {
-            edges.push(hg.add_edge(&nodes[0..=d]));
+            edges.push(hg.add_edge(&nodes[0..=d]).unwrap());
         }
         let mut small_skeleton: Vec<_> = hg.skeleton(4).into_iter().collect();
         small_skeleton.sort();
@@ -389,7 +389,7 @@ mod test {
     fn test_node_as_edge() {
         let mut hg = ConGraph::new();
         let nodes = hg.add_nodes(3);
-        let e0 = hg.add_edge(&[0]);
+        let e0 = hg.add_edge(&[0]).unwrap();
         let e1 = hg.add_edge(&[0, 1]);
         let e2 = hg.add_edge(&[0, 1, 2]);
         let star = hg.containing_edges(&e0);
