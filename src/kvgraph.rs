@@ -348,21 +348,21 @@ impl KVGraph {
     /// Creates an undirected edge among the given nodes. Duplicate input nodes are removed.
     /// Returns `None` if an edge among those nodes already exists (Duplicate edges not allowed) or
     /// if less than 2 nodes are provided.
-    pub fn add_edge_with_label(&mut self, nodes: impl AsRef<[Uuid]>, label: &str) -> Option<Uuid> {
+    pub fn add_edge_with_label(&mut self, nodes: impl AsRef<[Uuid]>, label: &str) -> Uuid {
         let edge: EdgeSet<Uuid> = EdgeSet::from(nodes.as_ref());
         if edge.len() == 1 {
-            return None;
+            panic!("Cannot make an edge with only one node.")
         }
         let id = Uuid::new_v4();
         self.core.add_edge_with_id(edge, HashMap::new(), id.clone());
         self.insert(&id, "label", label.to_string()).unwrap();
-        Some(id)
+        id
     }
 
     /// Creates an undirected edge among the given nodes. Duplicate input nodes are removed.
     /// Returns `None` if an edge among those nodes already exists (Duplicate edges not allowed) or
     /// if less than 2 nodes are provided.
-    pub fn add_edge(&mut self, nodes: impl AsRef<[Uuid]>) -> Option<Uuid> {
+    pub fn add_edge(&mut self, nodes: impl AsRef<[Uuid]>) -> Uuid {
         self.add_edge_with_label(nodes, "")
     }
 
@@ -777,8 +777,8 @@ mod tests {
         hg.insert(&n2, "booty", false).unwrap();
         hg.insert(&n2, "defense", 0_u8).unwrap();
         let nodes = vec![n1, n2, n3];
-        let e1 = hg.add_edge(&[n1, n2]).unwrap();
-        let e2 = hg.add_edge(&[nodes[0], nodes[2]]).unwrap();
+        let e1 = hg.add_edge(&[n1, n2]);
+        let e2 = hg.add_edge(&[nodes[0], nodes[2]]);
         hg.insert(&e1, "defense", 3_u8).unwrap();
 
         // I'm not sure how to validate the output dataframes

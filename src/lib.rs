@@ -144,7 +144,7 @@ mod tests {
         let mut kvgraph = KVGraph::new();
         let n0 = kvgraph.add_node_with_label("toronto");
         let n1 = kvgraph.add_node_with_label("seattle");
-        let edge = kvgraph.add_edge_with_label(&[n0, n1], "AC123").unwrap();
+        let edge = kvgraph.add_edge_with_label(&[n0, n1], "AC123");
         kvgraph.insert(&n0, "darkness", 0.6);
         kvgraph.insert(&n1, "darkness", 0.8);
         let df = kvgraph.dataframe();

@@ -67,14 +67,13 @@ impl ConGraph {
         self.core.nodes.keys().cloned().collect()
     }
 
-    /// Creates an undirected edge among the given nodes. Duplicate inputs are removed. Does not allow for duplicate edges at the moment.
-    pub fn add_edge(&mut self, nodes: impl AsRef<[u32]>) -> Option<EdgeID> {
-        let id = self.core.add_edge(nodes, ());
-        if id.is_ok() {
-            Some(id.unwrap())
-        } else {
-            None
-        }
+    /// Creates an undirected edge among the given nodes with duplicate nodes
+    ///  removed. Duplicate edges are not allowed.
+    /// ### `panic`s
+    /// - If not all nodes are present in the hypergraph
+    /// - If you run out of possible id's usable with the `EdgeID` storage type
+    pub fn add_edge(&mut self, nodes: impl AsRef<[u32]>) -> EdgeID {
+        self.core.add_edge(nodes, ())
     }
 
     pub fn remove_edge(&mut self, edge_id: EdgeID) {
@@ -283,8 +282,7 @@ impl FromStr for ConGraph {
             }
         }
         for edge in edges.into_iter() {
-            core.add_edge(edge, ())
-                .expect("All nodes should be present while deserializing.");
+            core.add_edge(edge, ());
         }
         Ok(ConGraph { core })
     }
@@ -312,7 +310,7 @@ mod test {
         let mut hg = ConGraph::new();
         let nodes = hg.add_nodes(10);
         hg.add_edge(&nodes[0..5]);
-        let e1 = hg.add_edge(&nodes[0..6]).unwrap();
+        let e1 = hg.add_edge(&nodes[0..6]);
         hg.remove_edge(e1);
         assert!(hg
             .find_id(&[nodes[4], nodes[3], nodes[2], nodes[1], nodes[0]])
@@ -342,7 +340,7 @@ mod test {
         let nodes = hg.add_nodes(10);
         let mut edges = Vec::new();
         for d in 1..=9 {
-            edges.push(hg.add_edge(&nodes[0..=d]).unwrap());
+            edges.push(hg.add_edge(&nodes[0..=d]));
         }
         let mut small_skeleton: Vec<_> = hg.skeleton(4).into_iter().collect();
         small_skeleton.sort();
@@ -389,7 +387,7 @@ mod test {
     fn test_node_as_edge() {
         let mut hg = ConGraph::new();
         let nodes = hg.add_nodes(3);
-        let e0 = hg.add_edge(&[0]).unwrap();
+        let e0 = hg.add_edge(&[0]);
         let e1 = hg.add_edge(&[0, 1]);
         let e2 = hg.add_edge(&[0, 1, 2]);
         let star = hg.containing_edges(&e0);

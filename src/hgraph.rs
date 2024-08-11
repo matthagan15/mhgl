@@ -134,17 +134,23 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         node_id
     }
 
-    /// Does not allow for duplicate edges. Returns an error if all nodes in the
-    /// provided edge are not in the graph. Will `panic!` if you run out of
-    /// EdgeIDs to  use.
-    pub fn add_edge(
-        &mut self,
-        edge: impl AsRef<[NodeID]>,
-        data: EdgeData,
-    ) -> Result<EdgeID, EdgeData> {
+    /// Creates an edge in the hypergraph, if the edge already exists it will
+    /// delete the old data and replace it with the newly provided data.
+    /// ### `panic`s
+    /// - If all nodes are not present in the hypergraph
+    /// - If you create more edges than allowable by the `EdgeID` storage type
+    pub fn add_edge(&mut self, edge: impl AsRef<[NodeID]>, data: EdgeData) -> EdgeID {
         let edge_set: EdgeSet<NodeID> = edge.into();
-        if self.find_id(edge_set.node_vec()).is_some() {
-            return Err(data);
+        if let Some(id) = self.find_id(edge_set.node_vec()) {
+            let e = self.edges.remove(&id).unwrap();
+            self.edges.insert(
+                id,
+                Edge {
+                    nodes: e.nodes,
+                    data: data,
+                },
+            );
+            return id;
         }
 
         let id = self.next_edge_id;
@@ -158,7 +164,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         let nodes = edge_set.node_vec();
         for node in nodes.iter() {
             if self.nodes.contains_key(&node) == false {
-                return Err(data);
+                panic!("Adding edge but a provided node is not present in the hypergraph.")
             }
         }
         for node in nodes.iter() {
@@ -173,7 +179,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             data,
         };
         self.edges.insert(id.clone(), edge);
-        Ok(id)
+        id
     }
 
     /// Solely for use by KVGraph, which needs to generate Uuids for each entry.
@@ -648,9 +654,9 @@ mod tests {
 
         let nodes: Vec<_> = (0..10).map(|_| g.add_node(())).collect();
         assert_eq!(nodes.len(), 10);
-        let e1 = g.add_edge(&[1_u8, 2, 3][..], ()).unwrap();
-        let e2 = g.add_edge(vec![1, 2, 4], ()).unwrap();
-        let e3 = g.add_edge([5_u8, 6, 7], ()).unwrap();
+        let e1 = g.add_edge(&[1_u8, 2, 3][..], ());
+        let e2 = g.add_edge(vec![1, 2, 4], ());
+        let e3 = g.add_edge([5_u8, 6, 7], ());
         assert!(g.find_id([1_u8, 2, 3]).is_some());
         // is simplex so this should work
         assert!(g.find_id(&[0][..]).is_none());
@@ -674,12 +680,12 @@ mod tests {
         for _ in 0..10 {
             core.add_node(());
         }
-        let e1 = core.add_edge(vec![0, 1], ()).unwrap();
-        let e2 = core.add_edge(vec![0, 6], ()).unwrap();
-        let e3 = core.add_edge(vec![0, 3], ()).unwrap();
-        let e4 = core.add_edge(vec![0, 1, 4], ()).unwrap();
-        let e5 = core.add_edge(vec![0, 1, 4, 5], ()).unwrap();
-        let e6 = core.add_edge(vec![0, 2, 6], ()).unwrap();
+        let e1 = core.add_edge(vec![0, 1], ());
+        let e2 = core.add_edge(vec![0, 6], ());
+        let e3 = core.add_edge(vec![0, 3], ());
+        let e4 = core.add_edge(vec![0, 1, 4], ());
+        let e5 = core.add_edge(vec![0, 1, 4, 5], ());
+        let e6 = core.add_edge(vec![0, 2, 6], ());
         let containers = core.containing_edges_of_nodes([0]);
         let mut maximal_edges = core.maximal_edges_of_nodes([0]);
         maximal_edges.sort();
@@ -701,10 +707,10 @@ mod tests {
     fn boundaries() {
         let mut hg = HGraph::<u8, u8>::new();
         let nodes: Vec<_> = (0..10).map(|x| hg.add_node(x)).collect();
-        let e1 = hg.add_edge(vec![0, 1], 1).unwrap();
-        let e2 = hg.add_edge(vec![0, 1, 2], 2).unwrap();
-        let e3 = hg.add_edge(vec![0, 1, 3], 3).unwrap();
-        let e4 = hg.add_edge(vec![0, 1, 2, 3], 4).unwrap();
+        let e1 = hg.add_edge(vec![0, 1], 1);
+        let e2 = hg.add_edge(vec![0, 1, 2], 2);
+        let e3 = hg.add_edge(vec![0, 1, 3], 3);
+        let e4 = hg.add_edge(vec![0, 1, 2, 3], 4);
         let e5 = hg.add_edge(vec![1, 2, 5], 19);
 
         let expected = vec![e2, e3];
