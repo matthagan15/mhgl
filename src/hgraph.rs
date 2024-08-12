@@ -270,6 +270,18 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         }
     }
 
+    pub fn num_nodes(&self) -> usize {
+        self.nodes.len()
+    }
+
+    pub fn num_edges(&self) -> usize {
+        self.edges.len()
+    }
+
+    pub fn nodes(&self) -> Vec<NodeID> {
+        self.nodes.keys().cloned().collect()
+    }
+
     /// Returns the previously existing data of the provided node, returns
     /// `None` if the node does not exist.
     pub fn insert_node_data(&mut self, node: &NodeID, new_data: NodeData) -> Option<NodeData> {
