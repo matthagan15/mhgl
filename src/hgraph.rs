@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
@@ -652,6 +653,34 @@ where
         } else {
             None
         }
+    }
+}
+
+impl<NodeData, EdgeData, NodeID, EdgeID> Display for HGraph<NodeData, EdgeData, NodeID, EdgeID>
+where
+    NodeID: HgNode,
+    EdgeID: HgNode,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.nodes.len() == 0 {
+            println!("Graph is empty. Add nodes for more fun.");
+            return Ok(());
+        }
+        let mut s = String::new();
+        s.push_str("nodes:\n[");
+        let x: Vec<String> = self.nodes.keys().map(|n| n.to_string()).collect();
+        for ix in 0..x.len() - 1 {
+            s.push_str(&x[ix]);
+            s.push_str(", ");
+        }
+        s.push_str(x.last().unwrap());
+        s.push_str("]\n");
+        s.push_str("edges:\n");
+        for e in self.edges.values() {
+            s.push_str(&e.nodes.to_string());
+            s.push_str("\n");
+        }
+        f.write_str(&s)
     }
 }
 

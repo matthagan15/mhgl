@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 /// A trait used to mark which types can be used as a NodeID or EdgeID, currently only use `u8` through `u128` and `Uuid` for `KVGraph`.
 pub trait HgNode:
-    Debug + Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize + FromStr
+    Debug + Eq + PartialEq + Hash + PartialOrd + Ord + Clone + Copy + Serialize + FromStr + ToString
 {
     fn max_number() -> Self;
     fn zero() -> Self;
