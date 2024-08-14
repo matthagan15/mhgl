@@ -409,17 +409,9 @@ impl KVGraph {
             }
         }
         if self.core.nodes.contains_key(&id) {
-            Ok(self
-                .core
-                .borrow_node_mut(&id)
-                .unwrap()
-                .insert(key_string, val))
+            Ok(self.core.get_node_mut(&id).unwrap().insert(key_string, val))
         } else if self.core.edges.contains_key(&id) {
-            Ok(self
-                .core
-                .borrow_edge_mut(&id)
-                .unwrap()
-                .insert(key_string, val))
+            Ok(self.core.get_edge_mut(&id).unwrap().insert(key_string, val))
         } else {
             Err(String::from("KVGraph does not contain this ID."))
         }
@@ -429,10 +421,10 @@ impl KVGraph {
     pub fn get(&self, id: &Uuid, key: &str) -> Option<&Value> {
         if self.core.nodes.contains_key(&id) {
             let query = key.to_string();
-            self.core.borrow_node(&id).unwrap().get(&query)
+            self.core.get_node(&id).unwrap().get(&query)
         } else if self.core.nodes.contains_key(&id) {
             let query = key.to_string();
-            self.core.borrow_edge(&id).unwrap().get(&query)
+            self.core.get_edge(&id).unwrap().get(&query)
         } else {
             None
         }

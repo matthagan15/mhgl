@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
 
+use fxhash::FxHashMap;
 #[cfg(feature = "polars")]
 use polars::chunked_array::collect::ChunkedCollectInferIterExt;
 use serde::{Deserialize, Serialize};
@@ -48,8 +49,8 @@ pub(crate) struct Edge<N: HgNode, EdgeData> {
 pub struct HGraph<NodeData, EdgeData, NodeID: HgNode = u32, EdgeID: HgNode = u64> {
     next_node_id: NodeID,
     next_edge_id: EdgeID,
-    pub(crate) edges: HashMap<EdgeID, Edge<NodeID, EdgeData>>,
-    pub(crate) nodes: HashMap<NodeID, Node<NodeData, EdgeID>>,
+    pub(crate) edges: FxHashMap<EdgeID, Edge<NodeID, EdgeData>>,
+    pub(crate) nodes: FxHashMap<NodeID, Node<NodeData, EdgeID>>,
 }
 
 impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
@@ -110,8 +111,8 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         Self {
             next_node_id: NodeID::zero(),
             next_edge_id: EdgeID::zero(),
-            edges: HashMap::new(),
-            nodes: HashMap::new(),
+            edges: FxHashMap::default(),
+            nodes: FxHashMap::default(),
         }
     }
 
@@ -314,22 +315,22 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     }
 
     /// Borrows the data of the provided node.
-    pub fn borrow_node(&self, node: &NodeID) -> Option<&NodeData> {
+    pub fn get_node(&self, node: &NodeID) -> Option<&NodeData> {
         self.nodes.get(node).map(|big_node| &big_node.data)
     }
 
     /// Borrows the data mutably of the provided node.
-    pub fn borrow_node_mut(&mut self, node: &NodeID) -> Option<&mut NodeData> {
+    pub fn get_node_mut(&mut self, node: &NodeID) -> Option<&mut NodeData> {
         self.nodes.get_mut(node).map(|big_node| &mut big_node.data)
     }
 
     /// Borrows the data of the provided edge.
-    pub fn borrow_edge(&self, edge: &EdgeID) -> Option<&EdgeData> {
+    pub fn get_edge(&self, edge: &EdgeID) -> Option<&EdgeData> {
         self.edges.get(edge).map(|big_edge| &big_edge.data)
     }
 
     /// Borrows the data mutably of the provided edge.
-    pub fn borrow_edge_mut(&mut self, edge: &EdgeID) -> Option<&mut EdgeData> {
+    pub fn get_edge_mut(&mut self, edge: &EdgeID) -> Option<&mut EdgeData> {
         self.edges.get_mut(edge).map(|big_edge| &mut big_edge.data)
     }
 
