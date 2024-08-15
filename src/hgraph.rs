@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
 
-use fxhash::FxHashMap;
+use fxhash::{FxHashMap, FxHashSet};
 #[cfg(feature = "polars")]
 use polars::chunked_array::collect::ChunkedCollectInferIterExt;
 use serde::{Deserialize, Serialize};
@@ -14,14 +14,14 @@ use crate::{EdgeSet, HyperGraph};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Node<NodeData, EdgeID: HgNode> {
-    pub containing_edges: HashSet<EdgeID>,
+    pub containing_edges: FxHashSet<EdgeID>,
     pub data: NodeData,
 }
 
 impl<NodeData, EdgeID: HgNode> Node<NodeData, EdgeID> {
     pub fn new(data: NodeData) -> Self {
         Node {
-            containing_edges: HashSet::new(),
+            containing_edges: FxHashSet::default(),
             data,
         }
     }
@@ -126,7 +126,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         self.next_node_id.plus_one();
 
         let new_node = Node {
-            containing_edges: HashSet::new(),
+            containing_edges: FxHashSet::default(),
             data: node,
         };
         let insert = self.nodes.insert(node_id, new_node);
@@ -188,7 +188,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     /// Returns existing `NodeData` if it was there.
     pub(crate) fn add_node_with_id(&mut self, node: NodeData, id: NodeID) -> Option<NodeData> {
         let new_node = Node {
-            containing_edges: HashSet::new(),
+            containing_edges: FxHashSet::default(),
             data: node,
         };
         self.nodes
