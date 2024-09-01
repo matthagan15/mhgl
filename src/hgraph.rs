@@ -284,6 +284,10 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
         self.nodes.keys().cloned().collect()
     }
 
+    pub fn edges(&self) -> Vec<EdgeID> {
+        self.edges.keys().cloned().collect()
+    }
+
     /// Returns the previously existing data of the provided node, returns
     /// `None` if the node does not exist.
     pub fn insert_node_data(&mut self, node: &NodeID, new_data: NodeData) -> Option<NodeData> {
@@ -641,6 +645,7 @@ where
     /// Attempts to deserialize using `serde_json` from the input file.
     pub fn from_file(file: &Path) -> Option<Self> {
         if file.is_file() == false {
+            println!("File is not a file?");
             return None;
         }
         if let Ok(file) = File::open(file) {
@@ -649,9 +654,12 @@ where
             if out.is_ok() {
                 Some(out.unwrap())
             } else {
+                println!("serde_json failed.");
+                println!("output: {:?}", out.err());
                 None
             }
         } else {
+            println!("File opening failed.");
             None
         }
     }
