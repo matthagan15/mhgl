@@ -5,13 +5,13 @@
 A library for working with undirected [hypergraphs](https://en.wikipedia.org/wiki/Hypergraph), which are a generalization of a normal graph. A hypergraph consists of a set of nodes, denoted `N`, and a collection of edges  where each edge is a subset of `N`. For a normal graph each edge is required to be of size 2, for example an edge `(u, v)` between nodes `u` and `v`, whereas in a hypergraph there is no limit on the size of an edge. Each node and edge are assigned IDs, with the type for the ID depending on the struct used. The [`HyperGraph`] trait provides a common api for developing struct independent algorithms.
 
 ## Hypergraph Structs
-- [`ConGraph`] - a connectivity only option that uses `u32`'s as IDs for
+- (`ConGraph`) - a connectivity only option that uses `u32`'s as IDs for
 nodes and `u64`'s for edge IDs with each being a simple counter starting at 0. No data that can be stored within the
 `ConGraph` structure itself.
-- [`HGraph`] - A struct generic over four types: the node data, the edge data, the node IDs, and the edge IDs. There are no trait bounds on the node and edge typesaAdditionally generic over the size of integers `u8` through `u128`
+-(`HGraph`) - A struct generic over four types: the node data, the edge data, the node IDs, and the edge IDs. There are no trait bounds on the node and edge typesaAdditionally generic over the size of integers `u8` through `u128`
 to store NodeIDs and EdgeIDs with `u32` and `u64` as the default for the respective IDs.
-- [`KVGraph`] - A key-value hypergraph where each node and edge allows you
-to store simple [`kvgraph::Value`]s modeled after a simple subset of the Polars `AnyValue<'a>`.
+- (`KVGraph`) - A key-value hypergraph where each node and edge allows you
+to store simple (`kvgraph::Value`)s modeled after a simple subset of the Polars `AnyValue<'a>`.
 
 `ConGraph` and `KVGraph` are essentially wrappers around `HGraph` with
 slightly tweaked function signatures for adding and deleting nodes or edges
