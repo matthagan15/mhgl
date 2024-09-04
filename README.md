@@ -61,7 +61,8 @@ let df = kvgraph.dataframe();
 println!("{:}", df);
 ```
 The last line in the above code when ran output:
-```
+```rust
+shape: (5, 8)
 ┌────────────┬───────────────────────────────────┬───────────────────────────────────┬───────────────────┬──────────┐
 │ label      ┆ id                                ┆ nodes                             ┆ labelled_nodes    ┆ darkness │
 │ ---        ┆ ---                               ┆ ---                               ┆ ---               ┆ ---      │
