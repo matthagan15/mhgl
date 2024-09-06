@@ -288,11 +288,12 @@ impl FromStr for ConGraph {
     }
 }
 
+#[cfg(test)]
 mod test {
 
-    use std::{collections::HashSet, path::Path, str::FromStr};
+    use std::str::FromStr;
 
-    use crate::{congraph::ConGraph, EdgeSet, HyperGraph};
+    use crate::{congraph::ConGraph, HyperGraph};
 
     #[test]
     fn test_creating_and_deleting_nodes() {
@@ -349,21 +350,12 @@ mod test {
         assert_eq!(small_skeleton, expected_skeleton);
         let mut small_link = hg.link_of_nodes(&nodes[0..=6]);
         small_link.sort_by(|a, b| a.1.len().partial_cmp(&b.1.len()).unwrap());
-        let expected_link = vec![
-            EdgeSet::from(&nodes[7..=7]),
-            EdgeSet::from(&nodes[7..=8]),
-            EdgeSet::from(&nodes[7..=9]),
-        ];
         dbg!(small_link);
     }
 
     #[test]
     fn test_skeleton() {
-        let mut hg = ConGraph::new();
-        // let nodes = hg.add_nodes(10);
-        // for size in 0..8 {
-        //     hg.add_edge(&nodes[0..=size]);
-        // }
+        let hg = ConGraph::new();
         for size in 1..10 {
             println!("{:}-skeleton", size);
             println!("{:?}", hg.skeleton(size));
@@ -386,10 +378,10 @@ mod test {
     #[test]
     fn test_node_as_edge() {
         let mut hg = ConGraph::new();
-        let nodes = hg.add_nodes(3);
+        hg.add_nodes(3);
         let e0 = hg.add_edge(&[0]);
-        let e1 = hg.add_edge(&[0, 1]);
-        let e2 = hg.add_edge(&[0, 1, 2]);
+        hg.add_edge(&[0, 1]);
+        hg.add_edge(&[0, 1, 2]);
         let star = hg.containing_edges(&e0);
         dbg!(star);
         dbg!(&hg);

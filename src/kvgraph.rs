@@ -747,9 +747,8 @@ impl HyperGraph for KVGraph {
     }
 }
 
+#[cfg(test)]
 mod tests {
-    #[cfg(feature = "polars")]
-    use polars::prelude::*;
 
     use crate::KVGraph;
 
@@ -770,7 +769,7 @@ mod tests {
         hg.insert(&n2, "defense", 0_u8).unwrap();
         let nodes = vec![n1, n2, n3];
         let e1 = hg.add_edge(&[n1, n2]);
-        let e2 = hg.add_edge(&[nodes[0], nodes[2]]);
+        hg.add_edge(&[nodes[0], nodes[2]]);
         hg.insert(&e1, "defense", 3_u8).unwrap();
 
         // I'm not sure how to validate the output dataframes

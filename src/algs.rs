@@ -88,7 +88,3 @@ pub fn random_walk<Walker: HyperGraph>(
         }
     }
 }
-
-struct BFSWalker<H: HyperGraph> {
-    hgraph: H,
-}

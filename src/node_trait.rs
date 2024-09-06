@@ -1,5 +1,5 @@
 use core::panic;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::str::FromStr;

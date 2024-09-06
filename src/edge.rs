@@ -13,6 +13,7 @@ use crate::HgNode;
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct EdgeSet<N: HgNode>(pub Vec<N>);
 
+#[allow(dead_code)]
 impl<N: HgNode> EdgeSet<N> {
     /// Creates an empty edge.
     pub fn new() -> Self {
@@ -267,8 +268,8 @@ impl<N: HgNode, R: AsRef<[N]>> From<R> for EdgeSet<N> {
     }
 }
 
+#[cfg(test)]
 mod test {
-    use std::collections::{HashMap, HashSet};
 
     use super::EdgeSet;
 
@@ -289,7 +290,6 @@ mod test {
     #[test]
     fn conversions() {
         let node_vec = vec![1_u8, 2, 3];
-        let node_set = HashSet::from([1_u8, 2, 3]);
         let node_arr = [1_u8, 2, 3];
         let e1 = EdgeSet::from(&node_vec);
         let e2 = EdgeSet::from(&node_vec[..]);

@@ -1,12 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
 
 use fxhash::{FxHashMap, FxHashSet};
-#[cfg(feature = "polars")]
-use polars::chunked_array::collect::ChunkedCollectInferIterExt;
 use serde::{Deserialize, Serialize};
 
 use crate::{ConGraph, HgNode};
@@ -18,6 +16,7 @@ pub(crate) struct Node<NodeData, EdgeID: HgNode> {
     pub data: NodeData,
 }
 
+#[allow(dead_code)]
 impl<NodeData, EdgeID: HgNode> Node<NodeData, EdgeID> {
     pub fn new(data: NodeData) -> Self {
         Node {
@@ -693,8 +692,9 @@ where
     }
 }
 
+#[cfg(test)]
 mod tests {
-    use crate::{EdgeSet, HyperGraph};
+    use crate::HyperGraph;
 
     use super::HGraph;
 
@@ -706,7 +706,7 @@ mod tests {
         assert_eq!(nodes.len(), 10);
         let e1 = g.add_edge(&[1_u8, 2, 3][..], ());
         let e2 = g.add_edge(vec![1, 2, 4], ());
-        let e3 = g.add_edge([5_u8, 6, 7], ());
+        g.add_edge([5_u8, 6, 7], ());
         assert!(g.find_id([1_u8, 2, 3]).is_some());
         // is simplex so this should work
         assert!(g.find_id(&[0][..]).is_none());
@@ -730,13 +730,12 @@ mod tests {
         for _ in 0..10 {
             core.add_node(());
         }
-        let e1 = core.add_edge(vec![0, 1], ());
-        let e2 = core.add_edge(vec![0, 6], ());
+        core.add_edge(vec![0, 1], ());
+        core.add_edge(vec![0, 6], ());
         let e3 = core.add_edge(vec![0, 3], ());
         let e4 = core.add_edge(vec![0, 1, 4], ());
         let e5 = core.add_edge(vec![0, 1, 4, 5], ());
         let e6 = core.add_edge(vec![0, 2, 6], ());
-        let containers = core.containing_edges_of_nodes([0]);
         let mut maximal_edges = core.maximal_edges_of_nodes([0]);
         maximal_edges.sort();
         let mut expected = vec![e3, e5, e6];
@@ -756,12 +755,12 @@ mod tests {
     #[test]
     fn boundaries() {
         let mut hg = HGraph::<u8, u8>::new();
-        let nodes: Vec<_> = (0..10).map(|x| hg.add_node(x)).collect();
+        let _: Vec<_> = (0..10).map(|x| hg.add_node(x)).collect();
         let e1 = hg.add_edge(vec![0, 1], 1);
         let e2 = hg.add_edge(vec![0, 1, 2], 2);
         let e3 = hg.add_edge(vec![0, 1, 3], 3);
         let e4 = hg.add_edge(vec![0, 1, 2, 3], 4);
-        let e5 = hg.add_edge(vec![1, 2, 5], 19);
+        hg.add_edge(vec![1, 2, 5], 19);
 
         let expected = vec![e2, e3];
         let mut test_1 = hg.boundary_up(&e1);
