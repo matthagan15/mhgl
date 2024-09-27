@@ -103,6 +103,17 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
     }
 }
 
+impl<N, E, NodeID: HgNode, EdgeID: HgNode> HGraph<N, E, NodeID, EdgeID>
+where
+    N: Default,
+    E: Default,
+{
+    pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<NodeID> {
+        (0..num_nodes)
+            .map(|_| self.add_node(N::default()))
+            .collect()
+    }
+}
 impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     HGraph<NodeData, EdgeData, NodeID, EdgeID>
 {
