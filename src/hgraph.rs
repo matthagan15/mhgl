@@ -156,7 +156,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             return;
         }
         let mut node1_d = self.nodes.remove(node1).unwrap();
-        let mut new_edges = Vec::new();
+        let mut new_edges = HashSet::new();
         let mut edge_to_remove = Vec::new();
         for edge in node1_d.containing_edges.drain() {
             let e = self.edges.get_mut(&edge).unwrap();
@@ -165,11 +165,11 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             if e.nodes.len() == 1 {
                 edge_to_remove.push(edge);
             }
-            new_edges.push(edge);
+            new_edges.insert(edge);
         }
         let node2_ref = self.nodes.get_mut(node2).unwrap();
-        for e in new_edges {
-            node2_ref.containing_edges.insert(e);
+        for e in new_edges.iter() {
+            node2_ref.containing_edges.insert(*e);
         }
         for e in edge_to_remove {
             self.remove_edge(e);
@@ -189,7 +189,11 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
                 let ix_edge = self.edges.get(&node2_edges[ix]).unwrap();
                 let jx_edge = self.edges.get(&node2_edges[jx]).unwrap();
                 if ix_edge.nodes == jx_edge.nodes {
-                    duplicate_edges.push(node2_edges[ix]);
+                    if new_edges.contains(&node2_edges[ix]) {
+                        duplicate_edges.push(node2_edges[ix]);
+                    } else {
+                        duplicate_edges.push(node2_edges[jx]);
+                    }
                 }
             }
         }
