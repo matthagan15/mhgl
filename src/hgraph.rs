@@ -150,21 +150,51 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     /// maps all edges e1 = {node1, ...} to e2 = {node2, ...} and clobbers
     /// the node1 data with the node2 data.
     /// returns if both nodes are not present
+    /// If an edge {e1, e2} exists the edge is removed.
     pub fn concatenate_nodes(&mut self, node1: &NodeID, node2: &NodeID) {
         if self.nodes.contains_key(node1) == false || self.nodes.contains_key(node2) == false {
             return;
         }
         let mut node1_d = self.nodes.remove(node1).unwrap();
         let mut new_edges = Vec::new();
+        let mut edge_to_remove = Vec::new();
         for edge in node1_d.containing_edges.drain() {
             let e = self.edges.get_mut(&edge).unwrap();
             e.nodes.remove_node(node1);
             e.nodes.add_node(*node2);
+            if e.nodes.len() == 1 {
+                edge_to_remove.push(edge);
+            }
             new_edges.push(edge);
         }
         let node2_ref = self.nodes.get_mut(node2).unwrap();
         for e in new_edges {
             node2_ref.containing_edges.insert(e);
+        }
+        for e in edge_to_remove {
+            self.remove_edge(e);
+        }
+        // need to dedup
+        let mut duplicate_edges = Vec::new();
+        let node2_edges: Vec<_> = self
+            .nodes
+            .get(node2)
+            .unwrap()
+            .containing_edges
+            .clone()
+            .into_iter()
+            .collect();
+        for ix in 0..node2_edges.len() {
+            for jx in (ix + 1)..node2_edges.len() {
+                let ix_edge = self.edges.get(&node2_edges[ix]).unwrap();
+                let jx_edge = self.edges.get(&node2_edges[jx]).unwrap();
+                if ix_edge.nodes == jx_edge.nodes {
+                    duplicate_edges.push(node2_edges[ix]);
+                }
+            }
+        }
+        for edge in duplicate_edges {
+            self.remove_edge(edge);
         }
     }
 
@@ -797,7 +827,10 @@ mod tests {
         hg.add_edge([3, 4], ());
         hg.add_edge([5, 4], ());
         hg.add_edge([5, 3], ());
+        hg.add_edge([2, 3], ());
+        dbg!(&hg);
         hg.concatenate_nodes(&2, &3);
+        hg.concatenate_nodes(&1, &4);
         dbg!(&hg);
         dbg!(hg.link_of_nodes([3]));
     }
