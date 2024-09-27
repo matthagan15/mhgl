@@ -7,7 +7,7 @@ use std::path::Path;
 use fxhash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 
-use crate::{ConGraph, HgNode};
+use crate::{edge, ConGraph, HgNode};
 use crate::{EdgeSet, HyperGraph};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,6 +133,28 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
             panic!("For some reason we encountered the same node_id twice.")
         }
         node_id
+    }
+
+    /// Maps `node1` onto `node2` and adjusts edges correspondingly.
+    /// maps all edges e1 = {node1, ...} to e2 = {node2, ...} and clobbers
+    /// the node1 data with the node2 data.
+    /// returns if both nodes are not present
+    pub fn concatenate_nodes(&mut self, node1: &NodeID, node2: &NodeID) {
+        if self.nodes.contains_key(node1) == false || self.nodes.contains_key(node2) == false {
+            return;
+        }
+        let mut node1_d = self.nodes.remove(node1).unwrap();
+        let mut new_edges = Vec::new();
+        for edge in node1_d.containing_edges.drain() {
+            let e = self.edges.get_mut(&edge).unwrap();
+            e.nodes.remove_node(node1);
+            e.nodes.add_node(*node2);
+            new_edges.push(edge);
+        }
+        let node2_ref = self.nodes.get_mut(node2).unwrap();
+        for e in new_edges {
+            node2_ref.containing_edges.insert(e);
+        }
     }
 
     /// Creates an edge in the hypergraph, if the edge already exists it will
@@ -750,6 +772,23 @@ mod tests {
         let mut expected_link = vec![(e4.clone(), vec![4_u8]), (e5.clone(), vec![4_u8, 5])];
         expected_link.sort();
         assert_eq!(link, expected_link);
+    }
+
+    #[test]
+    fn gluing_nodes() {
+        let mut hg = HGraph::<(), ()>::new();
+        let nodes: Vec<_> = (0..6).map(|_| hg.add_node(())).collect();
+        hg.add_edge([0, 1, 2], ());
+        hg.add_edge([3, 4, 5], ());
+        hg.add_edge([0, 1], ());
+        hg.add_edge([2, 1], ());
+        hg.add_edge([0, 2], ());
+        hg.add_edge([3, 4], ());
+        hg.add_edge([5, 4], ());
+        hg.add_edge([5, 3], ());
+        hg.concatenate_nodes(&2, &3);
+        dbg!(&hg);
+        dbg!(hg.link_of_nodes([3]));
     }
 
     #[test]
