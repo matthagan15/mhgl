@@ -823,20 +823,39 @@ mod tests {
     fn gluing_nodes() {
         let mut hg = HGraph::<(), ()>::new();
         let nodes: Vec<_> = (0..6).map(|_| hg.add_node(())).collect();
-        hg.add_edge([0, 1, 2], ());
+        let e4 = hg.add_edge([0, 1, 2], ());
         hg.add_edge([3, 4, 5], ());
-        hg.add_edge([0, 1], ());
-        hg.add_edge([2, 1], ());
+        let e1 = hg.add_edge([0, 1], ());
+        let e2 = hg.add_edge([2, 1], ());
         hg.add_edge([0, 2], ());
-        hg.add_edge([3, 4], ());
+        let e3 = hg.add_edge([3, 4], ());
         hg.add_edge([5, 4], ());
         hg.add_edge([5, 3], ());
         hg.add_edge([2, 3], ());
-        dbg!(&hg);
         hg.concatenate_nodes(&2, &3);
         hg.concatenate_nodes(&1, &4);
-        dbg!(&hg);
-        dbg!(hg.link_of_nodes([3]));
+        assert!(hg.get_node(&1).is_none());
+        assert!(hg.get_node(&2).is_none());
+        assert!(hg.get_node(&3).is_some());
+        assert!(hg.get_node(&4).is_some());
+
+        let e1_nodes = hg.query_edge(&e1);
+        assert!(e1_nodes.is_some());
+        let e1_nodes = e1_nodes.unwrap();
+        assert!(e1_nodes.len() == 2);
+        assert!(e1_nodes.contains(&0));
+        assert!(e1_nodes.contains(&4));
+
+        let e4_nodes = hg.query_edge(&e4);
+        assert!(e4_nodes.is_some());
+        let e4_nodes = e4_nodes.unwrap();
+        assert_eq!(e4_nodes.len(), 3);
+        assert!(e4_nodes.contains(&0));
+        assert!(e4_nodes.contains(&3));
+        assert!(e4_nodes.contains(&4));
+
+        assert_eq!(hg.find_id([3, 4]), Some(e3));
+        assert!(hg.query_edge(&e2).is_none());
     }
 
     #[test]
