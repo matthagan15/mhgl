@@ -121,15 +121,15 @@ mod congraph;
 mod edge;
 mod hgraph;
 mod hypergraph;
-#[cfg(feature = "uuid")]
-pub mod kvgraph;
 mod node_trait;
 
 pub use congraph::ConGraph;
-use edge::EdgeSet;
+pub use edge::EdgeSet;
 pub use hgraph::HGraph;
 pub use hypergraph::HyperGraph;
 
+#[cfg(feature = "uuid")]
+pub mod kvgraph;
 #[cfg(feature = "uuid")]
 pub use kvgraph::KVGraph;
 
@@ -137,7 +137,7 @@ pub use node_trait::HgNode;
 
 mod hg_macro {
 
-    #[macro_export]
+    // #[macro_export]
     macro_rules! hg {
     ( $( $x:expr ),* ) => {
         {

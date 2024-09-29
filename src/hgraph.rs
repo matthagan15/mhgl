@@ -152,7 +152,10 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     /// returns if both nodes are not present
     /// If an edge {e1, e2} exists the edge is removed.
     pub fn concatenate_nodes(&mut self, node1: &NodeID, node2: &NodeID) {
-        if self.nodes.contains_key(node1) == false || self.nodes.contains_key(node2) == false {
+        if self.nodes.contains_key(node1) == false
+            || self.nodes.contains_key(node2) == false
+            || node1 == node2
+        {
             return;
         }
         let mut node1_d = self.nodes.remove(node1).unwrap();
