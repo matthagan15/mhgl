@@ -7,7 +7,7 @@ use std::path::Path;
 use fxhash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 
-use crate::{edge, ConGraph, HgNode};
+use crate::{ConGraph, HgNode};
 use crate::{EdgeSet, HyperGraph};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -825,7 +825,7 @@ mod tests {
     #[test]
     fn gluing_nodes() {
         let mut hg = HGraph::<(), ()>::new();
-        let nodes: Vec<_> = (0..6).map(|_| hg.add_node(())).collect();
+        let _nodes: Vec<_> = (0..6).map(|_| hg.add_node(())).collect();
         let e4 = hg.add_edge([0, 1, 2], ());
         hg.add_edge([3, 4, 5], ());
         let e1 = hg.add_edge([0, 1], ());
@@ -835,8 +835,14 @@ mod tests {
         hg.add_edge([5, 4], ());
         hg.add_edge([5, 3], ());
         hg.add_edge([2, 3], ());
+        println!("Before Glueing.");
+        println!("{:}", hg);
         hg.concatenate_nodes(&2, &3);
+        println!("First Glue. 2 -> 3");
+        println!("{:}", hg);
         hg.concatenate_nodes(&1, &4);
+        println!("Post Glue. 1 -> 4");
+        println!("{:}", hg);
         assert!(hg.get_node(&1).is_none());
         assert!(hg.get_node(&2).is_none());
         assert!(hg.get_node(&3).is_some());

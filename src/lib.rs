@@ -135,23 +135,6 @@ pub use kvgraph::KVGraph;
 
 pub use node_trait::HgNode;
 
-mod hg_macro {
-
-    // #[macro_export]
-    macro_rules! hg {
-    ( $( $x:expr ),* ) => {
-        {
-            // TODO: change this to
-            let mut temp_vec = Vec::new();
-            $(
-                temp_vec.push($x);
-            )*
-            temp_vec
-        }
-    };
-}
-}
-
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "polars")]
