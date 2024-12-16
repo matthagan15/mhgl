@@ -1,4 +1,3 @@
-#![forbid(unsafe_code)]
 //!# Matt's HyperGraph Library (mhgl)
 //!
 //! A library for working with undirected [hypergraphs](https://en.wikipedia.org/wiki/Hypergraph), which are a generalization of a normal graph. A hypergraph consists of a set of nodes, denoted `N`, and a collection of edges  where each edge is a subset of `N`. For a normal graph each edge is required to be of size 2, for example an edge `(u, v)` between nodes `u` and `v`, whereas in a hypergraph there is no limit on the size of an edge. Each node and edge are assigned IDs, with the type for the ID depending on the struct used. The [`HyperGraph`] trait provides a common api for developing struct independent algorithms.
@@ -122,6 +121,7 @@ mod edge;
 mod hgraph;
 mod hypergraph;
 mod node_trait;
+mod simplex_tree;
 
 pub use congraph::ConGraph;
 pub use edge::EdgeSet;

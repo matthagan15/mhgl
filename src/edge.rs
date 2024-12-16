@@ -33,6 +33,8 @@ impl<N: HgNode> EdgeSet<N> {
         self.len() == 1
     }
 
+    /// TODO: make this non-cloning, should just return a reference to
+    /// the node
     pub fn get_first_node(&self) -> Option<N> {
         self.0.first().cloned()
     }
@@ -70,6 +72,14 @@ impl<N: HgNode> EdgeSet<N> {
             }
         }
         ret
+    }
+
+    pub fn pop_first(&mut self) -> Option<N> {
+        if self.len() > 0 {
+            Some(self.0.remove(0))
+        } else {
+            None
+        }
     }
 
     pub fn intersect_with(&mut self, rhs: &Self) {
