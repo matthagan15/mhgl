@@ -1,9 +1,7 @@
 use std::{marker::PhantomData, ptr::NonNull};
 
-use fxhash::FxHashMap;
-
 use crate::EdgeSet;
-
+use fxhash::FxHashMap;
 /// First what are the operations I would like the hgraph to
 /// be able to implement:
 /// - add_node(data)
@@ -22,7 +20,7 @@ pub struct SimplexTree<T> {
     nodes: FxHashMap<u32, Edge<T>>,
     /// Number of nodes
     next_node: u32,
-    _gone_ghost: PhantomData<T>,
+    _ghost: PhantomData<T>,
 }
 
 type Link<T> = Option<NonNull<Edge<T>>>;
@@ -37,10 +35,26 @@ struct Edge<T> {
     data: Option<T>,
 }
 
-struct Cursor {}
+/// By Type Covariance(? Maybe Invariance) a mutable cursor should be
+/// implicitly castable to an immutable one. This should be recognizable at
+/// the compiler level.
+#[derive(Debug)]
+struct CursorMut<'a, T> {
+    simplex_tree: &'a mut SimplexTree<T>,
+    cur: Link<T>,
+    /// Each node in a simplex tree corresponds to a unique edge set, this is
+    /// the position of the cursor stored as a state.
+    state: EdgeSet<u32>,
+}
+
+impl<'a, T> CursorMut<'a, T> {
+    pub fn state(&self) -> Vec<u32> {
+        self.state.node_vec()
+    }
+}
 
 impl<T> Edge<T> {
-    pub fn descend_once(&self, node: u32) -> Link<T> {
+    pub fn find_outgoing_match(&self, node: u32) -> Link<T> {
         for containing_edge in self.containing_edges.iter().filter(|x| x.is_some()) {
             if let Some(edge) = containing_edge {
                 unsafe {
@@ -60,7 +74,7 @@ impl<T> SimplexTree<T> {
         Self {
             nodes: FxHashMap::default(),
             next_node: 0,
-            _gone_ghost: PhantomData,
+            _ghost: PhantomData,
         }
     }
 
@@ -81,12 +95,57 @@ impl<T> SimplexTree<T> {
         if edge.len() < 2 {
             return;
         }
-        let (remainder, last_edge) = self.traverse_mut(edge.clone());
-        if remainder.is_empty() {
-            if let Some(final_edge) = last_edge {
-                final_edge.data = Some(data);
-            } else {
+        let mut remainder = edge;
+        while remainder.len() > 0 {
+            let (mut new_remainder, edge_ref) = self.traverse_mut(remainder.clone());
+            if edge_ref.is_none() {
+                return;
             }
+            if new_remainder.is_empty() {
+                if let Some(edge_ref_mut) = edge_ref {
+                    edge_ref_mut.data = Some(data);
+                }
+                return;
+            }
+            if new_remainder.len() > 1 {
+                let first_new_node = new_remainder.pop_first().unwrap();
+                let mut parent_pointer =
+                    unsafe { NonNull::new_unchecked(edge_ref.unwrap() as *mut Edge<T>) };
+                let new_edge = unsafe {
+                    NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
+                        parent: Some(parent_pointer.clone()),
+                        containing_edges: Vec::new(),
+                        node: first_new_node,
+                        data: None,
+                    })))
+                };
+                unsafe {
+                    parent_pointer
+                        .as_mut()
+                        .containing_edges
+                        .push(Some(new_edge));
+                }
+            } else if new_remainder.len() == 1 {
+                let first_new_node = new_remainder.pop_first().unwrap();
+                let mut parent_pointer =
+                    unsafe { NonNull::new_unchecked(edge_ref.unwrap() as *mut Edge<T>) };
+                let new_edge = unsafe {
+                    NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
+                        parent: Some(parent_pointer.clone()),
+                        containing_edges: Vec::new(),
+                        node: first_new_node,
+                        data: Some(data),
+                    })))
+                };
+                unsafe {
+                    parent_pointer
+                        .as_mut()
+                        .containing_edges
+                        .push(Some(new_edge));
+                }
+                return;
+            }
+            remainder = new_remainder
         }
     }
 
@@ -106,7 +165,7 @@ impl<T> SimplexTree<T> {
         if next_node.is_none() {
             return (input_edge, first_edge);
         }
-        let mut next_edge = first_edge.unwrap().descend_once(next_node.unwrap());
+        let mut next_edge = first_edge.unwrap().find_outgoing_match(next_node.unwrap());
         if next_edge.is_none() {
             input_edge.add_node(next_node.unwrap());
             return (input_edge, first_edge);
@@ -114,7 +173,10 @@ impl<T> SimplexTree<T> {
         while next_edge.is_some() && !input_edge.is_empty() {
             if let Some(new_next_node) = input_edge.pop_first() {
                 unsafe {
-                    let e = next_edge.unwrap().as_ref().descend_once(new_next_node);
+                    let e = next_edge
+                        .unwrap()
+                        .as_ref()
+                        .find_outgoing_match(new_next_node);
                     if e.is_none() {
                         input_edge.add_node(new_next_node);
                         return (input_edge, next_edge.map(|edge_ptr| edge_ptr.as_ref()));
@@ -147,7 +209,7 @@ impl<T> SimplexTree<T> {
             return (input_edge, first_edge);
         }
         let first_edge_unwrapped = first_edge.unwrap();
-        let mut next_edge = first_edge_unwrapped.descend_once(next_node.unwrap());
+        let mut next_edge = first_edge_unwrapped.find_outgoing_match(next_node.unwrap());
         if next_edge.is_none() {
             input_edge.add_node(next_node.unwrap());
             return (input_edge, Some(first_edge_unwrapped));
@@ -155,7 +217,10 @@ impl<T> SimplexTree<T> {
         while next_edge.is_some() && !input_edge.is_empty() {
             if let Some(new_next_node) = input_edge.pop_first() {
                 unsafe {
-                    let e = next_edge.unwrap().as_ref().descend_once(new_next_node);
+                    let e = next_edge
+                        .unwrap()
+                        .as_ref()
+                        .find_outgoing_match(new_next_node);
                     if e.is_none() {
                         input_edge.add_node(new_next_node);
                         return (input_edge, next_edge.map(|mut edge_ptr| edge_ptr.as_mut()));
@@ -195,5 +260,7 @@ mod test {
         let n1 = st.add_node('b');
         dbg!(st.traverse(EdgeSet::from([0, 1, 2, 3, 4])));
         dbg!(st.traverse(EdgeSet::from([1, 2, 3, 4])));
+        st.add_edge(EdgeSet::from([0, 1, 2]), 'c');
+        dbg!(st.traverse(EdgeSet::from([0, 1, 2])));
     }
 }
