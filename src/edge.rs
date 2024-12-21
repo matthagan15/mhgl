@@ -82,6 +82,14 @@ impl<N: HgNode> EdgeSet<N> {
         }
     }
 
+    pub fn pop_last(&mut self) -> Option<N> {
+        if self.len() > 0 {
+            self.0.pop()
+        } else {
+            None
+        }
+    }
+
     pub fn intersect_with(&mut self, rhs: &Self) {
         let mut good_nodes = Vec::with_capacity(self.0.len());
         for _ in 0..self.0.len() {

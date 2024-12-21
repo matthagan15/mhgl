@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ptr::NonNull};
+use std::{collections::BTreeMap, marker::PhantomData, ptr::NonNull};
 
 use crate::EdgeSet;
 use fxhash::FxHashMap;
@@ -17,7 +17,7 @@ use fxhash::FxHashMap;
 /// unavoidable. What about finding edges via id?
 #[derive(Debug)]
 pub struct SimplexTree<T> {
-    nodes: FxHashMap<u32, Edge<T>>,
+    nodes: BTreeMap<u32, Edge<T>>,
     /// Number of nodes
     next_node: u32,
     _ghost: PhantomData<T>,
@@ -51,6 +51,46 @@ impl<'a, T> CursorMut<'a, T> {
     pub fn state(&self) -> Vec<u32> {
         self.state.node_vec()
     }
+
+    pub fn advance(&mut self) -> Option<(&EdgeSet<u32>, &mut T)> {
+        if self.state.len() == 0 && self.cur.is_some() {
+            let node = unsafe { self.cur.unwrap().as_ref().node };
+        }
+
+        if self.cur.is_none() {
+            println!("Cursor is pointing to None?");
+            return None;
+        }
+        let cur_node = unsafe { self.cur.unwrap().as_ref().node };
+        if cur_node == *self.state.0.last().unwrap() {
+            if self.state.len() == 1 {
+                // have explored all edges starting with the current node, need to find the next node.
+                let mut next_node: Vec<_> = self
+                    .simplex_tree
+                    .nodes
+                    .range_mut(cur_node + 1..)
+                    .take(1)
+                    .collect();
+                if next_node.len() == 0 {
+                    self.cur = None;
+                    self.state = EdgeSet::new();
+                    return None;
+                } else if next_node.len() == 1 {
+                    let (next_node, next_ref) = next_node.pop().unwrap();
+                    self.state.pop_last();
+                    self.state.add_node(*next_node);
+                    debug_assert!(self.state.len() == 1);
+                    debug_assert!(self.state.get_first_node() == Some(*next_node));
+                    self.cur = Some(unsafe { NonNull::new_unchecked(next_ref as *mut Edge<T>) });
+                }
+            }
+            // move up.
+            self.state.pop_last();
+            // if point.as_ref().parent.is
+            todo!()
+        }
+        todo!()
+    }
 }
 
 impl<T> Edge<T> {
@@ -72,9 +112,22 @@ impl<T> Edge<T> {
 impl<T> SimplexTree<T> {
     pub fn new() -> Self {
         Self {
-            nodes: FxHashMap::default(),
+            nodes: BTreeMap::new(),
             next_node: 0,
             _ghost: PhantomData,
+        }
+    }
+
+    pub fn cursor_mut(&mut self) -> CursorMut<T> {
+        let mut first = self
+            .nodes
+            .first_entry()
+            .expect("Cannot create a cursor for an empty hypergraph.")
+            .get_mut() as *mut Edge<T>;
+        CursorMut {
+            simplex_tree: self,
+            cur: Some(unsafe { NonNull::new_unchecked(first) }),
+            state: EdgeSet::new(),
         }
     }
 
@@ -261,6 +314,6 @@ mod test {
         dbg!(st.traverse(EdgeSet::from([0, 1, 2, 3, 4])));
         dbg!(st.traverse(EdgeSet::from([1, 2, 3, 4])));
         st.add_edge(EdgeSet::from([0, 1, 2]), 'c');
-        dbg!(st.traverse(EdgeSet::from([0, 1, 2])));
+        let cursor = st.cursor_mut();
     }
 }
