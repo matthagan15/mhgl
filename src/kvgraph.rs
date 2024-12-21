@@ -293,6 +293,7 @@ impl From<Value> for String {
 /// node or edge creation. Currently it does not allow for the user to provide a `Uuid`
 /// upon creation of a node or edge and new uuids are generated for each new
 /// node or edge.
+#[derive(Debug, Clone)]
 pub struct KVGraph {
     pub(crate) core: HGraph<HashMap<String, Value>, HashMap<String, Value>, Uuid, Uuid>,
     schema: IndexMap<String, ValueTypes>,
