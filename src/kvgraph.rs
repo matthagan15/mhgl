@@ -1,7 +1,7 @@
 #[cfg(feature = "polars")]
 use polars::prelude::*;
 
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -684,6 +684,36 @@ impl KVGraph {
         node_df
             .vstack(&edge_df)
             .expect("Cannot stack node and edge dataframes")
+    }
+
+    #[cfg(feature = "polars")]
+    pub fn to_disk(&self, filename: PathBuf) -> Result<(), std::io::Error> {
+        use std::io::Write;
+        let mut df = self.dataframe();
+        let csv_filename = filename.with_extension("csv");
+        let mut csv_file = std::fs::File::create(csv_filename.as_path())?;
+        CsvWriter::new(&mut csv_file)
+            .finish(&mut df)
+            .expect("Could not serialize dataframe");
+        let hg_filename = filename.with_extension("hg");
+        let mut hg_file = std::fs::File::create(hg_filename.as_path())?;
+        write!(hg_file, "nodes\n")?;
+        for node in self.core.nodes.keys() {
+            write!(hg_file, "{:},", node.to_string())?;
+        }
+        write!(hg_file, "\nedges\n")?;
+        for (edge_id, edge) in self.core.edges.iter() {
+            let mut nodes_string = String::new();
+            nodes_string.push_str("[");
+            for node in edge.nodes.node_vec() {
+                nodes_string.push_str(&node.to_string()[..]);
+                nodes_string.push(',');
+            }
+            nodes_string.pop();
+            nodes_string.push(']');
+            write!(hg_file, "{:}={:}", edge_id.to_string(), nodes_string)?;
+        }
+        Ok(())
     }
 }
 

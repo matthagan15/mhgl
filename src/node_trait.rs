@@ -1,4 +1,3 @@
-use core::panic;
 use serde::Serialize;
 use std::fmt::Debug;
 use std::hash::Hash;
