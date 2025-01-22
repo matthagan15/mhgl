@@ -17,18 +17,19 @@ use fxhash::FxHashMap;
 /// unavoidable. What about finding edges via id?
 #[derive(Debug)]
 pub struct SimplexTree<T> {
-    nodes: BTreeMap<u32, Edge<T>>,
+    nodes: BTreeMap<u32, SimpTreeNode<T>>,
     /// Number of nodes
     next_node: u32,
     _ghost: PhantomData<T>,
 }
 
-type Link<T> = Option<NonNull<Edge<T>>>;
+type Link<T> = Option<NonNull<SimpTreeNode<T>>>;
 
 /// Todo: Can turn node into a vec of nodes, this would make it a radix-tree
 /// type trie.
 #[derive(Debug)]
-struct Edge<T> {
+struct SimpTreeNode<T> {
+    /// Should only be `None` on nodes
     parent: Link<T>,
     containing_edges: Vec<Link<T>>,
     node: u32, // Is this the best storage format??
@@ -36,23 +37,22 @@ struct Edge<T> {
 }
 
 /// By Type Covariance(? Maybe Invariance) a mutable cursor should be
-/// implicitly castable to an immutable one. This should be recognizable at
-/// the compiler level.
+/// implicitly castable to an immutable one.
 #[derive(Debug)]
 struct CursorMut<'a, T> {
     simplex_tree: &'a mut SimplexTree<T>,
     cur: Link<T>,
     /// Each node in a simplex tree corresponds to a unique edge set, this is
     /// the position of the cursor stored as a state.
-    state: EdgeSet<u32>,
+    state: Vec<u32>,
 }
 
 impl<'a, T> CursorMut<'a, T> {
     pub fn state(&self) -> Vec<u32> {
-        self.state.node_vec()
+        self.state.clone()
     }
 
-    pub fn advance(&mut self) -> Option<(&EdgeSet<u32>, &mut T)> {
+    pub fn advance(&mut self) -> Option<(&Vec<u32>, &mut T)> {
         if self.state.len() == 0 && self.cur.is_some() {
             let node = unsafe { self.cur.unwrap().as_ref().node };
         }
@@ -73,19 +73,20 @@ impl<'a, T> CursorMut<'a, T> {
                     .collect();
                 if next_node.len() == 0 {
                     self.cur = None;
-                    self.state = EdgeSet::new();
+                    self.state = Vec::new();
                     return None;
                 } else if next_node.len() == 1 {
                     let (next_node, next_ref) = next_node.pop().unwrap();
-                    self.state.pop_last();
-                    self.state.add_node(*next_node);
+                    self.state.pop();
+                    self.state.push(*next_node);
                     debug_assert!(self.state.len() == 1);
-                    debug_assert!(self.state.get_first_node() == Some(*next_node));
-                    self.cur = Some(unsafe { NonNull::new_unchecked(next_ref as *mut Edge<T>) });
+                    debug_assert!(self.state.first() == Some(next_node));
+                    self.cur =
+                        Some(unsafe { NonNull::new_unchecked(next_ref as *mut SimpTreeNode<T>) });
                 }
             }
             // move up.
-            self.state.pop_last();
+            self.state.pop();
             // if point.as_ref().parent.is
             todo!()
         }
@@ -93,7 +94,7 @@ impl<'a, T> CursorMut<'a, T> {
     }
 }
 
-impl<T> Edge<T> {
+impl<T> SimpTreeNode<T> {
     pub fn find_outgoing_match(&self, node: u32) -> Link<T> {
         for containing_edge in self.containing_edges.iter().filter(|x| x.is_some()) {
             if let Some(edge) = containing_edge {
@@ -119,21 +120,25 @@ impl<T> SimplexTree<T> {
     }
 
     pub fn cursor_mut(&mut self) -> CursorMut<T> {
-        let mut first = self
+        let first = self
             .nodes
             .first_entry()
             .expect("Cannot create a cursor for an empty hypergraph.")
-            .get_mut() as *mut Edge<T>;
+            .get_mut() as *mut SimpTreeNode<T>;
         CursorMut {
             simplex_tree: self,
             cur: Some(unsafe { NonNull::new_unchecked(first) }),
-            state: EdgeSet::new(),
+            state: Vec::new(),
         }
+    }
+
+    pub fn cursor_mut_from(&mut self, initial_set: impl AsRef<[u32]>) -> Option<CursorMut<T>> {
+        todo!()
     }
 
     pub fn add_node(&mut self, data: T) -> u32 {
         let node_id = self.next_node;
-        let new_edge = Edge {
+        let new_edge = SimpTreeNode {
             parent: None,
             containing_edges: Vec::new(),
             node: node_id,
@@ -163,9 +168,9 @@ impl<T> SimplexTree<T> {
             if new_remainder.len() > 1 {
                 let first_new_node = new_remainder.pop_first().unwrap();
                 let mut parent_pointer =
-                    unsafe { NonNull::new_unchecked(edge_ref.unwrap() as *mut Edge<T>) };
+                    unsafe { NonNull::new_unchecked(edge_ref.unwrap() as *mut SimpTreeNode<T>) };
                 let new_edge = unsafe {
-                    NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
+                    NonNull::new_unchecked(Box::into_raw(Box::new(SimpTreeNode {
                         parent: Some(parent_pointer.clone()),
                         containing_edges: Vec::new(),
                         node: first_new_node,
@@ -181,9 +186,9 @@ impl<T> SimplexTree<T> {
             } else if new_remainder.len() == 1 {
                 let first_new_node = new_remainder.pop_first().unwrap();
                 let mut parent_pointer =
-                    unsafe { NonNull::new_unchecked(edge_ref.unwrap() as *mut Edge<T>) };
+                    unsafe { NonNull::new_unchecked(edge_ref.unwrap() as *mut SimpTreeNode<T>) };
                 let new_edge = unsafe {
-                    NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
+                    NonNull::new_unchecked(Box::into_raw(Box::new(SimpTreeNode {
                         parent: Some(parent_pointer.clone()),
                         containing_edges: Vec::new(),
                         node: first_new_node,
@@ -202,7 +207,7 @@ impl<T> SimplexTree<T> {
         }
     }
 
-    pub fn traverse(&self, edge: EdgeSet<u32>) -> (EdgeSet<u32>, Option<&Edge<T>>) {
+    pub fn traverse(&self, edge: EdgeSet<u32>) -> (EdgeSet<u32>, Option<&SimpTreeNode<T>>) {
         if edge.is_empty() {
             return (edge, None);
         }
@@ -245,7 +250,10 @@ impl<T> SimplexTree<T> {
         );
     }
 
-    pub fn traverse_mut(&mut self, edge: EdgeSet<u32>) -> (EdgeSet<u32>, Option<&mut Edge<T>>) {
+    pub fn traverse_mut(
+        &mut self,
+        edge: EdgeSet<u32>,
+    ) -> (EdgeSet<u32>, Option<&mut SimpTreeNode<T>>) {
         if edge.is_empty() {
             return (edge, None);
         }
@@ -311,6 +319,7 @@ mod test {
         let mut st = SimplexTree::new();
         let n0 = st.add_node('a');
         let n1 = st.add_node('b');
+        let n2 = st.add_node('c');
         dbg!(st.traverse(EdgeSet::from([0, 1, 2, 3, 4])));
         dbg!(st.traverse(EdgeSet::from([1, 2, 3, 4])));
         st.add_edge(EdgeSet::from([0, 1, 2]), 'c');
