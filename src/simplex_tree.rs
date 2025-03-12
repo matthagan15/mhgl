@@ -38,10 +38,15 @@ struct SimpTreeNode<T> {
 
 /// By Type Covariance(? Maybe Invariance) a mutable cursor should be
 /// implicitly castable to an immutable one.
+/// There is a "double cover" here, I need to be able to distinguish from
+/// a cursor traversing down a simplex tree vs traversing up. The way to
+/// distinguish these is if the cur pointer points to the same node
+/// as the last node in the state, then the cursor is traversing upwards.
+/// if the cur pointer points to a different node then it is traversing down.
 #[derive(Debug)]
 struct CursorMut<'a, T> {
     simplex_tree: &'a mut SimplexTree<T>,
-    cur: Link<T>,
+    next_simp_node: Link<T>,
     /// Each node in a simplex tree corresponds to a unique edge set, this is
     /// the position of the cursor stored as a state.
     state: Vec<u32>,
@@ -52,61 +57,69 @@ impl<'a, T> CursorMut<'a, T> {
         self.state.clone()
     }
 
-    pub fn advance(&mut self) -> Option<(&Vec<u32>, &mut T)> {
-        if self.state.len() == 0 && self.cur.is_some() {
-            let node = unsafe { self.cur.unwrap().as_ref().node };
+    pub fn step(&mut self) {
+        if self.next_simp_node.is_none() {
+            panic!("Cursor is finished.")
         }
-
-        if self.cur.is_none() {
-            println!("Cursor is pointing to None?");
-            return None;
-        }
-        let cur_node = unsafe { self.cur.unwrap().as_ref().node };
-        if cur_node == *self.state.0.last().unwrap() {
-            if self.state.len() == 1 {
-                // have explored all edges starting with the current node, need to find the next node.
-                let mut next_node: Vec<_> = self
+        let cur_ptr_node = unsafe { self.next_simp_node.unwrap().as_ref().node };
+        if self.state.is_empty() {
+            let next_ptr: Link<T> = if unsafe {
+                self.next_simp_node
+                    .unwrap()
+                    .as_ref()
+                    .containing_edges
+                    .is_empty()
+            } {
+                if let Some((_, next_ptr)) = self
                     .simplex_tree
                     .nodes
-                    .range_mut(cur_node + 1..)
+                    .range_mut(cur_ptr_node + 1..)
                     .take(1)
-                    .collect();
-                if next_node.len() == 0 {
-                    self.cur = None;
-                    self.state = Vec::new();
-                    return None;
-                } else if next_node.len() == 1 {
-                    let (next_node, next_ref) = next_node.pop().unwrap();
+                    .next()
+                {
+                    Some(unsafe { NonNull::new_unchecked(next_ptr as *mut SimpTreeNode<T>) })
+                } else {
+                    None
+                }
+            } else {
+                *unsafe {
+                    self.next_simp_node
+                        .unwrap()
+                        .as_ref()
+                        .containing_edges
+                        .first()
+                        .unwrap()
+                }
+            };
+            self.state.push(cur_ptr_node);
+            self.next_simp_node = next_ptr;
+        } else {
+            let last_state = self.state.last().unwrap();
+            let next_ptr = if *last_state > cur_ptr_node {
+                // Just came from a previously traversed branch
+                let ix = unsafe {
+                    self.next_simp_node
+                        .unwrap()
+                        .as_ref()
+                        .containing_edges
+                        .binary_search_by_key(last_state, |x| x.unwrap().as_ref().node)
+                        .unwrap()
+                };
+                if ix == unsafe { self.next_simp_node.unwrap().as_ref().containing_edges.len() } - 1
+                {
+                    // no other edges to move to
                     self.state.pop();
-                    self.state.push(*next_node);
-                    debug_assert!(self.state.len() == 1);
-                    debug_assert!(self.state.first() == Some(next_node));
-                    self.cur =
-                        Some(unsafe { NonNull::new_unchecked(next_ref as *mut SimpTreeNode<T>) });
+                    unsafe { self.next_simp_node.unwrap().as_ref().parent }
+                } else {
+                    self.state.push(value);
+                    unsafe { self.next_simp_node.unwrap().as_ref().containing_edges[ix + 1] }
                 }
-            }
-            // move up.
-            self.state.pop();
-            // if point.as_ref().parent.is
-            todo!()
+            } else {
+                // traversing downwards
+                self.state.push(cur_ptr_node);
+                todo!()
+            };
         }
-        todo!()
-    }
-}
-
-impl<T> SimpTreeNode<T> {
-    pub fn find_outgoing_match(&self, node: u32) -> Link<T> {
-        for containing_edge in self.containing_edges.iter().filter(|x| x.is_some()) {
-            if let Some(edge) = containing_edge {
-                unsafe {
-                    let e = edge.as_ref();
-                    if e.node == node {
-                        return *containing_edge;
-                    }
-                }
-            }
-        }
-        None
     }
 }
 
@@ -127,13 +140,9 @@ impl<T> SimplexTree<T> {
             .get_mut() as *mut SimpTreeNode<T>;
         CursorMut {
             simplex_tree: self,
-            cur: Some(unsafe { NonNull::new_unchecked(first) }),
+            next_simp_node: Some(unsafe { NonNull::new_unchecked(first) }),
             state: Vec::new(),
         }
-    }
-
-    pub fn cursor_mut_from(&mut self, initial_set: impl AsRef<[u32]>) -> Option<CursorMut<T>> {
-        todo!()
     }
 
     pub fn add_node(&mut self, data: T) -> u32 {
@@ -148,164 +157,6 @@ impl<T> SimplexTree<T> {
         self.next_node += 1;
         node_id
     }
-
-    pub fn add_edge(&mut self, edge: EdgeSet<u32>, data: T) {
-        if edge.len() < 2 {
-            return;
-        }
-        let mut remainder = edge;
-        while remainder.len() > 0 {
-            let (mut new_remainder, edge_ref) = self.traverse_mut(remainder.clone());
-            if edge_ref.is_none() {
-                return;
-            }
-            if new_remainder.is_empty() {
-                if let Some(edge_ref_mut) = edge_ref {
-                    edge_ref_mut.data = Some(data);
-                }
-                return;
-            }
-            if new_remainder.len() > 1 {
-                let first_new_node = new_remainder.pop_first().unwrap();
-                let mut parent_pointer =
-                    unsafe { NonNull::new_unchecked(edge_ref.unwrap() as *mut SimpTreeNode<T>) };
-                let new_edge = unsafe {
-                    NonNull::new_unchecked(Box::into_raw(Box::new(SimpTreeNode {
-                        parent: Some(parent_pointer.clone()),
-                        containing_edges: Vec::new(),
-                        node: first_new_node,
-                        data: None,
-                    })))
-                };
-                unsafe {
-                    parent_pointer
-                        .as_mut()
-                        .containing_edges
-                        .push(Some(new_edge));
-                }
-            } else if new_remainder.len() == 1 {
-                let first_new_node = new_remainder.pop_first().unwrap();
-                let mut parent_pointer =
-                    unsafe { NonNull::new_unchecked(edge_ref.unwrap() as *mut SimpTreeNode<T>) };
-                let new_edge = unsafe {
-                    NonNull::new_unchecked(Box::into_raw(Box::new(SimpTreeNode {
-                        parent: Some(parent_pointer.clone()),
-                        containing_edges: Vec::new(),
-                        node: first_new_node,
-                        data: Some(data),
-                    })))
-                };
-                unsafe {
-                    parent_pointer
-                        .as_mut()
-                        .containing_edges
-                        .push(Some(new_edge));
-                }
-                return;
-            }
-            remainder = new_remainder
-        }
-    }
-
-    pub fn traverse(&self, edge: EdgeSet<u32>) -> (EdgeSet<u32>, Option<&SimpTreeNode<T>>) {
-        if edge.is_empty() {
-            return (edge, None);
-        }
-        let mut input_edge = edge;
-        let mut next_node = input_edge.pop_first();
-        let first_edge = self.nodes.get(&next_node.unwrap());
-        // let mut next_edge = None;
-        if first_edge.is_none() {
-            input_edge.add_node(next_node.unwrap());
-            return (input_edge, None);
-        }
-        next_node = input_edge.pop_first();
-        if next_node.is_none() {
-            return (input_edge, first_edge);
-        }
-        let mut next_edge = first_edge.unwrap().find_outgoing_match(next_node.unwrap());
-        if next_edge.is_none() {
-            input_edge.add_node(next_node.unwrap());
-            return (input_edge, first_edge);
-        }
-        while next_edge.is_some() && !input_edge.is_empty() {
-            if let Some(new_next_node) = input_edge.pop_first() {
-                unsafe {
-                    let e = next_edge
-                        .unwrap()
-                        .as_ref()
-                        .find_outgoing_match(new_next_node);
-                    if e.is_none() {
-                        input_edge.add_node(new_next_node);
-                        return (input_edge, next_edge.map(|edge_ptr| edge_ptr.as_ref()));
-                    } else {
-                        next_edge = e;
-                    }
-                }
-            }
-        }
-        return (
-            input_edge,
-            next_edge.map(|edge_ptr| unsafe { edge_ptr.as_ref() }),
-        );
-    }
-
-    pub fn traverse_mut(
-        &mut self,
-        edge: EdgeSet<u32>,
-    ) -> (EdgeSet<u32>, Option<&mut SimpTreeNode<T>>) {
-        if edge.is_empty() {
-            return (edge, None);
-        }
-        let mut input_edge = edge;
-        let mut next_node = input_edge.pop_first();
-        let first_edge = self.nodes.get_mut(&next_node.unwrap());
-        // let mut next_edge = None;
-        if first_edge.is_none() {
-            input_edge.add_node(next_node.unwrap());
-            return (input_edge, None);
-        }
-        next_node = input_edge.pop_first();
-        if next_node.is_none() {
-            return (input_edge, first_edge);
-        }
-        let first_edge_unwrapped = first_edge.unwrap();
-        let mut next_edge = first_edge_unwrapped.find_outgoing_match(next_node.unwrap());
-        if next_edge.is_none() {
-            input_edge.add_node(next_node.unwrap());
-            return (input_edge, Some(first_edge_unwrapped));
-        }
-        while next_edge.is_some() && !input_edge.is_empty() {
-            if let Some(new_next_node) = input_edge.pop_first() {
-                unsafe {
-                    let e = next_edge
-                        .unwrap()
-                        .as_ref()
-                        .find_outgoing_match(new_next_node);
-                    if e.is_none() {
-                        input_edge.add_node(new_next_node);
-                        return (input_edge, next_edge.map(|mut edge_ptr| edge_ptr.as_mut()));
-                    } else {
-                        next_edge = e;
-                    }
-                }
-            }
-        }
-        return (
-            input_edge,
-            next_edge.map(|mut edge_ptr| unsafe { edge_ptr.as_mut() }),
-        );
-    }
-
-    pub fn find_edge(&self, edge: impl AsRef<[u32]>) -> Option<&T> {
-        let sorted_edge = EdgeSet::from(edge.as_ref());
-        if let Some(node) = sorted_edge.get_first_node() {
-            let edges = self.nodes.get(&node);
-            todo!()
-        } else {
-            None
-        }
-    }
 }
 
 #[cfg(test)]
@@ -315,14 +166,11 @@ mod test {
     use super::SimplexTree;
 
     #[test]
-    fn creation_annihilation() {
+    fn cursor_mut_basic_test() {
         let mut st = SimplexTree::new();
         let n0 = st.add_node('a');
         let n1 = st.add_node('b');
         let n2 = st.add_node('c');
-        dbg!(st.traverse(EdgeSet::from([0, 1, 2, 3, 4])));
-        dbg!(st.traverse(EdgeSet::from([1, 2, 3, 4])));
-        st.add_edge(EdgeSet::from([0, 1, 2]), 'c');
         let cursor = st.cursor_mut();
     }
 }

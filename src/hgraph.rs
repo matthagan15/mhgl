@@ -101,6 +101,26 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
             nodes,
         }
     }
+
+    pub fn janky_boundary_down(&self, edge_id: &u64) -> Vec<u64> {
+        if self.edges.contains_key(edge_id) == false {
+            return Vec::new();
+        }
+        let edge_set = &self.edges.get(edge_id).unwrap().nodes;
+        if edge_set.len() == 2 {
+            let edge_vec = edge_set.node_vec();
+            return vec![edge_vec[0] as u64, edge_vec[1] as u64];
+        }
+        let mut boundary: Vec<u64> = Vec::new();
+        for ix in 0..edge_set.len() {
+            let mut possible = edge_set.node_vec();
+            possible.remove(ix);
+            if let Some(id) = self.find_id(possible) {
+                boundary.push(id);
+            }
+        }
+        boundary
+    }
 }
 
 impl<N, E, NodeID: HgNode, EdgeID: HgNode> HGraph<N, E, NodeID, EdgeID>
