@@ -36,90 +36,106 @@ struct SimpTreeNode<T> {
     data: Option<T>,
 }
 
-/// By Type Covariance(? Maybe Invariance) a mutable cursor should be
-/// implicitly castable to an immutable one.
-/// There is a "double cover" here, I need to be able to distinguish from
-/// a cursor traversing down a simplex tree vs traversing up. The way to
-/// distinguish these is if the cur pointer points to the same node
-/// as the last node in the state, then the cursor is traversing upwards.
-/// if the cur pointer points to a different node then it is traversing down.
 #[derive(Debug)]
-struct CursorMut<'a, T> {
+struct NewCursorMut<'a, T> {
     simplex_tree: &'a mut SimplexTree<T>,
-    next_simp_node: Link<T>,
-    /// Each node in a simplex tree corresponds to a unique edge set, this is
-    /// the position of the cursor stored as a state.
-    state: Vec<u32>,
+    prev_node: Option<u32>,
+    cur_ptr: Link<T>,
 }
 
-impl<'a, T> CursorMut<'a, T> {
-    pub fn state(&self) -> Vec<u32> {
-        self.state.clone()
-    }
-
-    pub fn step(&mut self) {
-        if self.next_simp_node.is_none() {
-            panic!("Cursor is finished.")
+impl<'a, T> NewCursorMut<'a, T> {
+    pub fn advance(&mut self) {
+        if self.cur_ptr.is_none() {
+            return;
         }
-        let cur_ptr_node = unsafe { self.next_simp_node.unwrap().as_ref().node };
-        if self.state.is_empty() {
-            let next_ptr: Link<T> = if unsafe {
-                self.next_simp_node
-                    .unwrap()
-                    .as_ref()
-                    .containing_edges
-                    .is_empty()
-            } {
-                if let Some((_, next_ptr)) = self
+
+        let cur_ref = unsafe { self.cur_ptr.unwrap().as_ref() };
+        let cur_node = cur_ref.node;
+        if self.prev_node.is_none() {
+            if let Some(next_ptr) = cur_ref.containing_edges.first() {
+                self.prev_node = Some(cur_node);
+                self.cur_ptr = *next_ptr;
+                return;
+            } else {
+                // have to find the next node
+                if let Some((_next_node, next_ptr)) = self
                     .simplex_tree
                     .nodes
-                    .range_mut(cur_ptr_node + 1..)
+                    .range_mut(cur_node + 1..)
                     .take(1)
                     .next()
                 {
-                    Some(unsafe { NonNull::new_unchecked(next_ptr as *mut SimpTreeNode<T>) })
+                    self.cur_ptr =
+                        Some(unsafe { NonNull::new_unchecked(next_ptr as *mut SimpTreeNode<T>) });
+                    self.prev_node = None;
+                    return;
                 } else {
-                    None
+                    // reached the end of the line
+                    self.prev_node = None;
+                    self.cur_ptr = None;
+                    return;
                 }
-            } else {
-                *unsafe {
-                    self.next_simp_node
-                        .unwrap()
-                        .as_ref()
-                        .containing_edges
-                        .first()
-                        .unwrap()
-                }
-            };
-            self.state.push(cur_ptr_node);
-            self.next_simp_node = next_ptr;
-        } else {
-            let last_state = self.state.last().unwrap();
-            let next_ptr = if *last_state > cur_ptr_node {
-                // Just came from a previously traversed branch
-                let ix = unsafe {
-                    self.next_simp_node
-                        .unwrap()
-                        .as_ref()
-                        .containing_edges
-                        .binary_search_by_key(last_state, |x| x.unwrap().as_ref().node)
-                        .unwrap()
-                };
-                if ix == unsafe { self.next_simp_node.unwrap().as_ref().containing_edges.len() } - 1
-                {
-                    // no other edges to move to
-                    self.state.pop();
-                    unsafe { self.next_simp_node.unwrap().as_ref().parent }
-                } else {
-                    self.state.push(value);
-                    unsafe { self.next_simp_node.unwrap().as_ref().containing_edges[ix + 1] }
-                }
-            } else {
-                // traversing downwards
-                self.state.push(cur_ptr_node);
-                todo!()
-            };
+            }
         }
+        if cur_node > self.prev_node.unwrap() {
+            // previously moved down
+            if let Some(next_ptr) = cur_ref.containing_edges.first() {
+                self.cur_ptr = *next_ptr;
+            } else {
+                // Reached a leaf node, move back up.
+                self.cur_ptr = cur_ref.parent;
+            }
+        } else {
+            // just moved up
+            match cur_ref
+                .containing_edges
+                .binary_search_by_key(&self.prev_node.unwrap(), |x| unsafe {
+                    x.unwrap().as_ref().node
+                }) {
+                Ok(prev_ix) => {
+                    if prev_ix == cur_ref.containing_edges.len() - 1 {
+                        // we just came from the last branch, need to move up.
+                        self.cur_ptr = cur_ref.parent;
+                    } else {
+                        // can still traverse down
+                        self.cur_ptr = cur_ref.containing_edges[prev_ix + 1];
+                    }
+                }
+                Err(_) => {
+                    panic!("This should not be an accessible state. The previous node visited was not found in the current nodes children, but cur_node < prev_node.")
+                }
+            }
+        }
+        self.prev_node = Some(cur_node);
+    }
+
+    pub fn print_state(&self) {
+        let mut state = Vec::new();
+        let mut cur_pointer = self.cur_ptr;
+        if cur_pointer.is_none() {
+            println!("Cursor is at the end of the line.");
+            return;
+        }
+        let mut cur_ref = unsafe { self.cur_ptr.unwrap().as_ref() };
+        while cur_ref.parent.is_some() {
+            state.push(cur_ref.node);
+            cur_ref = unsafe { cur_ref.parent.unwrap().as_ref() };
+        }
+        state.push(cur_ref.node);
+        state.reverse();
+        let mut s = String::from("[");
+        for node in state {
+            s.push_str(&node.to_string());
+            s.push(',');
+        }
+        s.pop();
+        s.push(']');
+        println!("current state: {:}", s);
+    }
+
+    ///
+    pub fn seek(&mut self, seek_start: impl AsRef<[u32]>) -> Vec<u32> {
+        todo!()
     }
 }
 
@@ -132,16 +148,16 @@ impl<T> SimplexTree<T> {
         }
     }
 
-    pub fn cursor_mut(&mut self) -> CursorMut<T> {
+    pub fn cursor_mut(&mut self) -> NewCursorMut<T> {
         let first = self
             .nodes
             .first_entry()
             .expect("Cannot create a cursor for an empty hypergraph.")
             .get_mut() as *mut SimpTreeNode<T>;
-        CursorMut {
+        NewCursorMut {
             simplex_tree: self,
-            next_simp_node: Some(unsafe { NonNull::new_unchecked(first) }),
-            state: Vec::new(),
+            prev_node: None,
+            cur_ptr: unsafe { Some(NonNull::new_unchecked(first)) },
         }
     }
 
@@ -171,6 +187,14 @@ mod test {
         let n0 = st.add_node('a');
         let n1 = st.add_node('b');
         let n2 = st.add_node('c');
-        let cursor = st.cursor_mut();
+        let mut cursor = st.cursor_mut();
+        println!("nodes: {:}, {:}, {:}.", n0, n1, n2);
+        cursor.print_state();
+        cursor.advance();
+        cursor.print_state();
+        cursor.advance();
+        cursor.print_state();
+        cursor.advance();
+        cursor.print_state();
     }
 }
