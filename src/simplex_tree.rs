@@ -36,6 +36,19 @@ struct SimpTreeNode<T> {
     data: Option<T>,
 }
 
+/// Searches a collection of links for the provided node, returning the index
+/// for the first link that points to the given node.
+unsafe fn search_link_pointers<T>(outbound_edges: &Vec<Link<T>>, node: u32) -> Option<usize> {
+    for ix in 0..outbound_edges.len() {
+        if let Some(ptr) = outbound_edges[ix] {
+            if ptr.as_ref().node == node {
+                return Some(ix);
+            }
+        }
+    }
+    None
+}
+
 #[derive(Debug)]
 struct NewCursorMut<'a, T> {
     simplex_tree: &'a mut SimplexTree<T>,
@@ -133,9 +146,50 @@ impl<'a, T> NewCursorMut<'a, T> {
         println!("current state: {:}", s);
     }
 
-    ///
-    pub fn seek(&mut self, seek_start: impl AsRef<[u32]>) -> Vec<u32> {
-        todo!()
+    /// advances the edge to the closest point in the tree. For example,
+    /// a hypergraph with one edge [1, 2, 3] then seek([1,2,3,4]) would
+    /// return  `(vec![1,2,3], vec![4])` and the cursor would point to the end
+    /// of [1] -> [2] -> [3].
+    pub fn seek(&mut self, edge: impl AsRef<[u32]>) -> (Vec<u32>, Vec<u32>) {
+        // first check that each node is contained in the simplex tree
+        let mut unprocessed_nodes: Vec<u32> = edge.as_ref().iter().cloned().collect();
+        if unprocessed_nodes.is_empty() {
+            return (vec![], vec![]);
+        }
+        unprocessed_nodes.sort();
+        unprocessed_nodes.reverse();
+        let mut processed_nodes = Vec::new();
+        for node in unprocessed_nodes.iter() {
+            if self.simplex_tree.nodes.contains_key(node) == false {
+                panic!("Currently assumes that the simplex tree contains every node in the edge. Found a node not contained in the simplex tree")
+            }
+        }
+        self.prev_node = None;
+        let cur_node = unprocessed_nodes.pop().unwrap();
+        self.cur_ptr = unsafe {
+            Some(NonNull::new_unchecked(
+                self.simplex_tree.nodes.get_mut(&cur_node).unwrap() as *mut SimpTreeNode<T>,
+            ))
+        };
+        processed_nodes.push(cur_node);
+        while unprocessed_nodes.len() > 0 {
+            let node_to_process = unprocessed_nodes.pop().unwrap();
+            if let Some(next_ix) = unsafe {
+                search_link_pointers(
+                    &self.cur_ptr.unwrap().as_ref().containing_edges,
+                    node_to_process,
+                )
+            } {
+                processed_nodes.push(node_to_process);
+                self.prev_node = Some(node_to_process);
+                self.cur_ptr = unsafe { self.cur_ptr.unwrap().as_ref().containing_edges[next_ix] };
+            } else {
+                unprocessed_nodes.push(node_to_process);
+                break;
+            }
+        }
+        unprocessed_nodes.reverse();
+        (processed_nodes, unprocessed_nodes)
     }
 }
 
@@ -173,6 +227,12 @@ impl<T> SimplexTree<T> {
         self.next_node += 1;
         node_id
     }
+
+    pub fn add_edge(&mut self, edge: impl AsRef<[u32]>, data: T) {
+        let mut cursor = self.cursor_mut();
+        let (found_sub_edge, not_found_remainder) = cursor.seek(edge);
+        todo!()
+    }
 }
 
 #[cfg(test)]
@@ -195,6 +255,10 @@ mod test {
         cursor.advance();
         cursor.print_state();
         cursor.advance();
+        cursor.print_state();
+        let (found, not_found) = cursor.seek(vec![n0, n1, n2]);
+        dbg!(found);
+        dbg!(not_found);
         cursor.print_state();
     }
 }
