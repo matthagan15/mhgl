@@ -122,6 +122,20 @@ impl<'a, T> NewCursorMut<'a, T> {
         self.prev_node = Some(cur_node);
     }
 
+    /// Moves the pointer to the provided `next_node` if possible.
+    pub fn advance_to(&mut self, next_node: u32) -> bool {
+        if let Some(next_ix) = unsafe {
+            search_link_pointers(&self.cur_ptr.unwrap().as_ref().containing_edges, next_node)
+        } {
+            let cur_node = unsafe { self.cur_ptr.unwrap().as_ref().node };
+            self.prev_node = Some(cur_node);
+            self.cur_ptr = unsafe { self.cur_ptr.unwrap().as_ref().containing_edges[next_ix] };
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn print_state(&self) {
         let mut state = Vec::new();
         let mut cur_pointer = self.cur_ptr;
@@ -230,7 +244,39 @@ impl<T> SimplexTree<T> {
 
     pub fn add_edge(&mut self, edge: impl AsRef<[u32]>, data: T) {
         let mut cursor = self.cursor_mut();
-        let (found_sub_edge, not_found_remainder) = cursor.seek(edge);
+        let (found_sub_edge, mut not_found_remainder) = cursor.seek(edge);
+        not_found_remainder.reverse();
+        while !not_found_remainder.is_empty() {
+            let next_up_node = not_found_remainder.pop().unwrap();
+            let st_node = SimpTreeNode {
+                parent: cursor.cur_ptr.clone(),
+                containing_edges: Vec::new(),
+                node: next_up_node,
+                data: None,
+            };
+            let mut st_node_box = Box::new(st_node);
+            let st_node_ptr = NonNull::new(&mut *st_node_box as *mut SimpTreeNode<T>);
+            let new_ix = unsafe {
+                cursor
+                    .cur_ptr
+                    .unwrap()
+                    .as_ref()
+                    .containing_edges
+                    .binary_search_by_key(&next_up_node, |link| link.unwrap().as_ref().node)
+                    .expect_err(
+                        "If this node was found then it should have already been processed.",
+                    )
+            };
+            unsafe {
+                cursor
+                    .cur_ptr
+                    .unwrap()
+                    .as_mut()
+                    .containing_edges
+                    .insert(new_ix, st_node_ptr);
+            };
+            cursor.advance_to(next_up_node);
+        }
         todo!()
     }
 }
