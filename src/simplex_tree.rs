@@ -266,7 +266,7 @@ impl<T> SimplexTree<T> {
                 data: None,
             };
             let mut st_node_box = Box::new(st_node);
-            let st_node_ptr = NonNull::new(&mut *st_node_box as *mut SimpTreeNode<T>);
+            let st_node_ptr = unsafe { NonNull::new_unchecked(Box::into_raw(st_node_box)) };
             let new_ix = unsafe {
                 cursor
                     .cur_ptr
@@ -285,7 +285,7 @@ impl<T> SimplexTree<T> {
                     .unwrap()
                     .as_mut()
                     .containing_edges
-                    .insert(new_ix, st_node_ptr);
+                    .insert(new_ix, Some(st_node_ptr));
                 dbg!("checking if node added.");
                 dbg!(cursor.cur_ptr.unwrap().as_ref().containing_edges.len());
                 dbg!(cursor.cur_ptr.unwrap().as_ref().node);
@@ -323,6 +323,7 @@ mod test {
         let n0 = st.add_node('a');
         let n1 = st.add_node('b');
         let n2 = st.add_node('c');
+        let n3 = st.add_node('d');
         let mut cursor = st.cursor_mut();
         println!("nodes: {:}, {:}, {:}.", n0, n1, n2);
         cursor.print_state();
@@ -336,11 +337,11 @@ mod test {
         dbg!(found);
         dbg!(not_found);
         cursor.print_state();
-        st.add_edge([n0, n1], 'e');
+        st.add_edge([n0, n1, n2, n3], 'e');
         println!("After adding edge.");
         let mut new_cursor = st.cursor_mut();
         println!("new cursor made?");
-        for _ in 0..2 {
+        for _ in 0..5 {
             new_cursor.advance();
             new_cursor.print_state();
         }
