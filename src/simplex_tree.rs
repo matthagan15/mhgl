@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, marker::PhantomData, ptr::NonNull};
+use std::{collections::BTreeMap, io::Write, marker::PhantomData, ptr::NonNull};
 
 use crate::EdgeSet;
 use fxhash::FxHashMap;
@@ -58,6 +58,8 @@ struct NewCursorMut<'a, T> {
 
 impl<'a, T> NewCursorMut<'a, T> {
     pub fn advance(&mut self) {
+        println!("In advance");
+        std::io::stdout().flush().unwrap();
         if self.cur_ptr.is_none() {
             return;
         }
@@ -100,11 +102,16 @@ impl<'a, T> NewCursorMut<'a, T> {
             }
         } else {
             // just moved up
-            match cur_ref
+            println!("hello");
+            dbg!(&cur_ref.node);
+            dbg!(cur_ref.containing_edges.len());
+            dbg!(&cur_ref.containing_edges);
+            let found_ix = cur_ref
                 .containing_edges
                 .binary_search_by_key(&self.prev_node.unwrap(), |x| unsafe {
                     x.unwrap().as_ref().node
-                }) {
+                });
+            match found_ix {
                 Ok(prev_ix) => {
                     if prev_ix == cur_ref.containing_edges.len() - 1 {
                         // we just came from the last branch, need to move up.
@@ -244,10 +251,14 @@ impl<T> SimplexTree<T> {
 
     pub fn add_edge(&mut self, edge: impl AsRef<[u32]>, data: T) {
         let mut cursor = self.cursor_mut();
-        let (found_sub_edge, mut not_found_remainder) = cursor.seek(edge);
+        let (found_sub_edge, mut not_found_remainder) = cursor.seek(&edge);
+        let backup_not_found = not_found_remainder.clone();
+        dbg!(&found_sub_edge);
+        dbg!(&not_found_remainder);
         not_found_remainder.reverse();
         while !not_found_remainder.is_empty() {
             let next_up_node = not_found_remainder.pop().unwrap();
+            dbg!(&next_up_node);
             let st_node = SimpTreeNode {
                 parent: cursor.cur_ptr.clone(),
                 containing_edges: Vec::new(),
@@ -267,6 +278,7 @@ impl<T> SimplexTree<T> {
                         "If this node was found then it should have already been processed.",
                     )
             };
+            println!("Found ix: {:}", new_ix);
             unsafe {
                 cursor
                     .cur_ptr
@@ -274,10 +286,28 @@ impl<T> SimplexTree<T> {
                     .as_mut()
                     .containing_edges
                     .insert(new_ix, st_node_ptr);
+                dbg!("checking if node added.");
+                dbg!(cursor.cur_ptr.unwrap().as_ref().containing_edges.len());
+                dbg!(cursor.cur_ptr.unwrap().as_ref().node);
             };
-            cursor.advance_to(next_up_node);
+            dbg!(cursor.advance_to(next_up_node));
+            unsafe {
+                dbg!(cursor.cur_ptr.unwrap().as_ref().node);
+            }
+            dbg!(not_found_remainder.is_empty());
         }
-        todo!()
+        let mut cursor = self.cursor_mut();
+        println!("after while loop");
+        let (found_sub_edge, mut not_found_remainder) = cursor.seek(&edge);
+        dbg!(found_sub_edge);
+        dbg!(not_found_remainder);
+        unsafe {
+            // cursor.seek(edge);
+            dbg!("after the fact");
+            dbg!(cursor.cur_ptr.unwrap().as_mut().node);
+            dbg!(cursor.cur_ptr.unwrap().as_ref().containing_edges.len());
+            cursor.cur_ptr.unwrap().as_mut().data = Some(data);
+        }
     }
 }
 
@@ -306,5 +336,13 @@ mod test {
         dbg!(found);
         dbg!(not_found);
         cursor.print_state();
+        st.add_edge([n0, n1], 'e');
+        println!("After adding edge.");
+        let mut new_cursor = st.cursor_mut();
+        println!("new cursor made?");
+        for _ in 0..2 {
+            new_cursor.advance();
+            new_cursor.print_state();
+        }
     }
 }
