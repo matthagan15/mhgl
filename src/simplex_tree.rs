@@ -17,13 +17,22 @@ use fxhash::FxHashMap;
 /// unavoidable. What about finding edges via id?
 #[derive(Debug)]
 pub struct SimplexTree<T> {
-    nodes: BTreeMap<u32, SimpTreeNode<T>>,
+    nodes: BTreeMap<NodeType, SimpTreeNode<T>>,
     /// Number of nodes
-    next_node: u32,
+    next_node: NodeType,
     _ghost: PhantomData<T>,
 }
 
 type Link<T> = Option<NonNull<SimpTreeNode<T>>>;
+
+type NodeType = u32;
+
+pub enum SimplexTreeError<T> {
+    NodesNotPresent {
+        nodes: Vec<NodeType>,
+        provided_data: T,
+    },
+}
 
 /// Todo: Can turn node into a vec of nodes, this would make it a radix-tree
 /// type trie.
@@ -32,13 +41,13 @@ struct SimpTreeNode<T> {
     /// Should only be `None` on nodes
     parent: Link<T>,
     containing_edges: Vec<Link<T>>,
-    node: u32, // Is this the best storage format??
+    node: NodeType, // Is this the best storage format??
     data: Option<T>,
 }
 
 /// Searches a collection of links for the provided node, returning the index
 /// for the first link that points to the given node.
-unsafe fn search_link_pointers<T>(outbound_edges: &Vec<Link<T>>, node: u32) -> Option<usize> {
+unsafe fn search_link_pointers<T>(outbound_edges: &Vec<Link<T>>, node: NodeType) -> Option<usize> {
     for ix in 0..outbound_edges.len() {
         if let Some(ptr) = outbound_edges[ix] {
             if ptr.as_ref().node == node {
@@ -52,7 +61,7 @@ unsafe fn search_link_pointers<T>(outbound_edges: &Vec<Link<T>>, node: u32) -> O
 #[derive(Debug)]
 struct NewCursorMut<'a, T> {
     simplex_tree: &'a mut SimplexTree<T>,
-    prev_node: Option<u32>,
+    prev_node: Option<NodeType>,
     cur_ptr: Link<T>,
 }
 
@@ -130,7 +139,7 @@ impl<'a, T> NewCursorMut<'a, T> {
     }
 
     /// Moves the pointer to the provided `next_node` if possible.
-    pub fn advance_to(&mut self, next_node: u32) -> bool {
+    pub fn advance_to(&mut self, next_node: NodeType) -> bool {
         if let Some(next_ix) = unsafe {
             search_link_pointers(&self.cur_ptr.unwrap().as_ref().containing_edges, next_node)
         } {
@@ -171,9 +180,9 @@ impl<'a, T> NewCursorMut<'a, T> {
     /// a hypergraph with one edge [1, 2, 3] then seek([1,2,3,4]) would
     /// return  `(vec![1,2,3], vec![4])` and the cursor would point to the end
     /// of [1] -> [2] -> [3].
-    pub fn seek(&mut self, edge: impl AsRef<[u32]>) -> (Vec<u32>, Vec<u32>) {
+    pub fn seek(&mut self, edge: impl AsRef<[NodeType]>) -> (Vec<NodeType>, Vec<NodeType>) {
         // first check that each node is contained in the simplex tree
-        let mut unprocessed_nodes: Vec<u32> = edge.as_ref().iter().cloned().collect();
+        let mut unprocessed_nodes: Vec<NodeType> = edge.as_ref().iter().cloned().collect();
         if unprocessed_nodes.is_empty() {
             return (vec![], vec![]);
         }
@@ -236,7 +245,7 @@ impl<T> SimplexTree<T> {
         }
     }
 
-    pub fn add_node(&mut self, data: T) -> u32 {
+    pub fn add_node(&mut self, data: T) -> NodeType {
         let node_id = self.next_node;
         let new_edge = SimpTreeNode {
             parent: None,
@@ -245,11 +254,18 @@ impl<T> SimplexTree<T> {
             data: Some(data),
         };
         self.nodes.insert(node_id, new_edge);
+        if self.next_node == NodeType::MAX {
+            panic!("Data type used to store node id's has ran out of storage. Too many nodes are present in the hypergraph. There is currently no fix to this issue, so you must make your hypergraph smaller.")
+        }
         self.next_node += 1;
         node_id
     }
 
-    pub fn add_edge(&mut self, edge: impl AsRef<[u32]>, data: T) {
+    pub fn add_edge(
+        &mut self,
+        edge: impl AsRef<[NodeType]>,
+        data: T,
+    ) -> Result<Option<T>, SimplexTreeError<T>> {
         let mut cursor = self.cursor_mut();
         let (found_sub_edge, mut not_found_remainder) = cursor.seek(&edge);
         let backup_not_found = not_found_remainder.clone();
@@ -265,8 +281,7 @@ impl<T> SimplexTree<T> {
                 node: next_up_node,
                 data: None,
             };
-            let mut st_node_box = Box::new(st_node);
-            let st_node_ptr = unsafe { NonNull::new_unchecked(Box::into_raw(st_node_box)) };
+            let st_node_ptr = unsafe { NonNull::new_unchecked(Box::into_raw(Box::new(st_node))) };
             let new_ix = unsafe {
                 cursor
                     .cur_ptr
@@ -306,7 +321,7 @@ impl<T> SimplexTree<T> {
             dbg!("after the fact");
             dbg!(cursor.cur_ptr.unwrap().as_mut().node);
             dbg!(cursor.cur_ptr.unwrap().as_ref().containing_edges.len());
-            cursor.cur_ptr.unwrap().as_mut().data = Some(data);
+            Ok(cursor.cur_ptr.unwrap().as_mut().data.replace(data))
         }
     }
 }
