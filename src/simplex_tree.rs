@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, io::Write, marker::PhantomData, ptr::NonNull};
 
-use crate::EdgeSet;
+use crate::{hgraph::Node, EdgeSet};
 use fxhash::FxHashMap;
 /// First what are the operations I would like the hgraph to
 /// be able to implement:
@@ -27,6 +27,7 @@ type Link<T> = Option<NonNull<SimpTreeNode<T>>>;
 
 type NodeType = u32;
 
+// #[derive(Debug)]
 pub enum SimplexTreeError<T> {
     NodesNotPresent {
         nodes: Vec<NodeType>,
@@ -56,6 +57,83 @@ unsafe fn search_link_pointers<T>(outbound_edges: &Vec<Link<T>>, node: NodeType)
         }
     }
     None
+}
+
+struct Cursor<'a, T> {
+    simplex_tree: &'a SimplexTree<T>,
+    prev_node: Option<NodeType>,
+    cur_ptr: Link<T>,
+}
+
+impl<'a, T> Cursor<'a, T> {
+    pub fn advance(&self) -> Option<Cursor<'a, T>> {
+        println!("In advance");
+        std::io::stdout().flush().unwrap();
+        if self.cur_ptr.is_none() {
+            return None;
+        }
+
+        let cur_ref = unsafe { self.cur_ptr.unwrap().as_ref() };
+        let cur_node = cur_ref.node;
+        if self.prev_node.is_none() {
+            if let Some(next_ptr) = cur_ref.containing_edges.first() {
+                let ret = Cursor {
+                    simplex_tree: self.simplex_tree,
+                    prev_node: Some(cur_node),
+                    cur_ptr: *next_ptr,
+                };
+                return Some(ret);
+            } else {
+                // have to find the next node
+                if let Some((_next_node, next_ptr)) =
+                    self.simplex_tree.nodes.range(cur_node + 1..).take(1).next()
+                {
+                    // self.cur_ptr =
+                    //     Some(unsafe { NonNull::new_unchecked(next_ptr as *mut SimpTreeNode<T>) });
+                    // self.prev_node = None;
+                    todo!()
+                } else {
+                    // reached the end of the line
+                    // self.prev_node = None;
+                    // self.cur_ptr = None;
+                    todo!()
+                }
+            }
+        }
+        if cur_node > self.prev_node.unwrap() {
+            // previously moved down
+            if let Some(next_ptr) = cur_ref.containing_edges.first() {
+                // self.cur_ptr = *next_ptr;
+            } else {
+                // Reached a leaf node, move back up.
+                // self.cur_ptr = cur_ref.parent;
+            }
+        } else {
+            // just moved up
+            println!("hello");
+            let found_ix = cur_ref
+                .containing_edges
+                .binary_search_by_key(&self.prev_node.unwrap(), |x| unsafe {
+                    x.unwrap().as_ref().node
+                });
+            match found_ix {
+                Ok(prev_ix) => {
+                    if prev_ix == cur_ref.containing_edges.len() - 1 {
+                        // we just came from the last branch, need to move up.
+                        // self.cur_ptr = cur_ref.parent;
+                    } else {
+                        // can still traverse down
+                        // self.cur_ptr = cur_ref.containing_edges[prev_ix + 1];
+                    }
+                }
+                Err(_) => {
+                    panic!("This should not be an accessible state. The previous node visited was not found in the current nodes children, but cur_node < prev_node.")
+                }
+            }
+        }
+        // self.prev_node = Some(cur_node);
+        todo!()
+    }
 }
 
 #[derive(Debug)]
@@ -255,10 +333,36 @@ impl<T> SimplexTree<T> {
         };
         self.nodes.insert(node_id, new_edge);
         if self.next_node == NodeType::MAX {
-            panic!("Data type used to store node id's has ran out of storage. Too many nodes are present in the hypergraph. There is currently no fix to this issue, so you must make your hypergraph smaller.")
+            panic!(
+                "Data type used to store node id's has ran out of storage.
+                Too many nodes are present in the hypergraph.
+                There is currently no fix to this issue,
+                so you must make your hypergraph smaller."
+            )
         }
         self.next_node += 1;
         node_id
+    }
+
+    pub fn cursor(&self) -> Cursor<T> {
+        Cursor {
+            simplex_tree: &self,
+            prev_node: None,
+            cur_ptr: None,
+        }
+    }
+
+    pub fn add_edge_unchecked(&mut self, edge: impl AsRef<[NodeType]>, data: T) -> Option<T> {
+        if let Ok(res) = self.add_edge(edge, data) {
+            res
+        } else {
+            panic!("Nodes were not present!")
+        }
+    }
+
+    pub fn contains_edge(&self, edge: impl AsRef<[NodeType]>) -> bool {
+        self.cursor();
+        todo!()
     }
 
     pub fn add_edge(
@@ -267,14 +371,14 @@ impl<T> SimplexTree<T> {
         data: T,
     ) -> Result<Option<T>, SimplexTreeError<T>> {
         let mut cursor = self.cursor_mut();
-        let (found_sub_edge, mut not_found_remainder) = cursor.seek(&edge);
-        let backup_not_found = not_found_remainder.clone();
-        dbg!(&found_sub_edge);
-        dbg!(&not_found_remainder);
+        let (_found_sub_edge, mut not_found_remainder) = cursor.seek(&edge);
         not_found_remainder.reverse();
+        // TODO: I think there is a bug here. Currently if I add the edge
+        // `[0, 1, 2, 3]` then the edge `[0,2,3]` should also be present in the
+        // simplicial complex. Depends if this is a simplicial complex or a
+        // hypergraph. I say hypergraph for now.
         while !not_found_remainder.is_empty() {
             let next_up_node = not_found_remainder.pop().unwrap();
-            dbg!(&next_up_node);
             let st_node = SimpTreeNode {
                 parent: cursor.cur_ptr.clone(),
                 containing_edges: Vec::new(),
@@ -293,7 +397,6 @@ impl<T> SimplexTree<T> {
                         "If this node was found then it should have already been processed.",
                     )
             };
-            println!("Found ix: {:}", new_ix);
             unsafe {
                 cursor
                     .cur_ptr
@@ -301,28 +404,11 @@ impl<T> SimplexTree<T> {
                     .as_mut()
                     .containing_edges
                     .insert(new_ix, Some(st_node_ptr));
-                dbg!("checking if node added.");
-                dbg!(cursor.cur_ptr.unwrap().as_ref().containing_edges.len());
-                dbg!(cursor.cur_ptr.unwrap().as_ref().node);
             };
-            dbg!(cursor.advance_to(next_up_node));
-            unsafe {
-                dbg!(cursor.cur_ptr.unwrap().as_ref().node);
-            }
-            dbg!(not_found_remainder.is_empty());
         }
         let mut cursor = self.cursor_mut();
-        println!("after while loop");
-        let (found_sub_edge, mut not_found_remainder) = cursor.seek(&edge);
-        dbg!(found_sub_edge);
-        dbg!(not_found_remainder);
-        unsafe {
-            // cursor.seek(edge);
-            dbg!("after the fact");
-            dbg!(cursor.cur_ptr.unwrap().as_mut().node);
-            dbg!(cursor.cur_ptr.unwrap().as_ref().containing_edges.len());
-            Ok(cursor.cur_ptr.unwrap().as_mut().data.replace(data))
-        }
+        let (found_sub_edge, not_found_remainder) = cursor.seek(&edge);
+        unsafe { Ok(cursor.cur_ptr.unwrap().as_mut().data.replace(data)) }
     }
 }
 
