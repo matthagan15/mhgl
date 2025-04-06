@@ -75,6 +75,7 @@ impl<'a, T> Cursor<'a, T> {
 
         let cur_ref = unsafe { self.cur_ptr.unwrap().as_ref() };
         let cur_node = cur_ref.node;
+        // if no previous node exists then we must be at the node level.
         if self.prev_node.is_none() {
             if let Some(next_ptr) = cur_ref.containing_edges.first() {
                 let ret = Cursor {
