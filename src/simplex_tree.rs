@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, io::Write, marker::PhantomData, ptr::NonNull};
 
-use crate::{hgraph::Node, EdgeSet};
+use crate::{hgraph::Node, EdgeSet, NodeID};
 use fxhash::FxHashMap;
 /// First what are the operations I would like the hgraph to
 /// be able to implement:
@@ -57,6 +57,21 @@ unsafe fn search_link_pointers<T>(outbound_edges: &Vec<Link<T>>, node: NodeType)
         }
     }
     None
+}
+
+struct Iter<'a, T> {
+    simplex_tree: &'a SimplexTree<T>,
+    prev_node: Option<NodeType>,
+    cur_ptr: Link<T>,
+    state: Vec<NodeID>,
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        todo!()
+    }
 }
 
 struct Cursor<'a, T> {

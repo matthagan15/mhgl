@@ -8,7 +8,7 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{HGraph, HyperGraph};
+use crate::{HGraph, HyperGraph, NodeID};
 
 use crate::EdgeSet;
 
@@ -170,62 +170,55 @@ impl Display for ConGraph {
 }
 
 impl HyperGraph for ConGraph {
-    type NodeID = u32;
-
-    type EdgeID = u64;
-
-    fn query_edge(&self, edge: &Self::EdgeID) -> Option<Vec<Self::NodeID>> {
+    fn query_edge(&self, edge: &EdgeID) -> Option<Vec<NodeID>> {
         self.core.query_edge(edge)
     }
 
-    fn containing_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn containing_edges_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<EdgeID> {
         self.core.containing_edges_of_nodes(nodes)
     }
 
-    fn containing_edges(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn containing_edges(&self, edge: &EdgeID) -> Vec<EdgeID> {
         self.core.containing_edges(edge)
     }
 
-    fn link(&self, edge: &Self::EdgeID) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
+    fn link(&self, edge: &EdgeID) -> Vec<(EdgeID, Vec<NodeID>)> {
         self.core.link(edge)
     }
 
-    fn link_of_nodes(
-        &self,
-        nodes: impl AsRef<[Self::NodeID]>,
-    ) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
+    fn link_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<(EdgeID, Vec<NodeID>)> {
         self.core.link_of_nodes(nodes)
     }
 
-    fn maximal_edges(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn maximal_edges(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
         self.core.maximal_edges(edge_id)
     }
 
-    fn maximal_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn maximal_edges_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<EdgeID> {
         self.core.maximal_edges_of_nodes(nodes)
     }
 
-    fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID> {
+    fn edges_of_size(&self, card: usize) -> Vec<EdgeID> {
         self.core.edges_of_size(card)
     }
 
-    fn skeleton(&self, cardinality: usize) -> Vec<Self::EdgeID> {
+    fn skeleton(&self, cardinality: usize) -> Vec<EdgeID> {
         self.core.skeleton(cardinality)
     }
 
-    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn boundary_up(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
         self.core.boundary_up(edge_id)
     }
 
-    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn boundary_down(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
         self.core.boundary_down(edge_id)
     }
 
-    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<EdgeID> {
         self.core.boundary_up_of_nodes(nodes)
     }
 
-    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<EdgeID> {
         self.core.boundary_down_of_nodes(nodes)
     }
 }
@@ -274,7 +267,7 @@ impl FromStr for ConGraph {
             edges.push(node_set);
         }
         let max_seen_node = nodes.iter().fold(0_u32, |acc, e| acc.max(*e)) + 1;
-        let mut core = HGraph::<(), (), u32, u64>::new();
+        let mut core = HGraph::<(), ()>::new();
         let _: Vec<_> = (0..=max_seen_node).map(|_| core.add_node(())).collect();
         for ix in 0..=max_seen_node {
             if nodes.contains(&ix) == false {

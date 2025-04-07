@@ -7,7 +7,7 @@ use std::path::Path;
 use fxhash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 
-use crate::{ConGraph, HgNode};
+use crate::{ConGraph, EdgeID, HgNode, NodeID};
 use crate::{EdgeSet, HyperGraph};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,7 +45,7 @@ pub(crate) struct Edge<N: HgNode, EdgeData> {
 /// change to a trie-type structure called a Simplex Tree used in projects such
 /// as Gudhi. On my first evaluation it did not seem particularly beneficial
 /// asymptotically for computing links, but it may be worth investigating.
-pub struct HGraph<NodeData, EdgeData, NodeID: HgNode = u32, EdgeID: HgNode = u64> {
+pub struct HGraph<NodeData, EdgeData> {
     next_node_id: NodeID,
     next_edge_id: EdgeID,
     pub(crate) edges: FxHashMap<EdgeID, Edge<NodeID, EdgeData>>,
@@ -123,7 +123,7 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
     }
 }
 
-impl<N, E, NodeID: HgNode, EdgeID: HgNode> HGraph<N, E, NodeID, EdgeID>
+impl<N, E> HGraph<N, E>
 where
     N: Default,
     E: Default,
@@ -134,9 +134,8 @@ where
             .collect()
     }
 }
-impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
-    HGraph<NodeData, EdgeData, NodeID, EdgeID>
-{
+
+impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
     pub fn new() -> Self {
         Self {
             next_node_id: NodeID::zero(),
@@ -454,22 +453,15 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     }
 }
 
-impl<N, E, NData, EData> HyperGraph for HGraph<NData, EData, N, E>
-where
-    N: HgNode,
-    E: HgNode,
-{
-    type NodeID = N;
-    type EdgeID = E;
-
-    fn query_edge(&self, edge: &Self::EdgeID) -> Option<Vec<Self::NodeID>> {
+impl<NData, EData> HyperGraph for HGraph<NData, EData> {
+    fn query_edge(&self, edge: &EdgeID) -> Option<Vec<NodeID>> {
         self.edges
             .get(edge)
             .map(|big_edge| big_edge.nodes.node_vec())
     }
 
-    fn containing_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
-        let nodes_set: EdgeSet<Self::NodeID> = nodes.into();
+    fn containing_edges_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<EdgeID> {
+        let nodes_set: EdgeSet<NodeID> = nodes.into();
         let first = nodes_set.get_first_node().unwrap();
         if self.nodes.contains_key(&first) == false {
             return vec![];
@@ -488,7 +480,7 @@ where
         ret
     }
 
-    fn containing_edges(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn containing_edges(&self, edge: &EdgeID) -> Vec<EdgeID> {
         if self.edges.contains_key(edge) == false {
             return Vec::new();
         }
@@ -508,7 +500,7 @@ where
         ret
     }
 
-    fn link(&self, edge: &Self::EdgeID) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
+    fn link(&self, edge: &EdgeID) -> Vec<(EdgeID, Vec<NodeID>)> {
         if self.edges.contains_key(edge) == false {
             return Vec::new();
         }
@@ -532,11 +524,8 @@ where
             .collect()
     }
 
-    fn link_of_nodes(
-        &self,
-        nodes: impl AsRef<[Self::NodeID]>,
-    ) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
-        let edge: EdgeSet<Self::NodeID> = nodes.into();
+    fn link_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<(EdgeID, Vec<NodeID>)> {
+        let edge: EdgeSet<NodeID> = nodes.into();
         let containing_edges = self.containing_edges_of_nodes(edge.node_vec());
         containing_edges
             .into_iter()
@@ -556,7 +545,7 @@ where
             .collect()
     }
 
-    fn maximal_edges(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn maximal_edges(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
         let containing_edges = self.containing_edges(edge_id);
         if containing_edges.is_empty() {
             return Vec::new();
@@ -591,7 +580,7 @@ where
             .collect()
     }
 
-    fn maximal_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn maximal_edges_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<EdgeID> {
         let containing_edges = self.containing_edges_of_nodes(nodes);
         if containing_edges.is_empty() {
             return Vec::new();
@@ -626,7 +615,7 @@ where
         submaximal_edges.into_iter().collect()
     }
 
-    fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID> {
+    fn edges_of_size(&self, card: usize) -> Vec<EdgeID> {
         self.edges
             .iter()
             .filter(|(_, e)| e.nodes.len() == card)
@@ -635,7 +624,7 @@ where
             .collect()
     }
 
-    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn boundary_up(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
         let containing_edges = self.containing_edges(edge_id);
         if containing_edges.is_empty() {
             return Vec::new();
@@ -659,12 +648,12 @@ where
         boundary
     }
 
-    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn boundary_down(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
         if self.edges.contains_key(edge_id) == false {
             return Vec::new();
         }
         let edge_set = &self.edges.get(edge_id).unwrap().nodes;
-        let mut boundary: Vec<Self::EdgeID> = Vec::new();
+        let mut boundary: Vec<EdgeID> = Vec::new();
         for ix in 0..edge_set.len() {
             let mut possible = edge_set.node_vec();
             possible.remove(ix);
@@ -675,7 +664,7 @@ where
         boundary
     }
 
-    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<EdgeID> {
         let nodes_ref = nodes.as_ref();
         let given_nodes_len = nodes_ref.len();
         let containing_edges = self.containing_edges_of_nodes(nodes);
@@ -695,9 +684,9 @@ where
         boundary
     }
 
-    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
-        let edge_set: EdgeSet<Self::NodeID> = nodes.into();
-        let mut boundary: Vec<Self::EdgeID> = Vec::new();
+    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<EdgeID> {
+        let edge_set: EdgeSet<NodeID> = nodes.into();
+        let mut boundary: Vec<EdgeID> = Vec::new();
         for ix in 0..edge_set.len() {
             let mut possible = edge_set.node_vec();
             possible.remove(ix);
@@ -708,7 +697,7 @@ where
         boundary
     }
 
-    fn skeleton(&self, cardinality: usize) -> Vec<Self::EdgeID> {
+    fn skeleton(&self, cardinality: usize) -> Vec<EdgeID> {
         self.edges
             .iter()
             .filter(|(_, e)| e.nodes.len() <= cardinality)
@@ -717,7 +706,7 @@ where
     }
 }
 
-impl<NodeData, EdgeData, NodeID, EdgeID> HGraph<NodeData, EdgeData, NodeID, EdgeID>
+impl<NodeData, EdgeData> HGraph<NodeData, EdgeData>
 where
     NodeID: HgNode + for<'a> Deserialize<'a>,
     EdgeID: HgNode + for<'a> Deserialize<'a>,
@@ -754,11 +743,7 @@ where
     }
 }
 
-impl<NodeData, EdgeData, NodeID, EdgeID> Display for HGraph<NodeData, EdgeData, NodeID, EdgeID>
-where
-    NodeID: HgNode,
-    EdgeID: HgNode,
-{
+impl<NodeData, EdgeData> Display for HGraph<NodeData, EdgeData> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.nodes.len() == 0 {
             println!("Graph is empty. Add nodes for more fun.");
@@ -790,17 +775,17 @@ mod tests {
 
     #[test]
     fn simple_tasks() {
-        let mut g = HGraph::<(), (), u8, u8>::new();
+        let mut g = HGraph::<(), ()>::new();
 
         let nodes: Vec<_> = (0..10).map(|_| g.add_node(())).collect();
         assert_eq!(nodes.len(), 10);
-        let e1 = g.add_edge(&[1_u8, 2, 3][..], ());
+        let e1 = g.add_edge(&[1, 2, 3][..], ());
         let e2 = g.add_edge(vec![1, 2, 4], ());
-        g.add_edge([5_u8, 6, 7], ());
-        assert!(g.find_id([1_u8, 2, 3]).is_some());
+        g.add_edge([5, 6, 7], ());
+        assert!(g.find_id([1, 2, 3]).is_some());
         // is simplex so this should work
         assert!(g.find_id(&[0][..]).is_none());
-        let containing_edges = g.containing_edges_of_nodes([1_u8, 2]);
+        let containing_edges = g.containing_edges_of_nodes([1, 2]);
         assert_eq!(containing_edges.len(), 2);
         assert!(containing_edges.contains(&e1));
         assert!(containing_edges.contains(&e2));
@@ -808,15 +793,15 @@ mod tests {
         g.remove_node(2);
         assert!(affected_edges.contains(&e1));
         assert!(affected_edges.contains(&e2));
-        assert!(g.find_id([1_u8, 3]).is_some());
-        assert!(g.find_id([1_u8, 2, 3]).is_none());
+        assert!(g.find_id([1, 3]).is_some());
+        assert!(g.find_id([1, 2, 3]).is_none());
         let _: Vec<_> = (5..=7).map(|x| g.remove_node(x)).collect();
         assert!(g.find_id([5, 6, 7]).is_none());
     }
 
     #[test]
     fn link_and_maximal() {
-        let mut core = HGraph::<(), (), u8, u8>::new();
+        let mut core = HGraph::<(), ()>::new();
         for _ in 0..10 {
             core.add_node(());
         }
@@ -837,7 +822,7 @@ mod tests {
         for ix in 0..link.len() {
             link[ix].1.sort();
         }
-        let mut expected_link = vec![(e4.clone(), vec![4_u8]), (e5.clone(), vec![4_u8, 5])];
+        let mut expected_link = vec![(e4.clone(), vec![4]), (e5.clone(), vec![4, 5])];
         expected_link.sort();
         assert_eq!(link, expected_link);
     }

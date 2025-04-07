@@ -294,7 +294,7 @@ impl From<Value> for String {
 /// upon creation of a node or edge and new uuids are generated for each new
 /// node or edge.
 pub struct KVGraph {
-    pub(crate) core: HGraph<HashMap<String, Value>, HashMap<String, Value>, Uuid, Uuid>,
+    pub(crate) core: HGraph<HashMap<String, Value>, HashMap<String, Value>>,
     schema: IndexMap<String, ValueTypes>,
 }
 

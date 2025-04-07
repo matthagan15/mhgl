@@ -1,4 +1,4 @@
-use crate::{EdgeSet, HyperGraph};
+use crate::{EdgeID, EdgeSet, HyperGraph, NodeID};
 use rand::prelude::*;
 
 /// `UpDown` and `DownUp` maps edges of cardinality k to cardinality k
@@ -22,17 +22,17 @@ pub enum WalkType {
 /// can be a valid return option (think of the `boundary_down` of a single vertex {v}).
 pub fn random_walk<Walker: HyperGraph>(
     hgraph: &Walker,
-    start: impl AsRef<[Walker::NodeID]>,
+    start: impl AsRef<[NodeID]>,
     num_steps: usize,
     walk_type: WalkType,
-) -> Option<Vec<Walker::NodeID>> {
+) -> Option<Vec<NodeID>> {
     if num_steps == 0 {
         return None;
     }
     let mut rng = thread_rng();
     match walk_type {
         WalkType::Link => {
-            let mut current_location: EdgeSet<Walker::NodeID> = start.into();
+            let mut current_location: EdgeSet<NodeID> = start.into();
             for _ in 0..num_steps {
                 let link_out = hgraph.link_of_nodes(current_location.node_vec());
                 if link_out.len() == 0 {
@@ -45,7 +45,7 @@ pub fn random_walk<Walker: HyperGraph>(
             Some(current_location.to_node_vec())
         }
         WalkType::UpDown => {
-            let mut current_location: Option<Walker::EdgeID> = None;
+            let mut current_location: Option<EdgeID> = None;
             for _ in 0..num_steps {
                 let up_out = if current_location.is_none() {
                     hgraph.boundary_up_of_nodes(start.as_ref())
@@ -66,7 +66,7 @@ pub fn random_walk<Walker: HyperGraph>(
             hgraph.query_edge(&current_location.unwrap())
         }
         WalkType::DownUp => {
-            let mut current_location: Option<Walker::EdgeID> = None;
+            let mut current_location: Option<EdgeID> = None;
             for _ in 0..num_steps {
                 let down_out = if current_location.is_none() {
                     hgraph.boundary_down_of_nodes(start.as_ref())

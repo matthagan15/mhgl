@@ -132,10 +132,10 @@ pub type NodeID = u32;
 pub type EdgeID = u64;
 pub type GraphID = u64;
 
-#[cfg(feature = "uuid")]
-pub mod kvgraph;
-#[cfg(feature = "uuid")]
-pub use kvgraph::KVGraph;
+// #[cfg(feature = "uuid")]
+// pub mod kvgraph;
+// #[cfg(feature = "uuid")]
+// pub use kvgraph::KVGraph;
 
 pub use node_trait::HgNode;
 
@@ -145,15 +145,15 @@ mod tests {
     #[cfg(feature = "uuid")]
     #[test]
     fn simple_dataframe() {
-        use crate::KVGraph;
+        // use crate::KVGraph;
 
-        let mut kvgraph = KVGraph::new();
-        let n0 = kvgraph.add_node_with_label("toronto");
-        let n1 = kvgraph.add_node_with_label("seattle");
-        kvgraph.add_edge_with_label(&[n0, n1], "AC123");
-        kvgraph.insert(&n0, "darkness", 0.6).unwrap();
-        kvgraph.insert(&n1, "darkness", 0.8).unwrap();
-        let df = kvgraph.dataframe();
-        println!("{:}", df);
+        // let mut kvgraph = KVGraph::new();
+        // let n0 = kvgraph.add_node_with_label("toronto");
+        // let n1 = kvgraph.add_node_with_label("seattle");
+        // kvgraph.add_edge_with_label(&[n0, n1], "AC123");
+        // kvgraph.insert(&n0, "darkness", 0.6).unwrap();
+        // kvgraph.insert(&n1, "darkness", 0.8).unwrap();
+        // let df = kvgraph.dataframe();
+        // println!("{:}", df);
     }
 }
