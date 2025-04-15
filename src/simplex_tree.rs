@@ -17,20 +17,18 @@ use fxhash::FxHashMap;
 /// unavoidable. What about finding edges via id?
 #[derive(Debug)]
 pub struct SimplexTree<T> {
-    nodes: BTreeMap<NodeType, SimpTreeNode<T>>,
+    nodes: BTreeMap<NodeID, SimpTreeNode<T>>,
     /// Number of nodes
-    next_node: NodeType,
+    next_node: NodeID,
     _ghost: PhantomData<T>,
 }
 
 type Link<T> = Option<NonNull<SimpTreeNode<T>>>;
 
-type NodeType = u32;
-
 // #[derive(Debug)]
 pub enum SimplexTreeError<T> {
     NodesNotPresent {
-        nodes: Vec<NodeType>,
+        nodes: Vec<NodeID>,
         provided_data: T,
     },
 }
@@ -42,13 +40,13 @@ struct SimpTreeNode<T> {
     /// Should only be `None` on nodes
     parent: Link<T>,
     containing_edges: Vec<Link<T>>,
-    node: NodeType, // Is this the best storage format??
+    node: NodeID, // Is this the best storage format??
     data: Option<T>,
 }
 
 /// Searches a collection of links for the provided node, returning the index
 /// for the first link that points to the given node.
-unsafe fn search_link_pointers<T>(outbound_edges: &Vec<Link<T>>, node: NodeType) -> Option<usize> {
+unsafe fn search_link_pointers<T>(outbound_edges: &Vec<Link<T>>, node: NodeID) -> Option<usize> {
     for ix in 0..outbound_edges.len() {
         if let Some(ptr) = outbound_edges[ix] {
             if ptr.as_ref().node == node {
@@ -61,7 +59,7 @@ unsafe fn search_link_pointers<T>(outbound_edges: &Vec<Link<T>>, node: NodeType)
 
 struct Iter<'a, T> {
     simplex_tree: &'a SimplexTree<T>,
-    prev_node: Option<NodeType>,
+    prev_node: Option<NodeID>,
     cur_ptr: Link<T>,
     state: Vec<NodeID>,
 }
@@ -76,7 +74,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
 
 struct Cursor<'a, T> {
     simplex_tree: &'a SimplexTree<T>,
-    prev_node: Option<NodeType>,
+    prev_node: Option<NodeID>,
     cur_ptr: Link<T>,
 }
 
@@ -155,7 +153,7 @@ impl<'a, T> Cursor<'a, T> {
 #[derive(Debug)]
 struct NewCursorMut<'a, T> {
     simplex_tree: &'a mut SimplexTree<T>,
-    prev_node: Option<NodeType>,
+    prev_node: Option<NodeID>,
     cur_ptr: Link<T>,
 }
 
@@ -233,7 +231,7 @@ impl<'a, T> NewCursorMut<'a, T> {
     }
 
     /// Moves the pointer to the provided `next_node` if possible.
-    pub fn advance_to(&mut self, next_node: NodeType) -> bool {
+    pub fn advance_to(&mut self, next_node: NodeID) -> bool {
         if let Some(next_ix) = unsafe {
             search_link_pointers(&self.cur_ptr.unwrap().as_ref().containing_edges, next_node)
         } {
@@ -274,9 +272,9 @@ impl<'a, T> NewCursorMut<'a, T> {
     /// a hypergraph with one edge [1, 2, 3] then seek([1,2,3,4]) would
     /// return  `(vec![1,2,3], vec![4])` and the cursor would point to the end
     /// of [1] -> [2] -> [3].
-    pub fn seek(&mut self, edge: impl AsRef<[NodeType]>) -> (Vec<NodeType>, Vec<NodeType>) {
+    pub fn seek(&mut self, edge: impl AsRef<[NodeID]>) -> (Vec<NodeID>, Vec<NodeID>) {
         // first check that each node is contained in the simplex tree
-        let mut unprocessed_nodes: Vec<NodeType> = edge.as_ref().iter().cloned().collect();
+        let mut unprocessed_nodes: Vec<NodeID> = edge.as_ref().iter().cloned().collect();
         if unprocessed_nodes.is_empty() {
             return (vec![], vec![]);
         }
@@ -339,7 +337,7 @@ impl<T> SimplexTree<T> {
         }
     }
 
-    pub fn add_node(&mut self, data: T) -> NodeType {
+    pub fn add_node(&mut self, data: T) -> NodeID {
         let node_id = self.next_node;
         let new_edge = SimpTreeNode {
             parent: None,
@@ -348,7 +346,7 @@ impl<T> SimplexTree<T> {
             data: Some(data),
         };
         self.nodes.insert(node_id, new_edge);
-        if self.next_node == NodeType::MAX {
+        if self.next_node == NodeID::MAX {
             panic!(
                 "Data type used to store node id's has ran out of storage.
                 Too many nodes are present in the hypergraph.
@@ -368,7 +366,7 @@ impl<T> SimplexTree<T> {
         }
     }
 
-    pub fn add_edge_unchecked(&mut self, edge: impl AsRef<[NodeType]>, data: T) -> Option<T> {
+    pub fn add_edge_unchecked(&mut self, edge: impl AsRef<[NodeID]>, data: T) -> Option<T> {
         if let Ok(res) = self.add_edge(edge, data) {
             res
         } else {
@@ -376,14 +374,14 @@ impl<T> SimplexTree<T> {
         }
     }
 
-    pub fn contains_edge(&self, edge: impl AsRef<[NodeType]>) -> bool {
+    pub fn contains_edge(&self, edge: impl AsRef<[NodeID]>) -> bool {
         self.cursor();
         todo!()
     }
 
     pub fn add_edge(
         &mut self,
-        edge: impl AsRef<[NodeType]>,
+        edge: impl AsRef<[NodeID]>,
         data: T,
     ) -> Result<Option<T>, SimplexTreeError<T>> {
         let mut cursor = self.cursor_mut();
@@ -454,7 +452,7 @@ mod test {
         dbg!(found);
         dbg!(not_found);
         cursor.print_state();
-        st.add_edge([n0, n1, n2, n3], 'e');
+        let _ = st.add_edge([n0, n1, n2, n3], 'e');
         println!("After adding edge.");
         let mut new_cursor = st.cursor_mut();
         println!("new cursor made?");
