@@ -30,3 +30,8 @@ uuid = { version = "1.2.2", features = [
     "serde",
     "macro-diagnostics",
 ], optional = true }
+
+[features]
+u16_node_id = []
+u64_node_id = []
+u128_node_id = []
