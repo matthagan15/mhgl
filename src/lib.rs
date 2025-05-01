@@ -130,7 +130,6 @@ pub use hypergraph::HyperGraph;
 
 pub type NodeID = u32;
 pub type EdgeID = u64;
-pub type GraphID = u64;
 
 // #[cfg(feature = "uuid")]
 // pub mod kvgraph;

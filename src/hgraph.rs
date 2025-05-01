@@ -7,8 +7,9 @@ use std::path::Path;
 use fxhash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 
+use crate::hypergraph::HyperGraph;
+use crate::EdgeSet;
 use crate::{ConGraph, EdgeID, HgNode, NodeID};
-use crate::{EdgeSet, HyperGraph};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Node<NodeData, EdgeID: HgNode> {
@@ -16,7 +17,6 @@ pub(crate) struct Node<NodeData, EdgeID: HgNode> {
     pub data: NodeData,
 }
 
-#[allow(dead_code)]
 impl<NodeData, EdgeID: HgNode> Node<NodeData, EdgeID> {
     pub fn new(data: NodeData) -> Self {
         Node {
@@ -237,7 +237,7 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
                 id,
                 Edge {
                     nodes: e.nodes,
-                    data: data,
+                    data,
                 },
             );
             return id;

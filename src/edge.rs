@@ -5,11 +5,14 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::HgNode;
+use crate::{HgNode, NodeID};
 
-/// A subset for an overall set system, note that for things like
-/// deserializing and using `From`'s we default always to `Undirected`, so
-/// if you want to make a `Edge::Simplex` from a `Vec` you have to do something like
+fn union(a: impl AsRef<[NodeID]>, b: impl AsRef<[NodeID]>) -> Vec<NodeID> {
+    todo!()
+}
+
+/// An implementation of a finite set utilizing `Vec` for storage
+/// as a hashmap key.
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct EdgeSet<N: HgNode>(pub Vec<N>);
 
@@ -33,8 +36,6 @@ impl<N: HgNode> EdgeSet<N> {
         self.len() == 1
     }
 
-    /// TODO: make this non-cloning, should just return a reference to
-    /// the node
     pub fn get_first_node(&self) -> Option<N> {
         self.0.first().cloned()
     }
