@@ -439,6 +439,18 @@ impl KVGraph {
         }
     }
 
+    /// Gets the label associated with the `id`, returning an empty string if no label present
+    pub fn get_label(&self, id: &Uuid) -> String {
+        if let Some(val) = self.get(id, "label") {
+            match val {
+                Value::String(s) => s.clone(),
+                _ => panic!("label should not be any other type besides String."),
+            }
+        } else {
+            String::new()
+        }
+    }
+
     /// A shorthand for `self.insert(id, "label", label)`.
     pub fn label(&mut self, id: &Uuid, label: impl ToString) -> Result<Option<Value>, String> {
         self.insert(id, "label", label.to_string())
