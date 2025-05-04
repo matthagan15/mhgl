@@ -339,6 +339,14 @@ impl KVGraph {
         id
     }
 
+    pub fn get_nodes(&self) -> Vec<Uuid> {
+        self.core.nodes.keys().cloned().collect()
+    }
+
+    pub fn get_edges(&self) -> Vec<Uuid> {
+        self.core.edges.keys().cloned().collect()
+    }
+
     /// Removes a node from the node set. The deleted node will be added to a
     /// dequeue to be reused later once all possible nodes have been created.
     /// The data stored will be dropped.
