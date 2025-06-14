@@ -434,6 +434,53 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     }
 }
 
+impl<NodeData, EdgeData, NodeID, EdgeID> HGraph<NodeData, EdgeData, NodeID, EdgeID>
+where
+    NodeID: HgNode,
+    EdgeID: HgNode,
+    NodeData: Clone,
+    EdgeData: Clone,
+{
+    /// Returns a new HGraph with the edges that pass the filter, along with all the nodes
+    /// needed to support each edge.
+    pub fn filter_by_edge<F>(&self, filter: F) -> HGraph<NodeData, EdgeData, NodeID, EdgeID>
+    where
+        F: Fn(EdgeID) -> bool,
+    {
+        let new_edges: FxHashMap<EdgeID, Edge<NodeID, EdgeData>> = self
+            .edges
+            .iter()
+            .filter_map(|x| {
+                if filter(*x.0) {
+                    Some((x.0.clone(), x.1.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        let mut nodes_contained_in_edge = HashSet::new();
+        for edge in new_edges.iter() {
+            for node in edge.1.nodes.0.iter() {
+                nodes_contained_in_edge.insert(*node);
+            }
+        }
+        let new_nodes: FxHashMap<NodeID, Node<NodeData, EdgeID>> = nodes_contained_in_edge
+            .into_iter()
+            .map(|node| (node, self.nodes.get(&node).cloned().unwrap()))
+            .collect();
+        let mut next_node_id = *new_nodes.keys().max().unwrap();
+        next_node_id.plus_one();
+        let mut next_edge_id = *new_edges.keys().max().unwrap();
+        next_edge_id.plus_one();
+        HGraph {
+            next_node_id,
+            next_edge_id,
+            edges: new_edges,
+            nodes: new_nodes,
+        }
+    }
+}
+
 impl<N, E, NData, EData> HyperGraph for HGraph<NData, EData, N, E>
 where
     N: HgNode,
