@@ -479,6 +479,13 @@ where
             nodes: new_nodes,
         }
     }
+
+    pub fn star(&self, nodes: impl AsRef<[NodeID]>) -> HGraph<NodeData, EdgeData, NodeID, EdgeID> {
+        let link = self.link_of_nodes(nodes);
+        let link_edges: HashSet<EdgeID> = link.iter().map(|(id, _nodes)| *id).collect();
+        let filter = |edge_id| link_edges.contains(&edge_id);
+        self.filter_by_edge(filter)
+    }
 }
 
 impl<N, E, NData, EData> HyperGraph for HGraph<NData, EData, N, E>
@@ -844,11 +851,11 @@ mod tests {
     #[test]
     fn link_and_maximal() {
         let mut core = HGraph::<(), (), u8, u8>::new();
-        for _ in 0..10 {
+        for _ in 0..7 {
             core.add_node(());
         }
-        core.add_edge(vec![0, 1], ());
-        core.add_edge(vec![0, 6], ());
+        let e1 = core.add_edge(vec![0, 1], ());
+        let _e2 = core.add_edge(vec![0, 6], ());
         let e3 = core.add_edge(vec![0, 3], ());
         let e4 = core.add_edge(vec![0, 1, 4], ());
         let e5 = core.add_edge(vec![0, 1, 4, 5], ());
@@ -867,6 +874,14 @@ mod tests {
         let mut expected_link = vec![(e4.clone(), vec![4_u8]), (e5.clone(), vec![4_u8, 5])];
         expected_link.sort();
         assert_eq!(link, expected_link);
+
+        let star = core.star([1]);
+        let mut star_nodes = star.nodes();
+        star_nodes.sort();
+        assert_eq!(vec![0, 1, 4, 5], star_nodes);
+        let mut star_edges = star.edges();
+        star_edges.sort();
+        assert_eq!(vec![e1, e4, e5], star_edges);
     }
 
     #[test]
