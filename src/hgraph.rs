@@ -808,7 +808,9 @@ where
         s.push_str(x.last().unwrap());
         s.push_str("]\n");
         s.push_str("edges:\n");
-        for e in self.edges.values() {
+        for (id, e) in self.edges.iter() {
+            s.push_str(&id.to_string()[..]);
+            s.push_str(" = ");
             s.push_str(&e.nodes.to_string());
             s.push_str("\n");
         }
