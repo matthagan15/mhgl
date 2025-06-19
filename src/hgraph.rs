@@ -466,7 +466,17 @@ where
         }
         let new_nodes: FxHashMap<NodeID, Node<NodeData, EdgeID>> = nodes_contained_in_edge
             .into_iter()
-            .map(|node| (node, self.nodes.get(&node).cloned().unwrap()))
+            .map(|node| {
+                let mut new_node = self.nodes.get(&node).cloned().unwrap();
+                let new_node_edges = new_node
+                    .containing_edges
+                    .iter()
+                    .filter(|edge_id| filter(**edge_id))
+                    .cloned()
+                    .collect();
+                new_node.containing_edges = new_node_edges;
+                (node, new_node)
+            })
             .collect();
         let mut next_node_id = *new_nodes.keys().max().unwrap();
         next_node_id.plus_one();
