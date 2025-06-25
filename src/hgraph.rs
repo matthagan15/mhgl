@@ -490,6 +490,17 @@ where
         }
     }
 
+    pub fn filter_nodes<F>(&self, filter: F) -> Vec<NodeID>
+    where
+        F: Fn(NodeID) -> bool,
+    {
+        self.nodes
+            .keys()
+            .filter(|node| filter(**node))
+            .cloned()
+            .collect()
+    }
+
     pub fn star(&self, nodes: impl AsRef<[NodeID]>) -> HGraph<NodeData, EdgeData, NodeID, EdgeID> {
         let link = self.link_of_nodes(nodes);
         let link_edges: HashSet<EdgeID> = link.iter().map(|(id, _nodes)| *id).collect();
