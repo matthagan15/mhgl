@@ -84,6 +84,23 @@ impl Value {
             Value::String(_) => ValueTypes::String,
         }
     }
+
+    pub fn parse_val(s: &str, data_type: ValueTypes) -> Option<Value> {
+        match data_type {
+            ValueTypes::Bool => serde_json::from_str::<bool>(s).ok().map(|x| x.into()),
+            ValueTypes::UInt8 => serde_json::from_str::<u8>(s).ok().map(|x| x.into()),
+            ValueTypes::UInt16 => serde_json::from_str::<u16>(s).ok().map(|x| x.into()),
+            ValueTypes::UInt32 => serde_json::from_str::<u32>(s).ok().map(|x| x.into()),
+            ValueTypes::UInt64 => serde_json::from_str::<u64>(s).ok().map(|x| x.into()),
+            ValueTypes::Int8 => serde_json::from_str::<i8>(s).ok().map(|x| x.into()),
+            ValueTypes::Int16 => serde_json::from_str::<i16>(s).ok().map(|x| x.into()),
+            ValueTypes::Int32 => serde_json::from_str::<i32>(s).ok().map(|x| x.into()),
+            ValueTypes::Int64 => serde_json::from_str::<i64>(s).ok().map(|x| x.into()),
+            ValueTypes::Float32 => serde_json::from_str::<f32>(s).ok().map(|x| x.into()),
+            ValueTypes::Float64 => serde_json::from_str::<f64>(s).ok().map(|x| x.into()),
+            ValueTypes::String => Some(Value::String(s.to_string())),
+        }
+    }
 }
 
 impl From<bool> for Value {
