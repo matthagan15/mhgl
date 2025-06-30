@@ -342,6 +342,10 @@ impl KVGraph {
         id
     }
 
+    pub fn has_node(&self, node: Uuid) -> bool {
+        self.core.nodes.contains_key(&node)
+    }
+
     pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<Uuid> {
         (0..num_nodes).map(|_| self.add_node()).collect()
     }
