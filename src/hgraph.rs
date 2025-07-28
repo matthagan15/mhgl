@@ -846,6 +846,40 @@ mod tests {
     use super::HGraph;
 
     #[test]
+    fn syntax() {
+        let mut hg = HGraph::<i32, String>::new();
+        let a = hg.add_node(-1);
+        let b = hg.add_node(3);
+        let c = hg.add_node(5);
+        let d = hg.add_node(7);
+
+        let e1 = hg.add_edge([a, b], "one".to_string());
+        let e2 = hg.add_edge([a, b, c], "two".to_string());
+        let e3 = hg.add_edge([a, b, c, d], "three".to_string());
+
+        assert_eq!(hg.get_edge(&e1), Some(&String::from("one")));
+        assert_eq!(Some(e1), hg.find_id([a, b]));
+        assert_eq!(None, hg.find_id([a]));
+
+        let mut containing_edges = hg.containing_edges(&e1);
+        containing_edges.sort();
+        assert_eq!(containing_edges, vec![e2, e3]);
+
+        let mut containing_edges = hg.containing_edges_of_nodes([a]);
+        containing_edges.sort();
+        assert_eq!(containing_edges, vec![e1, e2, e3]);
+
+        let max_edge1 = hg.maximal_edges(&e1);
+        let max_edge2 = hg.maximal_edges(&e2);
+        assert_eq!(max_edge1.first(), Some(&e3));
+        assert_eq!(max_edge2.first(), Some(&e3));
+
+        let mut link = hg.link(&e1);
+        link.sort_by_key(|x| x.0);
+        assert_eq!(link, vec![(e2, vec![c]), (e3, vec![c, d])]);
+    }
+
+    #[test]
     fn simple_tasks() {
         let mut g = HGraph::<(), (), u8, u8>::new();
 

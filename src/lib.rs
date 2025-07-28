@@ -1,7 +1,28 @@
 #![forbid(unsafe_code)]
 //!# Matt's HyperGraph Library (mhgl)
 //!
-//! A library for working with undirected [hypergraphs](https://en.wikipedia.org/wiki/Hypergraph), which are a generalization of a normal graph. A hypergraph consists of a set of nodes, denoted `N`, and a collection of edges  where each edge is a subset of `N`. For a normal graph each edge is required to be of size 2, for example an edge `(u, v)` between nodes `u` and `v`, whereas in a hypergraph there is no limit on the size of an edge. Each node and edge are assigned IDs, with the type for the ID depending on the struct used. The [`HyperGraph`] trait provides a common api for developing struct independent algorithms.
+//! A library for working with undirected [hypergraphs](https://en.wikipedia.org/wiki/Hypergraph). An undirected hypergraph consists of a set of nodes and a collection of subsets of these nodes, a normal undirected "graph" is therefore a hypergraph where each subset only has 2 nodes. The most generic datatype provided by this library is the [`HGraph`](https://docs.rs/mhgl/latest/mhgl/struct.HGraph.html) which allows for you to specify the data type used to store
+//! both Node and Edge ID's (from any unsigned integer type) and is generic over the data type stored with each node and edge.
+//!
+//! ```rust
+//! use mhgl::HGraph;
+//! type NodeData = i32;
+//! type EdgeData = String;
+//! let mut hg = HGraph::<NodeData, EdgeData>::new();
+//!
+//! let a = hg.add_node(-1);
+//! let b = hg.add_node(3);
+//! let c = hg.add_node(5);
+//! let d = hg.add_node(7);
+//!
+//! let e1 = hg.add_edge([a, b], "one".to_string());
+//! let e2 = hg.add_edge([a, b, c], "two".to_string());
+//! let e3 = hg.add_edge([a, b, c, d], "three".to_string());
+//! 
+//!
+//! ```
+//!
+//! A hypergraph consists of a set of nodes, denoted `N`, and a collection of edges  where each edge is a subset of `N`. For a normal graph each edge is required to be of size 2, for example an edge `(u, v)` between nodes `u` and `v`, whereas in a hypergraph there is no limit on the size of an edge. Each node and edge are assigned IDs, with the type for the ID depending on the struct used. The [`HyperGraph`] trait provides a common api for developing struct independent algorithms.
 //!
 //! # Hypergraph Structs
 //! - [`ConGraph`](https://docs.rs/mhgl/latest/mhgl/struct.ConGraph.html) - a connectivity only option that uses `u32`'s as IDs for
