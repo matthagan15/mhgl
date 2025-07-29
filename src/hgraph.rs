@@ -255,6 +255,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
 
     /// Solely for use by KVGraph, which needs to generate Uuids for each entry.
     /// Returns existing `NodeData` if it was there.
+    #[allow(dead_code)]
     pub(crate) fn add_node_with_id(&mut self, node: NodeData, id: NodeID) -> Option<NodeData> {
         let new_node = Node {
             containing_edges: FxHashSet::default(),
@@ -266,6 +267,7 @@ impl<NodeData, EdgeData, NodeID: HgNode, EdgeID: HgNode>
     }
 
     /// For `KVGraph` only.
+    #[allow(dead_code)]
     pub(crate) fn add_edge_with_id<E>(
         &mut self,
         edge: E,
@@ -502,9 +504,20 @@ where
     }
 
     pub fn star(&self, nodes: impl AsRef<[NodeID]>) -> HGraph<NodeData, EdgeData, NodeID, EdgeID> {
-        let link = self.link_of_nodes(nodes);
-        let link_edges: HashSet<EdgeID> = link.iter().map(|(id, _nodes)| *id).collect();
-        let filter = |edge_id| link_edges.contains(&edge_id);
+        let mut star = HashSet::new();
+        let nodes_set = EdgeSet::from(nodes.as_ref());
+        for node in nodes.as_ref().iter() {
+            for edge in self.containing_edges_of_nodes([*node]) {
+                let edge_nodes =
+                    EdgeSet::from(self.query_edge(&edge).expect("Faulty edge detected."));
+                if nodes_set.contains(&edge_nodes) {
+                    star.insert(edge);
+                } else if edge_nodes.contains_strict(&nodes_set) {
+                    star.insert(edge);
+                }
+            }
+        }
+        let filter = |edge_id| star.contains(&edge_id);
         self.filter_by_edge(filter)
     }
 }
@@ -690,7 +703,7 @@ where
             .collect()
     }
 
-    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Vec<Self::NodeID>> {
         let containing_edges = self.containing_edges(edge_id);
         if containing_edges.is_empty() {
             return Vec::new();
@@ -708,29 +721,38 @@ where
                 .get(&id)
                 .expect("Containing edges broken from boundary_up");
             if containing_edge.nodes.len() == given_edge_len + 1 {
-                boundary.push(id.clone());
+                boundary.push(self.edges.get(&id).unwrap().nodes.node_vec());
             }
         }
         boundary
     }
 
-    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Vec<Self::NodeID>> {
         if self.edges.contains_key(edge_id) == false {
             return Vec::new();
         }
         let edge_set = &self.edges.get(edge_id).unwrap().nodes;
-        let mut boundary: Vec<Self::EdgeID> = Vec::new();
+        if edge_set.len() == 1 {
+            return Vec::new();
+        } else if edge_set.len() == 2 {
+            return edge_set
+                .node_vec()
+                .into_iter()
+                .map(|node| vec![node])
+                .collect();
+        }
+        let mut boundary = Vec::new();
         for ix in 0..edge_set.len() {
             let mut possible = edge_set.node_vec();
             possible.remove(ix);
             if let Some(id) = self.find_id(possible) {
-                boundary.push(id);
+                boundary.push(self.edges.get(&id).unwrap().nodes.node_vec());
             }
         }
         boundary
     }
 
-    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Vec<Self::NodeID>> {
         let nodes_ref = nodes.as_ref();
         let given_nodes_len = nodes_ref.len();
         let containing_edges = self.containing_edges_of_nodes(nodes);
@@ -744,20 +766,29 @@ where
                 .get(&id)
                 .expect("Containing edges broken from boundary_up");
             if containing_edge.nodes.len() == given_nodes_len + 1 {
-                boundary.push(id.clone());
+                boundary.push(self.edges.get(&id).unwrap().nodes.node_vec());
             }
         }
         boundary
     }
 
-    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Vec<Self::NodeID>> {
         let edge_set: EdgeSet<Self::NodeID> = nodes.into();
-        let mut boundary: Vec<Self::EdgeID> = Vec::new();
+        if edge_set.len() == 1 {
+            return Vec::new();
+        } else if edge_set.len() == 2 {
+            return edge_set
+                .node_vec()
+                .into_iter()
+                .map(|node| vec![node])
+                .collect();
+        }
+        let mut boundary = Vec::new();
         for ix in 0..edge_set.len() {
             let mut possible = edge_set.node_vec();
             possible.remove(ix);
             if let Some(id) = self.find_id(possible) {
-                boundary.push(id);
+                boundary.push(self.edges.get(&id).unwrap().nodes.node_vec());
             }
         }
         boundary
@@ -857,8 +888,9 @@ mod tests {
         let e2 = hg.add_edge([a, b, c], "two".to_string());
         let e3 = hg.add_edge([a, b, c, d], "three".to_string());
 
-        assert_eq!(hg.get_edge(&e1), Some(&String::from("one")));
-        assert_eq!(Some(e1), hg.find_id([a, b]));
+        let found_id = hg.find_id([a, b]);
+        let found_string = found_id.map(|id| hg.get_edge(&id)).flatten();
+        assert_eq!(found_string, Some(&String::from("one")));
         assert_eq!(None, hg.find_id([a]));
 
         let mut containing_edges = hg.containing_edges(&e1);
@@ -877,6 +909,22 @@ mod tests {
         let mut link = hg.link(&e1);
         link.sort_by_key(|x| x.0);
         assert_eq!(link, vec![(e2, vec![c]), (e3, vec![c, d])]);
+
+        // Boundaries currently only work on "basis sets", or
+        // single edges in the graph. They do not function as
+        // linear operators acting on linear combinations of
+        // edges yet.
+        let boundary_down = hg.boundary_down_of_nodes([a, b, c]);
+        let boundary_down_id = hg.find_id(&boundary_down[0][..]);
+        assert_eq!(boundary_down_id, Some(e1));
+
+        let mut boundary_single_nodes = hg.boundary_down_of_nodes([a, b]);
+        boundary_single_nodes.sort();
+        assert_eq!(boundary_single_nodes, vec![vec![a], vec![b]]);
+
+        let boundary_up = hg.boundary_up_of_nodes([a, b, c]);
+        let boundary_up_id = hg.find_id(&boundary_up[0][..]);
+        assert_eq!(boundary_up_id, Some(e3));
     }
 
     #[test]
@@ -991,12 +1039,12 @@ mod tests {
         let mut hg = HGraph::<u8, u8>::new();
         let _: Vec<_> = (0..10).map(|x| hg.add_node(x)).collect();
         let e1 = hg.add_edge(vec![0, 1], 1);
-        let e2 = hg.add_edge(vec![0, 1, 2], 2);
-        let e3 = hg.add_edge(vec![0, 1, 3], 3);
+        let _e2 = hg.add_edge(vec![0, 1, 2], 2);
+        let _e3 = hg.add_edge(vec![0, 1, 3], 3);
         let e4 = hg.add_edge(vec![0, 1, 2, 3], 4);
         hg.add_edge(vec![1, 2, 5], 19);
 
-        let expected = vec![e2, e3];
+        let expected = vec![vec![0, 1, 2], vec![0, 1, 3]];
         let mut test_1 = hg.boundary_up(&e1);
         test_1.sort();
         assert_eq!(test_1, expected);
@@ -1005,11 +1053,11 @@ mod tests {
         test_2.sort();
         assert_eq!(test_2, expected);
 
-        let expected_3 = vec![e4];
+        let expected_3 = vec![vec![0, 1, 2, 3]];
         let test_3 = hg.boundary_up_of_nodes(vec![0, 1, 2]);
         assert_eq!(test_3, expected_3);
 
-        let expected_4 = vec![e1];
+        let expected_4 = vec![vec![0, 1]];
         let test_4 = hg.boundary_down_of_nodes(vec![0, 1, 3]);
         assert_eq!(test_4, expected_4);
     }

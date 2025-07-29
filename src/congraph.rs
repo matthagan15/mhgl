@@ -213,19 +213,19 @@ impl HyperGraph for ConGraph {
         self.core.skeleton(cardinality)
     }
 
-    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Vec<Self::NodeID>> {
         self.core.boundary_up(edge_id)
     }
 
-    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Vec<Self::NodeID>> {
         self.core.boundary_down(edge_id)
     }
 
-    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Vec<Self::NodeID>> {
         self.core.boundary_up_of_nodes(nodes)
     }
 
-    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Vec<Self::NodeID>> {
         self.core.boundary_down_of_nodes(nodes)
     }
 }

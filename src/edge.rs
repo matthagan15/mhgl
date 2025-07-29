@@ -142,7 +142,7 @@ impl<N: HgNode> EdgeSet<N> {
             ret_nodes.remove(node);
         }
         let nodes_vec: Vec<N> = ret_nodes.into_iter().collect();
-        Some(EdgeSet(nodes_vec))
+        Some(EdgeSet::from(nodes_vec))
     }
 
     pub fn remove_node(&mut self, node: &N) {

@@ -1,10 +1,16 @@
 [package]
 name = "mhgl"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 license = "MIT"
 description = "Matts HyperGraph Library (MHGL). A straightforward library for hypergraph datastructures."
 repository = "https://github.com/matthagan15/mhgl"
+
+[lib]
+name = "mhgl"
+path = "src/lib.rs"
+crate-type = ["lib"]
+required-features = []
 
 
 [package.metadata.docs.rs]

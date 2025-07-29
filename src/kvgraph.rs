@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::{EdgeSet, HGraph, HyperGraph};
 
-/// The data types of the possible values that can be stored in a `KVGraph`.
+/// The data types of a possible [`Value`](`crate::kvgraph::Value`) that can be stored in a [`KVGraph`](`crate::KVGraph`)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ValueTypes {
     Bool,
@@ -48,9 +48,10 @@ impl FromStr for ValueTypes {
     }
 }
 
-/// The possible values that can be stored in a `KVGraph`, essentially a subset
+/// The possible values that can be stored in a [`KVGraph`](`crate::KVGraph`), essentially a subset
 /// of the polars `AnyValue<'a>` so that `KVGraph` can avoid generic lifetimes.
-/// Helper conversions are implemented.
+/// The associated data type is [`ValueTypes`](`crate::kvgraph::ValueTypes`).
+/// Helper conversions with base data are implemented.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Value {
     Bool(bool),
@@ -802,19 +803,19 @@ impl HyperGraph for KVGraph {
         self.core.skeleton(cardinality)
     }
 
-    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Vec<Self::NodeID>> {
         self.core.boundary_up(edge_id)
     }
 
-    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Vec<Self::NodeID>> {
         self.core.boundary_down(edge_id)
     }
 
-    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Vec<Self::NodeID>> {
         self.core.boundary_up_of_nodes(nodes)
     }
 
-    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Vec<Self::NodeID>> {
         self.core.boundary_down_of_nodes(nodes)
     }
 }

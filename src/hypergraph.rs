@@ -55,18 +55,18 @@ pub trait HyperGraph {
     /// adds a single node to the provided edge.
     /// Example: If a graph has edges {1, 2}, {1,2, 3}, {1,2,4}, and {1, 2, 3, 4} with ids 1, 2, 3, and 4 respectively, then `boundary_up(1)` would give
     /// vec![2, 3].
-    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID>;
+    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Vec<Self::NodeID>>;
 
     /// Finds the edges that are the same as the provided edge_id but
     /// have a single node removed. For example, {1, 2} would be in
     /// boundary_down of {1, 2, 3} if both edges were present.
     /// Returns an empty vec if the edge_id is incorrect.
-    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID>;
+    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Vec<Self::NodeID>>;
 
     /// Finds all edges which contain one more node than the provided
     /// node.
-    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
+    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Vec<Self::NodeID>>;
 
     /// Finds all edges that have one node removed from the provided nodes.
-    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID>;
+    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Vec<Self::NodeID>>;
 }
