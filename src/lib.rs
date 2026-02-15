@@ -1,4 +1,3 @@
-#![forbid(unsafe_code)]
 //!# Matt's HyperGraph Library (mhgl)
 //!
 //! A library for working with undirected [hypergraphs](https://en.wikipedia.org/wiki/Hypergraph). An undirected hypergraph consists of a set of nodes and a collection of subsets of these nodes, a normal undirected "graph" is therefore a hypergraph where each subset only has 2 nodes. The most generic datatype provided by this library is the [`HGraph`](`crate::HGraph`) which allows for you to specify the data type used to store
@@ -144,6 +143,7 @@ mod edge;
 mod hgraph;
 mod hypergraph;
 mod node_trait;
+mod pointer_graph;
 
 pub use congraph::ConGraph;
 pub use edge::EdgeSet;
