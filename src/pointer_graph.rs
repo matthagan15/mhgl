@@ -15,6 +15,18 @@ impl<N, E> Node<N, E> {
     pub fn add_edge(&mut self, edge: EdgeLink<N, E>) {
         self.containing_edges.push(edge);
     }
+
+    pub fn remove_edge(&mut self, edge: EdgeLink<N, E>) {
+        let mut ixs_to_remove = Vec::new();
+        for ix in 0..self.containing_edges.len() {
+            if self.containing_edges[ix] == edge {
+                ixs_to_remove.push(ix);
+            }
+        }
+        for ix in ixs_to_remove.into_iter().rev() {
+            self.containing_edges.remove(ix);
+        }
+    }
 }
 
 struct Edge<N, E> {
@@ -34,6 +46,19 @@ impl<N, E> Edge<N, E> {
     /// for now, just add it.
     pub fn add_node(&mut self, node: NodeLink<N, E>) {
         self.nodes.push(node);
+    }
+
+    /// Guaranteed to remove possibly duplicated nodes.
+    pub fn remove_node(&mut self, node: NodeLink<N, E>) {
+        let mut ixs_to_remove = Vec::new();
+        for ix in 0..self.nodes.len() {
+            if self.nodes[ix] == node {
+                ixs_to_remove.push(ix);
+            }
+        }
+        for ix in ixs_to_remove.into_iter().rev() {
+            self.nodes.remove(ix);
+        }
     }
 }
 
@@ -89,5 +114,36 @@ impl<N, E> HGraph<N, E> {
         self.edges.insert(id, edge_link);
         self.next_edge_id += 1;
         id
+    }
+
+    /// This will leave "dangling" edges. It is up to you, dear reader, to take care of those.
+    pub fn remove_node(&mut self, node_id: usize) -> Option<N> {
+        if self.nodes.contains_key(&node_id) == false {
+            return None;
+        }
+        let mut node_link = self.nodes.remove(&node_id).unwrap();
+        unsafe {
+            for edge in node_link.as_mut().containing_edges.iter_mut() {
+                let edge_ref = edge.as_mut();
+                edge_ref.remove_node(node_link);
+            }
+        }
+        let node = unsafe { Box::from_raw(node_link.as_ptr()) };
+        return Some(node.data);
+    }
+
+    pub fn remove_edge(&mut self, edge_id: usize) -> Option<E> {
+        if self.edges.contains_key(&edge_id) == false {
+            return None;
+        }
+        let mut edge_link = self.edges.remove(&edge_id).unwrap();
+        unsafe {
+            for node in edge_link.as_mut().nodes.iter_mut() {
+                let node_ref = node.as_mut();
+                node_ref.remove_edge(edge_link);
+            }
+        }
+        let edge = unsafe { Box::from_raw(edge_link.as_ptr()) };
+        return Some(edge.data);
     }
 }
