@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
 
-use fxhash::{FxHashMap, FxHashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 
 use crate::{ConGraph, HgNode};
