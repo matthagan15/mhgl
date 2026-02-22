@@ -65,15 +65,18 @@ impl<N, E> Edge<N, E> {
             .fold(true, |acc, x| acc & x)
     }
 
-    pub fn link(&self, nodes: &FxHashSet<NodeLink<N, E>>) -> FxHashSet<NodeLink<N, E>> {
-        if self.contains_nodes(nodes) == false {
-            return FxHashSet::default();
+    pub fn link<'a, I>(&'a self, nodes: I) -> Vec<NodeLink<N, E>>
+    where
+        I: IntoIterator<Item = &'a NodeLink<N, E>>,
+    {
+        let mut ret = self.nodes.clone();
+        for node in nodes.into_iter() {
+            if ret.contains(node) == false {
+                return Vec::new();
+            }
+            ret.remove(node);
         }
-        self.nodes
-            .iter()
-            .filter(|node| nodes.contains(&node))
-            .cloned()
-            .collect()
+        ret.into_iter().collect()
     }
 }
 
@@ -225,6 +228,46 @@ impl<N, E> HGraph<N, E> {
                     } else {
                         None
                     }
+                })
+                .collect()
+        }
+    }
+
+    /// computes the hypergraph link of the provided nodes
+    ///
+    /// PANICS if any of the provided nodes are not in the hypergraph.
+    pub fn link(&self, nodes: &[usize]) -> Vec<Vec<usize>> {
+        if nodes.is_empty() {
+            return Vec::new();
+        }
+        for node in nodes.iter() {
+            if !self.nodes.contains_key(node) {
+                panic!("provided node for link is not contained in hypergraph.");
+            }
+        }
+
+        let first_node = self.nodes.get(&nodes[0]).unwrap();
+        let node_link_iter = nodes.iter().map(|node_id| self.nodes.get(node_id).unwrap());
+        // SAFETY: All pointer dereferences are behind a borrow of &self, therefore they are
+        // pointers to valid memory as another thread must have a mutable reference in order
+        // to modify them.
+        unsafe {
+            first_node
+                .as_ref()
+                .containing_edges
+                .iter()
+                .filter_map(|edge| {
+                    if edge.as_ref().contains_nodes(node_link_iter.clone()) {
+                        Some(edge.as_ref().link(node_link_iter.clone()))
+                    } else {
+                        None
+                    }
+                })
+                .map(|node_links| {
+                    node_links
+                        .into_iter()
+                        .map(|node_link| node_link.as_ref().id)
+                        .collect::<Vec<usize>>()
                 })
                 .collect()
         }
