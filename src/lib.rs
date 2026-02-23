@@ -149,6 +149,7 @@ pub use congraph::ConGraph;
 pub use edge::EdgeSet;
 pub use hgraph::HGraph;
 pub use hypergraph::HyperGraph;
+pub use pointer_graph::HGraph as PGraph;
 
 #[cfg(feature = "uuid")]
 pub mod kvgraph;
