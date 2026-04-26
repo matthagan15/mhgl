@@ -1,7 +1,8 @@
-use std::{collections::HashMap, marker::PhantomData, ptr::NonNull};
+use std::{collections::HashMap, fmt::Display, marker::PhantomData, ptr::NonNull};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
+#[derive(Debug)]
 struct Node<N, E> {
     id: usize,
     data: N,
@@ -25,6 +26,7 @@ impl<N, E> Node<N, E> {
     }
 }
 
+#[derive(Debug)]
 struct Edge<N, E> {
     id: usize,
     data: E,
@@ -91,6 +93,7 @@ type EdgeLink<N, E> = NonNull<Edge<N, E>>;
 ///
 /// change the data for a node or edge with
 /// `insert_node` and `insert_edge`
+#[derive(Debug)]
 pub struct HGraph<N, E> {
     nodes: FxHashMap<usize, NodeLink<N, E>>,
     edges: FxHashMap<usize, EdgeLink<N, E>>,
@@ -118,6 +121,33 @@ impl<N, E> HGraph<N, E> {
         self.edges.len()
     }
 
+    pub fn print(&self) {
+        println!("{:}\nNodes\n{:}", "=".repeat(99), "-".repeat(99));
+        for (node_id, node_link) in self.nodes.iter() {
+            let containing_edges: Vec<usize> = unsafe {
+                node_link
+                    .as_ref()
+                    .containing_edges
+                    .iter()
+                    .map(|edge_link| edge_link.as_ref().id)
+                    .collect()
+            };
+            println!("{:} - {:?}", node_id, containing_edges);
+        }
+
+        println!("{:}\nEdges\n{:}", "=".repeat(99), "-".repeat(99));
+        for (edge_id, edge) in self.edges.iter() {
+            let edge_nodes: Vec<usize> = unsafe {
+                edge.as_ref()
+                    .nodes
+                    .iter()
+                    .map(|node_link| node_link.as_ref().id)
+                    .collect()
+            };
+            println!("{:} - {:?}", edge_id, edge_nodes);
+        }
+    }
+
     pub fn add_node(&mut self, data: N) -> usize {
         let id = self.next_node_id;
         let node = Node::new(id, data);
@@ -136,9 +166,11 @@ impl<N, E> HGraph<N, E> {
         let id = self.next_edge_id;
         let edge = Edge::new(id, data);
         let edge_box = Box::new(edge);
-        let edge_link = unsafe { NonNull::new_unchecked(Box::into_raw(edge_box)) };
+        let mut edge_link = unsafe { NonNull::new_unchecked(Box::into_raw(edge_box)) };
         for node_id in nodes.iter() {
             if let Some(node_link) = self.nodes.get_mut(node_id) {
+                let edge = unsafe { edge_link.as_mut() };
+                edge.add_node(*node_link);
                 let node = unsafe { node_link.as_mut() };
                 node.add_edge(edge_link.clone())
             }
@@ -206,10 +238,18 @@ impl<N, E> HGraph<N, E> {
         }
     }
 
-    /// If the provided nodes is empty this returns an empty vector.
+    /// Edge Cases:
+    /// - If nodes is empty this returns the empty set
+    /// - If a provided node is not in the hypergraph this method panics.
     pub fn get_containing_edges(&self, nodes: &[usize]) -> Vec<usize> {
         if nodes.len() == 0 {
             return Vec::new();
+        }
+
+        for node in nodes.iter() {
+            if !self.nodes.contains_key(node) {
+                panic!("provided node for containing edges is not contained in hypergraph.");
+            }
         }
 
         let first_node = self
@@ -233,10 +273,11 @@ impl<N, E> HGraph<N, E> {
         }
     }
 
-    /// computes the hypergraph link of the provided nodes
+    /// computes the hypergraph link of the provided nodes. Returns each
+    /// edge id that contains the provided nodes and their respective links.
     ///
     /// PANICS if any of the provided nodes are not in the hypergraph.
-    pub fn link(&self, nodes: &[usize]) -> Vec<Vec<usize>> {
+    pub fn link(&self, nodes: &[usize]) -> Vec<(usize, Vec<usize>)> {
         if nodes.is_empty() {
             return Vec::new();
         }
@@ -248,28 +289,82 @@ impl<N, E> HGraph<N, E> {
 
         let first_node = self.nodes.get(&nodes[0]).unwrap();
         let node_link_iter = nodes.iter().map(|node_id| self.nodes.get(node_id).unwrap());
-        // SAFETY: All pointer dereferences are behind a borrow of &self, therefore they are
-        // pointers to valid memory as another thread must have a mutable reference in order
-        // to modify them.
         unsafe {
             first_node
                 .as_ref()
                 .containing_edges
                 .iter()
-                .filter_map(|edge| {
-                    if edge.as_ref().contains_nodes(node_link_iter.clone()) {
-                        Some(edge.as_ref().link(node_link_iter.clone()))
-                    } else {
-                        None
-                    }
-                })
-                .map(|node_links| {
-                    node_links
+                .filter(|edge| edge.as_ref().contains_nodes(node_link_iter.clone()))
+                .map(|edge| {
+                    let id = edge.as_ref().id;
+                    let node_links = edge.as_ref().link(node_link_iter.clone());
+                    let edge_link = node_links
                         .into_iter()
                         .map(|node_link| node_link.as_ref().id)
-                        .collect::<Vec<usize>>()
+                        .collect::<Vec<usize>>();
+                    (id, edge_link)
                 })
                 .collect()
         }
+    }
+}
+
+impl<N: Display, E: Display> HGraph<N, E> {
+    pub fn print_with_data(&self) {
+        println!("{:}\nNodes\n{:}", "=".repeat(99), "-".repeat(99));
+        for (node_id, node_link) in self.nodes.iter() {
+            let containing_edges: Vec<usize> = unsafe {
+                node_link
+                    .as_ref()
+                    .containing_edges
+                    .iter()
+                    .map(|edge_link| edge_link.as_ref().id)
+                    .collect()
+            };
+            println!(
+                "{:} - {:} - {:?}",
+                node_id,
+                unsafe { node_link.as_ref().data.to_string() },
+                containing_edges
+            );
+        }
+
+        println!("{:}\nEdges\n{:}", "=".repeat(99), "-".repeat(99));
+        for (edge_id, edge) in self.edges.iter() {
+            let edge_nodes: Vec<usize> = unsafe {
+                edge.as_ref()
+                    .nodes
+                    .iter()
+                    .map(|node_link| node_link.as_ref().id)
+                    .collect()
+            };
+            println!(
+                "{:} - {:} - {:?}",
+                edge_id,
+                unsafe { edge.as_ref().data.to_string() },
+                edge_nodes
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::HGraph;
+
+    #[test]
+    fn basic_traversal() {
+        let mut hg = HGraph::new();
+        let a = hg.add_node('a');
+        let b = hg.add_node('b');
+        let c = hg.add_node('c');
+        hg.add_edge("ab".to_string(), &[a, b]);
+        hg.add_edge("abc".to_string(), &[a, b, c]);
+        hg.print_with_data();
+        let containing_edges = hg.get_containing_edges(&[a]);
+        dbg!(containing_edges);
+        dbg!(&hg);
+        let link = hg.link(&[a]);
+        dbg!(link);
     }
 }
