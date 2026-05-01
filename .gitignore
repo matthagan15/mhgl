@@ -2,3 +2,4 @@
 .DS_Store
 /Cargo.lock
 .VSCodeCounter/**
+/hgraph_file.hg
