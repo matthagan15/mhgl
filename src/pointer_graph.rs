@@ -350,7 +350,58 @@ impl<N: Display, E: Display> HGraph<N, E> {
 
 #[cfg(test)]
 mod tests {
+    use std::{collections::HashMap, path::Path, time::Instant};
+
+    use rand::Rng;
+
     use super::HGraph;
+
+    #[test]
+    fn random_walk_benchmark() {
+        // Load the file via the hashmap-based HGraph, which supports serde
+        let hg = crate::hgraph::HGraph::<u16, ()>::from_file(Path::new("hgraph_file.hg"))
+            .expect("failed to load hgraph_file.hg");
+
+        // Reconstruct into pointer_graph::HGraph, building an ID map u32 -> usize
+        let mut pg = HGraph::<(), ()>::new();
+        let mut sorted_node_ids: Vec<u32> = hg.nodes.keys().cloned().collect();
+        sorted_node_ids.sort();
+        let mut id_map: HashMap<u32, usize> = HashMap::new();
+        for orig_id in sorted_node_ids {
+            let new_id = pg.add_node(());
+            id_map.insert(orig_id, new_id);
+        }
+        for edge in hg.edges.values() {
+            let mapped: Vec<usize> = edge.nodes.node_vec().iter().map(|n| id_map[n]).collect();
+            pg.add_edge((), &mapped);
+        }
+
+        // Pre-generate random indices in 0..3 (link guaranteed >= 3) before timing
+        let max_steps = 10;
+        let mut rng = rand::thread_rng();
+        let rng_vals: Vec<usize> = (0..max_steps).map(|_| rng.gen::<usize>() % 3).collect();
+
+        // Timed random walk - pointer_graph
+        let mut current: Vec<usize> = vec![0];
+        let t = Instant::now();
+        for i in 0..max_steps {
+            let mut link = pg.link(&current);
+            current = link.swap_remove(rng_vals[i]).1;
+        }
+        let elapsed = t.elapsed().as_secs_f64();
+        println!("pointer_graph random walk: {:.6}s", elapsed);
+
+        // Timed random walk - hgraph::HGraph
+        use crate::hypergraph::HyperGraph;
+        let mut current_hg: Vec<u32> = vec![0];
+        let t = Instant::now();
+        for i in 0..max_steps {
+            let mut link = hg.link_of_nodes(&current_hg);
+            current_hg = link.swap_remove(rng_vals[i]).1;
+        }
+        let elapsed = t.elapsed().as_secs_f64();
+        println!("hgraph random walk:        {:.6}s", elapsed);
+    }
 
     #[test]
     fn basic_traversal() {
