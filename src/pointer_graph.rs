@@ -361,37 +361,58 @@ mod tests {
         // Load the file via the hashmap-based HGraph, which supports serde
         let hg = crate::hgraph::HGraph::<u16, ()>::from_file(Path::new("hgraph_file.hg"))
             .expect("failed to load hgraph_file.hg");
-
+        println!("graph loaded");
         // Reconstruct into pointer_graph::HGraph, building an ID map u32 -> usize
         let mut pg = HGraph::<(), ()>::new();
+        println!("sorting nodes");
         let mut sorted_node_ids: Vec<u32> = hg.nodes.keys().cloned().collect();
         sorted_node_ids.sort();
+        println!("nodes sorted");
+        println!("adding nodes");
         let mut id_map: HashMap<u32, usize> = HashMap::new();
+        let mut count = 0;
+        let tot = sorted_node_ids.len();
         for orig_id in sorted_node_ids {
+            if count % (tot / 100) == 0 {
+                println!("{:}% nodes done.", count as f64 / tot as f64);
+            }
             let new_id = pg.add_node(());
             id_map.insert(orig_id, new_id);
+            count += 1;
         }
+        println!("nodes added.");
+        println!("edges being added.");
+        count = 0;
+        let tot = hg.edges.values().len();
         for edge in hg.edges.values() {
+            if count % (tot / 100) == 0 {
+                println!("{:}% edges done.", count as f64 / tot as f64);
+            }
             let mapped: Vec<usize> = edge.nodes.node_vec().iter().map(|n| id_map[n]).collect();
             pg.add_edge((), &mapped);
+            count += 1;
         }
-
+        println!("edges done.");
         // Pre-generate random indices in 0..3 (link guaranteed >= 3) before timing
-        let max_steps = 10;
+        let max_steps = 1000;
         let mut rng = rand::thread_rng();
         let rng_vals: Vec<usize> = (0..max_steps).map(|_| rng.gen::<usize>() % 3).collect();
 
         // Timed random walk - pointer_graph
+        println!("Starting pointer graph traversal.");
         let mut current: Vec<usize> = vec![0];
         let t = Instant::now();
         for i in 0..max_steps {
+            dbg!(&current);
             let mut link = pg.link(&current);
+            dbg!(&link);
             current = link.swap_remove(rng_vals[i]).1;
         }
         let elapsed = t.elapsed().as_secs_f64();
-        println!("pointer_graph random walk: {:.6}s", elapsed);
+        println!("pointer_graph random walk: {:}s", elapsed);
 
         // Timed random walk - hgraph::HGraph
+        println!("starting hashmap traversal.");
         use crate::hypergraph::HyperGraph;
         let mut current_hg: Vec<u32> = vec![0];
         let t = Instant::now();
@@ -400,7 +421,7 @@ mod tests {
             current_hg = link.swap_remove(rng_vals[i]).1;
         }
         let elapsed = t.elapsed().as_secs_f64();
-        println!("hgraph random walk:        {:.6}s", elapsed);
+        println!("hgraph random walk:        {:}s", elapsed);
     }
 
     #[test]
