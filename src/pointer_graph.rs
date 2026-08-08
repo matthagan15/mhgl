@@ -1,6 +1,31 @@
 use std::{collections::HashMap, fmt::Display, marker::PhantomData, ptr::NonNull};
 
+use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
+
+pub fn complete_hgraph<N: Default, E: Default>(
+    num_nodes: usize,
+    max_cardinality: usize,
+) -> HGraph<N, E> {
+    let mut hg = HGraph::<N, E>::new();
+    let mut node_ids = Vec::new();
+    for _ in 0..num_nodes {
+        let node_id = hg.add_node(N::default());
+        node_ids.push(node_id);
+    }
+    for cardinality in 2..=max_cardinality {
+        for set in node_ids
+            .iter()
+            .combinations(cardinality)
+            .map(|set_of_refs| set_of_refs.into_iter().cloned().collect::<Vec<usize>>())
+        {
+            if hg.find_edge_id(&set[..]).is_empty() {
+                hg.add_edge(E::default(), &set);
+            }
+        }
+    }
+    hg
+}
 
 #[derive(Debug)]
 struct Node<N, E> {
@@ -67,18 +92,40 @@ impl<N, E> Edge<N, E> {
             .fold(true, |acc, x| acc & x)
     }
 
-    pub fn link<'a, I>(&'a self, nodes: I) -> Vec<NodeLink<N, E>>
+    pub fn nodes_equality<'a, I>(&'a self, nodes: I) -> bool
     where
         I: IntoIterator<Item = &'a NodeLink<N, E>>,
     {
-        let mut ret = self.nodes.clone();
+        let mut nodes_count = 0;
+        let mut ret = true;
         for node in nodes.into_iter() {
-            if ret.contains(node) == false {
-                return Vec::new();
+            if self.nodes.contains(node) == false {
+                ret &= false;
             }
+            nodes_count += 1;
+        }
+        if nodes_count != self.nodes.len() {
+            ret &= false;
+        }
+        ret
+    }
+
+    pub fn link<'a, I>(&'a self, nodes: I) -> Option<Vec<NodeLink<N, E>>>
+    where
+        I: IntoIterator<Item = &'a NodeLink<N, E>>,
+    {
+        let nodes_vec = nodes.into_iter().collect::<Vec<_>>();
+        if self.contains_nodes(nodes_vec.clone()) == false {
+            return None;
+        }
+        if self.nodes_equality(nodes_vec.clone()) {
+            return Some(Vec::new());
+        }
+        let mut ret = self.nodes.clone();
+        for node in nodes_vec.into_iter() {
             ret.remove(node);
         }
-        ret.into_iter().collect()
+        Some(ret.into_iter().collect())
     }
 }
 
@@ -273,8 +320,43 @@ impl<N, E> HGraph<N, E> {
         }
     }
 
+    /// On empty or single element input this returns an empty vector.
+    /// Otherwise it finds all edge ids associated with the provided nodes.
+    /// If any of the nodes are not present in the graph this panics.
+    pub fn find_edge_id(&self, nodes: &[usize]) -> Vec<usize> {
+        if nodes.len() < 2 {
+            return Vec::new();
+        }
+        for node in nodes {
+            if self.nodes.contains_key(node) == false {
+                panic!("HGraph does not contain provided node id: {:}", *node);
+            }
+        }
+        let node_ptrs = nodes
+            .iter()
+            .map(|node_id| self.nodes.get(node_id).unwrap())
+            .collect::<Vec<_>>();
+        let first_node = nodes.first().unwrap();
+        let first_node_data_struct = self
+            .nodes
+            .get(first_node)
+            .expect("Provided a node not present in the graph");
+        let mut ret = Vec::new();
+        unsafe {
+            for edge in first_node_data_struct.as_ref().containing_edges.iter() {
+                // TODO: An allocation occurs here, can possibly eliminate with better function design
+                if edge.as_ref().nodes_equality(node_ptrs.clone()) {
+                    ret.push(edge.as_ref().id);
+                }
+            }
+        }
+        ret
+    }
+
     /// computes the hypergraph link of the provided nodes. Returns each
     /// edge id that contains the provided nodes and their respective links.
+    ///
+    /// Does not return empty sets.
     ///
     /// PANICS if any of the provided nodes are not in the hypergraph.
     pub fn link(&self, nodes: &[usize]) -> Vec<(usize, Vec<usize>)> {
@@ -295,14 +377,22 @@ impl<N, E> HGraph<N, E> {
                 .containing_edges
                 .iter()
                 .filter(|edge| edge.as_ref().contains_nodes(node_link_iter.clone()))
-                .map(|edge| {
+                .filter_map(|edge| {
                     let id = edge.as_ref().id;
                     let node_links = edge.as_ref().link(node_link_iter.clone());
-                    let edge_link = node_links
-                        .into_iter()
-                        .map(|node_link| node_link.as_ref().id)
-                        .collect::<Vec<usize>>();
-                    (id, edge_link)
+                    if let Some(node_links) = node_links {
+                        if node_links.is_empty() {
+                            None
+                        } else {
+                            let edge_link = node_links
+                                .into_iter()
+                                .map(|node_link| node_link.as_ref().id)
+                                .collect::<Vec<usize>>();
+                            Some((id, edge_link))
+                        }
+                    } else {
+                        None
+                    }
                 })
                 .collect()
         }
@@ -352,77 +442,11 @@ impl<N: Display, E: Display> HGraph<N, E> {
 mod tests {
     use std::{collections::HashMap, path::Path, time::Instant};
 
-    use rand::Rng;
+    use rand::{distributions::Uniform, Rng};
+
+    use crate::{pointer_graph::complete_hgraph, HyperGraph};
 
     use super::HGraph;
-
-    #[test]
-    fn random_walk_benchmark() {
-        // Load the file via the hashmap-based HGraph, which supports serde
-        let hg = crate::hgraph::HGraph::<u16, ()>::from_file(Path::new("hgraph_file.hg"))
-            .expect("failed to load hgraph_file.hg");
-        println!("graph loaded");
-        // Reconstruct into pointer_graph::HGraph, building an ID map u32 -> usize
-        let mut pg = HGraph::<(), ()>::new();
-        println!("sorting nodes");
-        let mut sorted_node_ids: Vec<u32> = hg.nodes.keys().cloned().collect();
-        sorted_node_ids.sort();
-        println!("nodes sorted");
-        println!("adding nodes");
-        let mut id_map: HashMap<u32, usize> = HashMap::new();
-        let mut count = 0;
-        let tot = sorted_node_ids.len();
-        for orig_id in sorted_node_ids {
-            if count % (tot / 100) == 0 {
-                println!("{:}% nodes done.", count as f64 / tot as f64);
-            }
-            let new_id = pg.add_node(());
-            id_map.insert(orig_id, new_id);
-            count += 1;
-        }
-        println!("nodes added.");
-        println!("edges being added.");
-        count = 0;
-        let tot = hg.edges.values().len();
-        for edge in hg.edges.values() {
-            if count % (tot / 100) == 0 {
-                println!("{:}% edges done.", count as f64 / tot as f64);
-            }
-            let mapped: Vec<usize> = edge.nodes.node_vec().iter().map(|n| id_map[n]).collect();
-            pg.add_edge((), &mapped);
-            count += 1;
-        }
-        println!("edges done.");
-        // Pre-generate random indices in 0..3 (link guaranteed >= 3) before timing
-        let max_steps = 1000;
-        let mut rng = rand::thread_rng();
-        let rng_vals: Vec<usize> = (0..max_steps).map(|_| rng.gen::<usize>() % 3).collect();
-
-        // Timed random walk - pointer_graph
-        println!("Starting pointer graph traversal.");
-        let mut current: Vec<usize> = vec![0];
-        let t = Instant::now();
-        for i in 0..max_steps {
-            dbg!(&current);
-            let mut link = pg.link(&current);
-            dbg!(&link);
-            current = link.swap_remove(rng_vals[i]).1;
-        }
-        let elapsed = t.elapsed().as_secs_f64();
-        println!("pointer_graph random walk: {:}s", elapsed);
-
-        // Timed random walk - hgraph::HGraph
-        println!("starting hashmap traversal.");
-        use crate::hypergraph::HyperGraph;
-        let mut current_hg: Vec<u32> = vec![0];
-        let t = Instant::now();
-        for i in 0..max_steps {
-            let mut link = hg.link_of_nodes(&current_hg);
-            current_hg = link.swap_remove(rng_vals[i]).1;
-        }
-        let elapsed = t.elapsed().as_secs_f64();
-        println!("hgraph random walk:        {:}s", elapsed);
-    }
 
     #[test]
     fn basic_traversal() {
@@ -438,5 +462,68 @@ mod tests {
         dbg!(&hg);
         let link = hg.link(&[a]);
         dbg!(link);
+    }
+
+    #[test]
+    fn find_id() {
+        let mut hg = HGraph::new();
+        let a = hg.add_node('a');
+        let b = hg.add_node('b');
+        let c = hg.add_node('c');
+        let e1 = hg.add_edge("ab".to_string(), &[a, b]);
+        let _e2 = hg.add_edge("abc".to_string(), &[a, b, c]);
+        let e3 = hg.add_edge("booty".to_string(), &[a, b]);
+        let mut first_check = hg.find_edge_id(&[a, b]);
+        first_check.sort();
+        assert_eq!(first_check, vec![e1, e3]);
+        assert!(hg.find_edge_id(&[a]).is_empty());
+    }
+
+    #[test]
+    fn uniform_hgraph_test() {
+        println!("starting.");
+        let num_nodes = 100;
+        let cardinality = 3;
+        let num_steps = 1000;
+        let start = Instant::now();
+        let hg = complete_hgraph::<(), ()>(num_nodes, cardinality);
+        println!(
+            "pointer graph construction time: {:}",
+            start.elapsed().as_secs_f64()
+        );
+        println!("pointer graph constructed.");
+        let start = Instant::now();
+        let og_hg = crate::hgraph::uniform_hgraph::<(), ()>(num_nodes, cardinality);
+        println!(
+            "og graph construction time: {:}",
+            start.elapsed().as_secs_f64()
+        );
+        println!("og hgraph constructed.");
+        let mut rng = rand::thread_rng();
+        let choices = (0..num_steps)
+            .map(|_| rng.sample(Uniform::new(0, 10_usize)))
+            .collect::<Vec<usize>>();
+        println!("starting pointer graph");
+        let start = Instant::now();
+        let mut walker = vec![0];
+        for ix in 0..num_steps {
+            let mut link = hg.link(&walker);
+            walker = link.swap_remove(choices[ix]).1;
+        }
+        let pointer_elapsed = start.elapsed().as_secs_f64();
+        dbg!(walker);
+        println!("Pointer graph: {:}", pointer_elapsed);
+
+        println!("starting og hgraph");
+        let start = Instant::now();
+        let mut walker = vec![0];
+        for ix in 0..num_steps {
+            let mut link = og_hg.link_of_nodes(&walker);
+            walker = link.swap_remove(choices[ix]).1;
+        }
+        let og_elapsed = start.elapsed().as_secs_f64();
+        println!("og hg: {:}", og_elapsed);
+        println!("ratio og / pointer: {:}", og_elapsed / pointer_elapsed);
+        dbg!(walker);
     }
 }

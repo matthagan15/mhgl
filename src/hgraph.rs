@@ -4,11 +4,36 @@ use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
 
+use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 
 use crate::{ConGraph, HgNode};
 use crate::{EdgeSet, HyperGraph};
+
+pub fn uniform_hgraph<N: Default, E: Default>(
+    num_nodes: usize,
+    max_cardinality: usize,
+) -> HGraph<N, E> {
+    let mut hg = HGraph::<N, E>::new();
+    let mut node_ids = Vec::new();
+    for _ in 0..num_nodes {
+        let node_id = hg.add_node(N::default());
+        node_ids.push(node_id);
+    }
+    for cardinality in 2..=max_cardinality {
+        for set in node_ids
+            .iter()
+            .combinations(cardinality)
+            .map(|set_of_refs| set_of_refs.into_iter().cloned().collect::<Vec<u32>>())
+        {
+            if hg.find_id(&set[..]).is_none() {
+                hg.add_edge(&set, E::default());
+            }
+        }
+    }
+    hg
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Node<NodeData, EdgeID: HgNode> {
