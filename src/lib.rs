@@ -7,8 +7,9 @@
 //! Here is a sample usage of adding nodes, edges, computing containing and
 //! maximal containing edges, links, and boundaries. The hypergraph specific
 //! functions are collected in the [`HyperGraph`](`crate::HyperGraph`) trait and shared with the
-//! connectivity only datastructure [`ConGraph`](`crate::ConGraph`) and the generic key-value structure [`KVGraph`](`crate::KVGraph`).
+//! connectivity only datastructure [`ConGraph`](`crate::ConGraph`).
 //! ```rust
+//! use mhgl::*;
 //! let mut hg = HGraph::<i32, String>::new();
 //! let a = hg.add_node(-1);
 //! let b = hg.add_node(3);
@@ -67,50 +68,7 @@
 //! -[`HGraph`](`crate::HGraph`) - A struct generic over four types: the node data, the edge data, the node IDs, and the edge IDs. There are no trait bounds on the node and edge types. Additionally generic over the size of integers `u8` through `u128`
 //! to store NodeIDs and EdgeIDs with `u32` and `u64` as the default for the respective IDs.
 //! Utilizes an adjacency-list storage system.
-//! - [`KVGraph`](`crate::KVGraph`) - A key-value hypergraph where each node and edge allows you
-//! to store simple [`kvgraph::Value`](`crate::kvgraph::Value`)s (of type [`kvgraph::ValueTypes`](`crate::kvgraph::ValueTypes`)) modeled after a simple subset of the Polars `AnyValue<'a>`.
 //!
-//! `ConGraph` and `KVGraph` are essentially wrappers around `HGraph` with
-//! slightly tweaked function signatures for adding and deleting nodes or edges
-//! (for example
-//! you don't need to provide data for adding nodes to a `ConGraph` but you do
-//! for `HGraph`).
-//!
-//! # Example
-//! ```rust
-//! use mhgl::*;
-//!
-//! let mut kvgraph = KVGraph::new();
-//! let n0 = kvgraph.add_node_with_label("toronto");
-//! let n1 = kvgraph.add_node_with_label("seattle");
-//! let edge = kvgraph.add_edge_with_label(&[n0, n1], "AC123").unwrap();
-//! kvgraph.insert(&n0, "darkness", 0.6);
-//! kvgraph.insert(&n1, "darkness", 0.8);
-//! let df = kvgraph.dataframe();
-//! println!("{:}", df);
-//! ```
-//! This print statement gives the following table
-//! ```
-//! shape: (5, 8)
-//!┌────────────┬───────────────────────────────────┬───────────────────────────────────┬───────────────────┬──────────┐
-//! │ label      ┆ id                                ┆ nodes                             ┆ labelled_nodes    ┆ darkness │
-//! │ ---        ┆ ---                               ┆ ---                               ┆ ---               ┆ ---      │
-//! │ str        ┆ str                               ┆ str                               ┆ str               ┆ f64      │
-//! ╞════════════╪═══════════════════════════════════╪═══════════════════════════════════╪═══════════════════╪══════════╡
-//! │ toronto    ┆ 6347a42e-0bde-4d80-aad3-7e8c59d3… ┆ [6347a42e-0bde-4d80-aad3-7e8c59d… ┆ [toronto]         ┆ 0.6      │
-//! │ seattle    ┆ 032e1a16-ec39-4045-8ebd-381c2b06… ┆ [032e1a16-ec39-4045-8ebd-381c2b0… ┆ [seattle]         ┆ 0.8      │
-//! │ AC123      ┆ 1b233128-22d2-4158-850d-b4b814d5… ┆ [1b233128-22d2-4158-850d-b4b814d… ┆ [seattle,toronto] ┆ null     │
-//! └────────────┴───────────────────────────────────┴───────────────────────────────────┴───────────────────┴──────────┘
-//! ```
-//! Currently data schema is shared between nodes and edges, which is
-//! unfortunate.
-//!
-//! # Features
-//! There are 2 features related to the [`KVGraph`](`crate::kvgraph`) module
-//! - **"uuid"** to enable the use of [`KVGraph`] as it uses `Uuid`s as the ID
-//! type for both nodes and edges.
-//! - **"polars"** to compute [`polars`](https://www.pola.rs) dataframes of
-//! any collection of nodes or edges.
 //!
 //! # Traits
 //! - [`HyperGraph`](`crate::HyperGraph`) - A collection of functions for querying the adjacency
@@ -125,8 +83,6 @@
 //!     - [`boundary_up`](`HyperGraph::boundary_up`) the boundary up operator comes from topology and the terminology of simplicial complexes. It takes the input edge and finds all edges that are only a single extra node added to the input.
 //!     - [`boundary_down`](`HyperGraph::boundary_down`) similar to the `boundary_up` operator but removes a node.
 //!
-//! - [`HgNode`](`crate::HgNode`) - A marker trait for indicating which types are usuable for
-//! node and edge IDs (spoiler: `u8`, `u16, `u32`, `u64`, and `u132`. Don't use `Uuid`s even though they implement the trait.)
 //!
 //! # Alternative Hypergraph Libraries
 //! This library should be considered as an **alpha** version. Here are a few
