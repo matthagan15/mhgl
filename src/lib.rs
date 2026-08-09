@@ -104,6 +104,14 @@ pub use congraph::ConGraph;
 pub use edge::EdgeSet;
 pub use hgraph::HGraph;
 pub use hypergraph::HyperGraph;
+#[cfg(feature = "edge_id_u32")]
+pub type EdgeID = u32;
 
+#[cfg(not(feature = "edge_id_u32"))]
 pub type EdgeID = u64;
+
+#[cfg(feature = "node_id_u32")]
+pub type NodeID = u32;
+
+#[cfg(not(feature = "node_id_u32"))]
 pub type NodeID = u64;

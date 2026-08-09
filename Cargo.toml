@@ -1,6 +1,6 @@
 [package]
 name = "mhgl"
-version = "0.2.4"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 description = "Matts HyperGraph Library (MHGL). A straightforward library for hypergraph datastructures."
@@ -22,23 +22,10 @@ all-features = true
 [dependencies]
 fxhash = "0.2.1"
 indexmap = { version = "2.2.6", features = ["serde"] }
-polars = { version = "0.39.2", features = [
-    "dtype-u8",
-    "dtype-u16",
-    "dtype-i8",
-    "dtype-i16",
-], optional = true }
 rand = "0.8.5"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.91"
-uuid = { version = "1.2.2", features = [
-    "v4",
-    "fast-rng",
-    "serde",
-    "macro-diagnostics",
-], optional = true }
 
 [features]
-u128_id = []
-
-u32_edge_id = []
+node_id_u32 = []
+edge_id_u32 = []
