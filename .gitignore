@@ -1,3 +1,5 @@
 /target
 /Cargo.lock
 .VSCodeCounter/**
+.DS_Store
+**/*.hg

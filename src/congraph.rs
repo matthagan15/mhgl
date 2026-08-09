@@ -8,11 +8,9 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{HGraph, HyperGraph};
+use crate::{EdgeID, HGraph, HyperGraph, NodeID};
 
 use crate::EdgeSet;
-
-type EdgeID = u64;
 
 /// A connectivity only hypergraph object. Essentially a wrapper
 /// around `HGraph` with simpler add nodes/edges and simpler
@@ -36,13 +34,13 @@ impl ConGraph {
     }
 
     /// Panics if new node cannot be added.
-    pub fn add_node(&mut self) -> u32 {
+    pub fn add_node(&mut self) -> NodeID {
         self.core.add_node(())
     }
 
     /// Adds `num_nodes` nodes to the graph, returning a vector containing
     /// the nodes created. `panic`s if it runs out of nodes to allocate.
-    pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<u32> {
+    pub fn add_nodes(&mut self, num_nodes: usize) -> Vec<NodeID> {
         (0..num_nodes).map(|_| self.core.add_node(())).collect()
     }
 
@@ -51,19 +49,19 @@ impl ConGraph {
     /// retain the edge {1} so that way further nodes can
     /// be added back to the edge. If 1 is then removed the empty edge will be
     /// deleted.
-    pub fn remove_node(&mut self, node: u32) {
+    pub fn remove_node(&mut self, node: NodeID) {
         self.core.remove_node(node);
     }
 
     /// Removes a collection of nodes and any resulting empty edges.
-    pub fn remove_nodes(&mut self, nodes: Vec<u32>) {
+    pub fn remove_nodes(&mut self, nodes: Vec<NodeID>) {
         for node in nodes {
             self.core.remove_node(node);
         }
     }
 
     /// All node IDs that are currently in use.
-    pub fn nodes(&self) -> Vec<u32> {
+    pub fn nodes(&self) -> Vec<NodeID> {
         self.core.nodes.keys().cloned().collect()
     }
 
@@ -72,7 +70,7 @@ impl ConGraph {
     /// ### `panic`s
     /// - If not all nodes are present in the hypergraph
     /// - If you run out of possible id's usable with the `EdgeID` storage type
-    pub fn add_edge(&mut self, nodes: impl AsRef<[u32]>) -> EdgeID {
+    pub fn add_edge(&mut self, nodes: impl AsRef<[NodeID]>) -> EdgeID {
         self.core.add_edge(nodes, ())
     }
 
@@ -83,7 +81,7 @@ impl ConGraph {
     /// In case you forget it :)
     pub fn find_id<E>(&self, nodes: E) -> Option<EdgeID>
     where
-        E: AsRef<[u32]>,
+        E: AsRef<[NodeID]>,
     {
         self.core.find_id(nodes)
     }
@@ -99,8 +97,8 @@ impl ConGraph {
     /// would an edge without any nodes in `cut_nodes`.
     /// The type `ToSet` is any collection that can be converted to a sparse
     /// set representation.
-    pub fn cut(&self, cut_nodes: impl AsRef<[u32]>) -> usize {
-        let cut_as_edge: EdgeSet<u32> = cut_nodes.into();
+    pub fn cut(&self, cut_nodes: impl AsRef<[NodeID]>) -> usize {
+        let cut_as_edge: EdgeSet = cut_nodes.into();
         let mut counted_edges: HashSet<EdgeID> = HashSet::new();
         for node in cut_as_edge.0.iter() {
             let out_edges: Vec<EdgeID> = self
@@ -170,62 +168,55 @@ impl Display for ConGraph {
 }
 
 impl HyperGraph for ConGraph {
-    type NodeID = u32;
-
-    type EdgeID = u64;
-
-    fn query_edge(&self, edge: &Self::EdgeID) -> Option<Vec<Self::NodeID>> {
+    fn query_edge(&self, edge: &EdgeID) -> Option<Vec<NodeID>> {
         self.core.query_edge(edge)
     }
 
-    fn containing_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn containing_edges_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<EdgeID> {
         self.core.containing_edges_of_nodes(nodes)
     }
 
-    fn containing_edges(&self, edge: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn containing_edges(&self, edge: &EdgeID) -> Vec<EdgeID> {
         self.core.containing_edges(edge)
     }
 
-    fn link(&self, edge: &Self::EdgeID) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
+    fn link(&self, edge: &EdgeID) -> Vec<(EdgeID, Vec<NodeID>)> {
         self.core.link(edge)
     }
 
-    fn link_of_nodes(
-        &self,
-        nodes: impl AsRef<[Self::NodeID]>,
-    ) -> Vec<(Self::EdgeID, Vec<Self::NodeID>)> {
+    fn link_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<(EdgeID, Vec<NodeID>)> {
         self.core.link_of_nodes(nodes)
     }
 
-    fn maximal_edges(&self, edge_id: &Self::EdgeID) -> Vec<Self::EdgeID> {
+    fn maximal_edges(&self, edge_id: &EdgeID) -> Vec<EdgeID> {
         self.core.maximal_edges(edge_id)
     }
 
-    fn maximal_edges_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Self::EdgeID> {
+    fn maximal_edges_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<EdgeID> {
         self.core.maximal_edges_of_nodes(nodes)
     }
 
-    fn edges_of_size(&self, card: usize) -> Vec<Self::EdgeID> {
+    fn edges_of_size(&self, card: usize) -> Vec<EdgeID> {
         self.core.edges_of_size(card)
     }
 
-    fn skeleton(&self, cardinality: usize) -> Vec<Self::EdgeID> {
+    fn skeleton(&self, cardinality: usize) -> Vec<EdgeID> {
         self.core.skeleton(cardinality)
     }
 
-    fn boundary_up(&self, edge_id: &Self::EdgeID) -> Vec<Vec<Self::NodeID>> {
+    fn boundary_up(&self, edge_id: &EdgeID) -> Vec<Vec<NodeID>> {
         self.core.boundary_up(edge_id)
     }
 
-    fn boundary_down(&self, edge_id: &Self::EdgeID) -> Vec<Vec<Self::NodeID>> {
+    fn boundary_down(&self, edge_id: &EdgeID) -> Vec<Vec<NodeID>> {
         self.core.boundary_down(edge_id)
     }
 
-    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Vec<Self::NodeID>> {
+    fn boundary_up_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<Vec<NodeID>> {
         self.core.boundary_up_of_nodes(nodes)
     }
 
-    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[Self::NodeID]>) -> Vec<Vec<Self::NodeID>> {
+    fn boundary_down_of_nodes(&self, nodes: impl AsRef<[NodeID]>) -> Vec<Vec<NodeID>> {
         self.core.boundary_down_of_nodes(nodes)
     }
 }
@@ -236,6 +227,7 @@ impl FromStr for ConGraph {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // TODO: Convert this to regex
         let lines: Vec<&str> = s.lines().collect();
+        let mut core = HGraph::<(), ()>::new();
         let mut nodes_ix = 0;
         let mut edges_start_ix = 0;
         for ix in 0..lines.len() {
@@ -255,7 +247,7 @@ impl FromStr for ConGraph {
         }
         let mut nodes = HashSet::new();
         for node in node_string.split(',') {
-            nodes.insert(node.trim().parse::<u32>().expect("node parse error."));
+            nodes.insert(node.trim().parse::<NodeID>().expect("node parse error."));
         }
         let mut edges = Vec::new();
         for edge_ix in edges_start_ix..lines.len() {
@@ -269,12 +261,16 @@ impl FromStr for ConGraph {
             let mut node_set = Vec::new();
             for node_str in edge_string.split(',') {
                 println!("node_str: {:}", node_str);
-                node_set.push(node_str.trim().parse::<u32>().expect("node parse error."));
+                node_set.push(
+                    node_str
+                        .trim()
+                        .parse::<NodeID>()
+                        .expect("node parse error."),
+                );
             }
             edges.push(node_set);
         }
-        let max_seen_node = nodes.iter().fold(0_u32, |acc, e| acc.max(*e)) + 1;
-        let mut core = HGraph::<(), (), u32, u64>::new();
+        let max_seen_node = nodes.iter().fold(0, |acc, e| acc.max(*e)) + 1;
         let _: Vec<_> = (0..=max_seen_node).map(|_| core.add_node(())).collect();
         for ix in 0..=max_seen_node {
             if nodes.contains(&ix) == false {
@@ -293,17 +289,17 @@ mod test {
 
     use std::str::FromStr;
 
-    use crate::{congraph::ConGraph, HyperGraph};
+    use crate::{congraph::ConGraph, HyperGraph, NodeID};
 
     #[test]
     fn test_creating_and_deleting_nodes() {
         let mut hg = ConGraph::new();
         let first_100 = hg.add_nodes(100);
-        assert_eq!(first_100, (0_u32..100_u32).collect::<Vec<u32>>());
-        let removed = 99_u32;
+        assert_eq!(first_100, (0..100).collect::<Vec<NodeID>>());
+        let removed = 99;
         hg.remove_node(removed);
         let one_hundred = hg.add_nodes(1);
-        assert_eq!(one_hundred[0], 100_u32);
+        assert_eq!(one_hundred[0], 100);
     }
 
     #[test]

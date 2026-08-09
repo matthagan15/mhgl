@@ -5,16 +5,16 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::HgNode;
+use crate::NodeID;
 
 /// A subset for an overall set system, note that for things like
 /// deserializing and using `From`'s we default always to `Undirected`, so
 /// if you want to make a `Edge::Simplex` from a `Vec` you have to do something like
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
-pub struct EdgeSet<N: HgNode>(pub Vec<N>);
+pub struct EdgeSet(pub Vec<NodeID>);
 
 #[allow(dead_code)]
-impl<N: HgNode> EdgeSet<N> {
+impl EdgeSet {
     /// Creates an empty edge.
     pub fn new() -> Self {
         EdgeSet(Vec::new())
@@ -33,33 +33,33 @@ impl<N: HgNode> EdgeSet<N> {
         self.len() == 1
     }
 
-    pub fn get_first_node(&self) -> Option<N> {
+    pub fn get_first_node(&self) -> Option<NodeID> {
         self.0.first().cloned()
     }
 
-    pub fn node_set(&self) -> HashSet<N> {
+    pub fn node_set(&self) -> HashSet<NodeID> {
         self.0.clone().into_iter().collect()
     }
 
-    pub fn node_vec(&self) -> Vec<N> {
+    pub fn node_vec(&self) -> Vec<NodeID> {
         self.0.clone().into_iter().collect()
     }
 
-    pub fn to_node_set(self) -> HashSet<N> {
+    pub fn to_node_set(self) -> HashSet<NodeID> {
         self.0.into_iter().collect()
     }
 
-    pub fn to_node_vec(self) -> Vec<N> {
+    pub fn to_node_vec(self) -> Vec<NodeID> {
         self.0
     }
 
-    pub fn add_node(&mut self, node: N) {
+    pub fn add_node(&mut self, node: NodeID) {
         if let Err(ix) = self.0.binary_search(&node) {
             self.0.insert(ix, node);
         }
     }
 
-    pub fn contains_node(&self, node: &N) -> bool {
+    pub fn contains_node(&self, node: &NodeID) -> bool {
         if self.0.len() == 0 {
             return false;
         }
@@ -123,7 +123,7 @@ impl<N: HgNode> EdgeSet<N> {
         for node in rhs.0.iter() {
             tot.insert(*node);
         }
-        let mut union: Vec<N> = tot.into_iter().collect();
+        let mut union: Vec<NodeID> = tot.into_iter().collect();
         union.sort();
         EdgeSet(union)
     }
@@ -141,17 +141,17 @@ impl<N: HgNode> EdgeSet<N> {
         for node in rhs.0.iter() {
             ret_nodes.remove(node);
         }
-        let nodes_vec: Vec<N> = ret_nodes.into_iter().collect();
+        let nodes_vec: Vec<NodeID> = ret_nodes.into_iter().collect();
         Some(EdgeSet::from(nodes_vec))
     }
 
-    pub fn remove_node(&mut self, node: &N) {
+    pub fn remove_node(&mut self, node: &NodeID) {
         if let Ok(ix) = self.0.binary_search(node) {
             self.0.remove(ix);
         }
     }
 
-    pub fn remove_nodes(&mut self, nodes: &Vec<N>) {
+    pub fn remove_nodes(&mut self, nodes: &Vec<NodeID>) {
         for node in nodes.iter() {
             self.remove_node(node);
         }
@@ -182,7 +182,7 @@ impl<N: HgNode> EdgeSet<N> {
     }
 }
 
-impl<N: HgNode> Serialize for EdgeSet<N> {
+impl Serialize for EdgeSet {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -203,7 +203,7 @@ impl<N: HgNode> Serialize for EdgeSet<N> {
     }
 }
 
-impl<'de, N: HgNode> Deserialize<'de> for EdgeSet<N> {
+impl<'de> Deserialize<'de> for EdgeSet {
     /// Note: will default to Edge::Undirected
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -218,9 +218,9 @@ impl<'de, N: HgNode> Deserialize<'de> for EdgeSet<N> {
             data.remove(data.len() - 1);
         }
         if data.contains(",") {
-            let mut v: Vec<N> = data
+            let mut v: Vec<NodeID> = data
                 .split(',')
-                .filter_map(|x| -> Option<N> {
+                .filter_map(|x| -> Option<NodeID> {
                     if let Ok(number) = x.parse() {
                         Some(number)
                     } else {
@@ -231,7 +231,7 @@ impl<'de, N: HgNode> Deserialize<'de> for EdgeSet<N> {
             v.sort();
             Ok(EdgeSet(v))
         } else {
-            if let Ok(n) = data.parse::<N>() {
+            if let Ok(n) = data.parse::<NodeID>() {
                 Ok(EdgeSet(vec![n]))
             } else {
                 if data.len() == 0 {
@@ -245,7 +245,7 @@ impl<'de, N: HgNode> Deserialize<'de> for EdgeSet<N> {
     }
 }
 
-impl<N: HgNode> Display for EdgeSet<N> {
+impl Display for EdgeSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = String::new();
         s.push_str("[");
@@ -258,10 +258,10 @@ impl<N: HgNode> Display for EdgeSet<N> {
     }
 }
 
-impl<N: HgNode, R: AsRef<[N]>> From<R> for EdgeSet<N> {
+impl<R: AsRef<[NodeID]>> From<R> for EdgeSet {
     fn from(value: R) -> Self {
         let ref_value = value.as_ref();
-        let mut nodes: Vec<N> = ref_value.iter().cloned().collect();
+        let mut nodes: Vec<NodeID> = ref_value.iter().cloned().collect();
         nodes.sort();
         nodes.dedup();
         EdgeSet(nodes)
@@ -275,10 +275,10 @@ mod test {
 
     #[test]
     fn test_contains() {
-        let e1 = EdgeSet::from([1_u8, 2, 3, 4]);
-        let e2 = EdgeSet::from([1_u8, 2, 3]);
-        let e3 = EdgeSet::from([0_u8, 7, 9]);
-        let e4 = EdgeSet::from([1_u8, 2, 3, 4]);
+        let e1 = EdgeSet::from([1, 2, 3, 4]);
+        let e2 = EdgeSet::from([1, 2, 3]);
+        let e3 = EdgeSet::from([0, 7, 9]);
+        let e4 = EdgeSet::from([1, 2, 3, 4]);
         assert!(e1.contains(&e2));
         assert!(e1.contains_strict(&e2));
         assert!(!e1.contains_strict(&e4));
@@ -289,8 +289,8 @@ mod test {
 
     #[test]
     fn conversions() {
-        let node_vec = vec![1_u8, 2, 3];
-        let node_arr = [1_u8, 2, 3];
+        let node_vec = vec![1, 2, 3];
+        let node_arr = [1, 2, 3];
         let e1 = EdgeSet::from(&node_vec);
         let e2 = EdgeSet::from(&node_vec[..]);
         let e3 = EdgeSet::from(node_vec);
@@ -304,8 +304,8 @@ mod test {
 
     #[test]
     fn maximal() {
-        let e1 = EdgeSet::from([1_u8, 2, 3]);
-        let e2 = EdgeSet::from([1_u8, 3]);
+        let e1 = EdgeSet::from([1, 2, 3]);
+        let e2 = EdgeSet::from([1, 3]);
         assert!(e1.contains_strict(&e2));
     }
 }

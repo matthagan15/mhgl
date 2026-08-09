@@ -143,35 +143,11 @@ mod congraph;
 mod edge;
 mod hgraph;
 mod hypergraph;
-mod node_trait;
 
 pub use congraph::ConGraph;
 pub use edge::EdgeSet;
 pub use hgraph::HGraph;
 pub use hypergraph::HyperGraph;
 
-#[cfg(feature = "uuid")]
-pub mod kvgraph;
-#[cfg(feature = "uuid")]
-pub use kvgraph::KVGraph;
-
-pub use node_trait::HgNode;
-
-#[cfg(test)]
-mod tests {
-    #[cfg(feature = "polars")]
-    #[cfg(feature = "uuid")]
-    #[test]
-    fn simple_dataframe() {
-        use crate::KVGraph;
-
-        let mut kvgraph = KVGraph::new();
-        let n0 = kvgraph.add_node_with_label("toronto");
-        let n1 = kvgraph.add_node_with_label("seattle");
-        kvgraph.add_edge_with_label(&[n0, n1], "AC123");
-        kvgraph.insert(&n0, "darkness", 0.6).unwrap();
-        kvgraph.insert(&n1, "darkness", 0.8).unwrap();
-        let df = kvgraph.dataframe();
-        println!("{:}", df);
-    }
-}
+pub type EdgeID = u64;
+pub type NodeID = u64;
