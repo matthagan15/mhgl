@@ -5,6 +5,9 @@ use std::io::{BufReader, Write};
 use std::path::Path;
 
 use itertools::Itertools;
+use rand::RngExt;
+use rand_chacha::rand_core::SeedableRng;
+use rand_chacha::ChaCha8Rng;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +32,43 @@ pub fn uniform_hgraph<N: Default, E: Default>(
         {
             if hg.find_id(&set[..]).is_none() {
                 hg.add_edge(&set, E::default());
+            }
+        }
+    }
+    hg
+}
+
+pub fn erdos_renyi_complex<N: Default, E: Default>(
+    num_nodes: usize,
+    cardinality: usize,
+    probability: f64,
+    seed: Option<usize>,
+) -> HGraph<N, E> {
+    let mut hg = HGraph::<N, E>::new();
+    let mut node_ids = Vec::new();
+    for _ in 0..num_nodes {
+        node_ids.push(hg.add_node(N::default()));
+    }
+    let mut rng = ChaCha8Rng::seed_from_u64(seed.unwrap_or(0) as u64);
+    let mut seen_edges: HashSet<EdgeSet<u32>> = HashSet::new();
+    let bernoulli = rand::distr::Bernoulli::new(probability).unwrap();
+    for set in node_ids
+        .iter()
+        .combinations(cardinality)
+        .map(|x| x.into_iter().cloned().collect::<Vec<_>>())
+    {
+        let edge_set = EdgeSet::from(&set);
+        if seen_edges.contains(&edge_set) {
+            continue;
+        }
+        seen_edges.insert(edge_set);
+        if rng.sample(bernoulli) {
+            for subset in set.iter().powerset() {
+                if subset.len() < 2 {
+                    continue;
+                }
+                let e = subset.into_iter().cloned().collect::<Vec<_>>();
+                hg.add_edge(e, E::default());
             }
         }
     }
@@ -897,7 +937,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::HyperGraph;
+    use crate::{hgraph::erdos_renyi_complex, HyperGraph};
 
     use super::HGraph;
 
@@ -1085,5 +1125,14 @@ mod tests {
         let expected_4 = vec![vec![0, 1]];
         let test_4 = hg.boundary_down_of_nodes(vec![0, 1, 3]);
         assert_eq!(test_4, expected_4);
+    }
+
+    #[test]
+    fn erdos_renyi_complex_test() {
+        let p = 0.2;
+        let n = 15;
+        let d = 4;
+        let hg: HGraph<(), ()> = erdos_renyi_complex(n, d, p, Some(42));
+        println!("hg:\n{:}", hg);
     }
 }

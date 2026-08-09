@@ -442,7 +442,7 @@ impl<N: Display, E: Display> HGraph<N, E> {
 mod tests {
     use std::{collections::HashMap, path::Path, time::Instant};
 
-    use rand::{distributions::Uniform, Rng};
+    use rand::{distr::Uniform, Rng, RngExt};
 
     use crate::{pointer_graph::complete_hgraph, HyperGraph};
 
@@ -499,9 +499,10 @@ mod tests {
             start.elapsed().as_secs_f64()
         );
         println!("og hgraph constructed.");
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
+        let dist = Uniform::new(0, 10).unwrap();
         let choices = (0..num_steps)
-            .map(|_| rng.sample(Uniform::new(0, 10_usize)))
+            .map(|_| rng.sample(dist))
             .collect::<Vec<usize>>();
         println!("starting pointer graph");
         let start = Instant::now();
