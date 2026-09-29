@@ -516,6 +516,12 @@ where
         let filter = |edge_id| star.contains(&edge_id);
         self.filter_by_edge(filter)
     }
+
+    pub fn edges_containing_node(&self, node: &NodeID) -> Option<impl Iterator<Item = &EdgeID>> {
+        self.nodes
+            .get(node)
+            .map(|node| node.containing_edges.iter())
+    }
 }
 
 impl<NData, EData> HyperGraph for HGraph<NData, EData> {
