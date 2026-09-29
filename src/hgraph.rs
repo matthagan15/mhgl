@@ -5,6 +5,7 @@ use std::io::{BufReader, Write};
 use std::path::Path;
 
 use fxhash::{FxHashMap, FxHashSet};
+use hashbrown::HashTable;
 use serde::{Deserialize, Serialize};
 
 use crate::{ConGraph, EdgeID, NodeID};
@@ -45,11 +46,72 @@ pub(crate) struct Edge<EdgeData> {
 /// change to a trie-type structure called a Simplex Tree used in projects such
 /// as Gudhi. On my first evaluation it did not seem particularly beneficial
 /// asymptotically for computing links, but it may be worth investigating.
+#[serde(from = "StoredHGraph<NodeData, EdgeData>")]
 pub struct HGraph<NodeData, EdgeData> {
     next_node_id: NodeID,
     next_edge_id: EdgeID,
     pub(crate) edges: FxHashMap<EdgeID, Edge<EdgeData>>,
     pub(crate) nodes: FxHashMap<NodeID, Node<NodeData>>,
+    /// Every edge's id, keyed by the hash of its node set: `find_id` is one
+    /// lookup. Only ids are stored; equality is checked against `edges`.
+    #[serde(skip)]
+    pub(crate) edge_ids: HashTable<EdgeID>,
+}
+
+/// The fields an `HGraph` is serialized with. It deserializes through this,
+/// so that `edge_ids`, which is not stored, is rebuilt from the edges.
+#[derive(Deserialize)]
+struct StoredHGraph<NodeData, EdgeData> {
+    next_node_id: NodeID,
+    next_edge_id: EdgeID,
+    edges: FxHashMap<EdgeID, Edge<EdgeData>>,
+    nodes: FxHashMap<NodeID, Node<NodeData>>,
+}
+
+impl<NodeData, EdgeData> From<StoredHGraph<NodeData, EdgeData>> for HGraph<NodeData, EdgeData> {
+    fn from(stored: StoredHGraph<NodeData, EdgeData>) -> Self {
+        Self {
+            next_node_id: stored.next_node_id,
+            next_edge_id: stored.next_edge_id,
+            edge_ids: build_edge_ids(&stored.edges),
+            edges: stored.edges,
+            nodes: stored.nodes,
+        }
+    }
+}
+
+/// The hash `edge_ids` is keyed by: a sorted, deduplicated node slice.
+fn hash_nodes(nodes: &[NodeID]) -> u64 {
+    fxhash::hash64(nodes)
+}
+
+/// An `edge_ids` table holding every edge of `edges`.
+fn build_edge_ids<EdgeData>(edges: &FxHashMap<EdgeID, Edge<EdgeData>>) -> HashTable<EdgeID> {
+    let rehash = |id: &EdgeID| hash_nodes(&edges[id].nodes.0);
+    let mut edge_ids = HashTable::with_capacity(edges.len());
+    for (id, edge) in edges.iter() {
+        edge_ids.insert_unique(hash_nodes(&edge.nodes.0), *id, rehash);
+    }
+    edge_ids
+}
+
+/// Adds `id` to `edge_ids`. Its edge, with its final node set, must already be
+/// in `edges`, and no other edge may have that node set.
+fn insert_edge_id<EdgeData>(
+    edge_ids: &mut HashTable<EdgeID>,
+    edges: &FxHashMap<EdgeID, Edge<EdgeData>>,
+    id: EdgeID,
+) {
+    let rehash = |id: &EdgeID| hash_nodes(&edges[id].nodes.0);
+    edge_ids.insert_unique(hash_nodes(&edges[&id].nodes.0), id, rehash);
+}
+
+/// Removes `id` from `edge_ids`, where it is stored under `nodes`; does nothing
+/// if it is not there. Matches on the id, so an edge with the same nodes stays.
+fn remove_edge_id(edge_ids: &mut HashTable<EdgeID>, nodes: &[NodeID], id: EdgeID) {
+    if let Ok(entry) = edge_ids.find_entry(hash_nodes(nodes), |other| *other == id) {
+        entry.remove();
+    }
 }
 
 impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
@@ -99,6 +161,7 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
             next_edge_id,
             edges,
             nodes,
+            edge_ids: cgraph.core.edge_ids,
         }
     }
 }
@@ -121,6 +184,7 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
             next_edge_id: 0,
             edges: FxHashMap::default(),
             nodes: FxHashMap::default(),
+            edge_ids: HashTable::new(),
         }
     }
 
@@ -157,49 +221,29 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
             return;
         }
         let mut node1_d = self.nodes.remove(node1).unwrap();
-        let mut new_edges = HashSet::new();
-        let mut edge_to_remove = Vec::new();
+        let mut new_edges = Vec::new();
         for edge in node1_d.containing_edges.drain() {
             let e = self.edges.get_mut(&edge).unwrap();
+            remove_edge_id(&mut self.edge_ids, &e.nodes.0, edge);
             e.nodes.remove_node(node1);
             e.nodes.add_node(*node2);
-            if e.nodes.len() == 1 {
-                edge_to_remove.push(edge);
-            }
-            new_edges.insert(edge);
+            new_edges.push(edge);
         }
         let node2_ref = self.nodes.get_mut(node2).unwrap();
         for e in new_edges.iter() {
             node2_ref.containing_edges.insert(*e);
         }
-        for e in edge_to_remove {
-            self.remove_edge(e);
-        }
-        // need to dedup
-        let mut duplicate_edges = Vec::new();
-        let node2_edges: Vec<_> = self
-            .nodes
-            .get(node2)
-            .unwrap()
-            .containing_edges
-            .clone()
-            .into_iter()
-            .collect();
-        for ix in 0..node2_edges.len() {
-            for jx in (ix + 1)..node2_edges.len() {
-                let ix_edge = self.edges.get(&node2_edges[ix]).unwrap();
-                let jx_edge = self.edges.get(&node2_edges[jx]).unwrap();
-                if ix_edge.nodes == jx_edge.nodes {
-                    if new_edges.contains(&node2_edges[ix]) {
-                        duplicate_edges.push(node2_edges[ix]);
-                    } else {
-                        duplicate_edges.push(node2_edges[jx]);
-                    }
-                }
+        // A rewritten edge that is now a single node, or a duplicate of an edge
+        // already in the table, is removed; so an edge that was already there
+        // wins over a rewritten one.
+        for edge in new_edges {
+            let nodes = &self.edges[&edge].nodes.0;
+            let drop_edge = nodes.len() == 1 || self.find_id_sorted_nodes(nodes).is_some();
+            if drop_edge {
+                self.remove_edge(edge);
+            } else {
+                insert_edge_id(&mut self.edge_ids, &self.edges, edge);
             }
-        }
-        for edge in duplicate_edges {
-            self.remove_edge(edge);
         }
     }
 
@@ -210,7 +254,7 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
     /// - If you create more edges than allowable by the `EdgeID` storage type
     pub fn add_edge(&mut self, edge: impl AsRef<[NodeID]>, data: EdgeData) -> EdgeID {
         let edge_set: EdgeSet = edge.into();
-        if let Some(id) = self.find_id(edge_set.node_vec()) {
+        if let Some(id) = self.find_id_sorted_nodes(&edge_set.0) {
             let e = self.edges.remove(&id).unwrap();
             self.edges.insert(
                 id,
@@ -248,6 +292,7 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
             data,
         };
         self.edges.insert(id.clone(), edge);
+        insert_edge_id(&mut self.edge_ids, &self.edges, id);
         id
     }
 
@@ -276,7 +321,7 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
         E: Into<EdgeSet>,
     {
         let edge_set: EdgeSet = edge.into();
-        if self.find_id(edge_set.node_vec()).is_some() {
+        if self.find_id_sorted_nodes(&edge_set.0).is_some() {
             return None;
         }
 
@@ -297,32 +342,49 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
             nodes: edge_set,
             data,
         };
-        self.edges
-            .insert(id.clone(), edge)
-            .map(|edge_struct| edge_struct.data)
+        let old_edge = self.edges.insert(id.clone(), edge);
+        if let Some(old_edge) = &old_edge {
+            remove_edge_id(&mut self.edge_ids, &old_edge.nodes.0, id);
+        }
+        insert_edge_id(&mut self.edge_ids, &self.edges, id);
+        old_edge.map(|edge_struct| edge_struct.data)
     }
 
     /// This will remove the node from the graph and any edges containing it.
     /// The node will not be reused in the future. If this leaves an edge
     /// empty the edge will be removed from the graph.
+    ///
+    /// **Warning:** if removing the node shrinks an edge onto the nodes of an
+    /// edge that already exists, the shrunk edge is removed, data included, and
+    /// the existing edge is kept. This is the policy of
+    /// [`concatenate_nodes`](Self::concatenate_nodes), and it keeps the graph
+    /// free of duplicate edges.
     pub fn remove_node(&mut self, node: NodeID) -> Option<NodeData> {
         if self.nodes.contains_key(&node) == false {
             return None;
         }
         let removed_node = self.nodes.remove(&node).unwrap();
-        let mut edges_to_be_removed = Vec::new();
         for effected_edge_id in removed_node.containing_edges.iter() {
             let effected_edge = self
                 .edges
                 .get_mut(&effected_edge_id)
                 .expect("Effected edge not found.");
+            remove_edge_id(
+                &mut self.edge_ids,
+                &effected_edge.nodes.0,
+                *effected_edge_id,
+            );
             effected_edge.nodes.remove_node(&node);
-            if effected_edge.nodes.len() == 0 {
-                edges_to_be_removed.push(effected_edge_id.clone());
-            }
         }
-        for edge_id in edges_to_be_removed {
-            self.remove_edge(edge_id);
+        // Two shrunk edges cannot collide: both held `node` and differed elsewhere.
+        for effected_edge_id in removed_node.containing_edges.iter() {
+            let nodes = &self.edges[effected_edge_id].nodes.0;
+            let drop_edge = nodes.is_empty() || self.find_id_sorted_nodes(nodes).is_some();
+            if drop_edge {
+                self.remove_edge(*effected_edge_id);
+            } else {
+                insert_edge_id(&mut self.edge_ids, &self.edges, *effected_edge_id);
+            }
         }
         Some(removed_node.data)
     }
@@ -331,6 +393,7 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
     /// if an incorrect edge was provided.
     pub fn remove_edge(&mut self, edge_id: EdgeID) -> Option<EdgeData> {
         if let Some(e) = self.edges.remove(&edge_id) {
+            remove_edge_id(&mut self.edge_ids, &e.nodes.0, edge_id);
             for node in e.nodes.0.iter() {
                 let containing_edges = self.nodes.get_mut(node).expect("Why is edge not in here.");
                 containing_edges.containing_edges.remove(&edge_id);
@@ -407,30 +470,62 @@ impl<NodeData, EdgeData> HGraph<NodeData, EdgeData> {
         self.edges.get_mut(edge).map(|big_edge| &mut big_edge.data)
     }
 
+    /// Applies the provided closure to each edge.
+    pub fn apply_edge_data_map<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut EdgeData),
+    {
+        for edge in self.edges.values_mut() {
+            f(&mut edge.data)
+        }
+    }
+
+    /// Applies the provided closure to each node.
+    pub fn apply_node_data_map<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut NodeData),
+    {
+        for node in self.nodes.values_mut() {
+            f(&mut node.data)
+        }
+    }
+
     /// In case you forget :)
     pub fn find_id(&self, nodes: impl AsRef<[NodeID]>) -> Option<EdgeID> {
+        // check if sorted
         let nodes_ref = nodes.as_ref();
         if nodes_ref.len() == 0 {
             return None;
         }
-        let nodes_as_edge: EdgeSet = nodes_ref.into();
-        let first = nodes_ref[0];
-        if self.nodes.contains_key(&first) == false {
-            return None;
+        if nodes_ref.len() == 1 {
+            return self.find_id_sorted_nodes(nodes_ref);
         }
-        let candidate_ids = self.nodes.get(&first).unwrap();
-        for candidate_id in candidate_ids.containing_edges.iter() {
-            let candidate = self
-                .edges
-                .get(candidate_id)
-                .expect("Edge invariant violated.");
-            // This is where the "no duplicate edges" is enforced, otherwise
-            // we will just return the arbitrary first edge that matches
-            if candidate.nodes == nodes_as_edge {
-                return Some(candidate_id.clone());
+        if nodes_ref.is_sorted() {
+            let no_duplicates: bool = (0..nodes_ref.len() - 1)
+                .map(|ix| nodes_ref[ix] != nodes_ref[ix + 1])
+                .reduce(|acc, x| acc && x)
+                .unwrap();
+            if no_duplicates {
+                return self.find_id_sorted_nodes(nodes_ref);
             }
         }
-        None
+        let edge_set = EdgeSet::from(nodes);
+        self.find_id_sorted_nodes(&edge_set.0)
+    }
+
+    fn find_id_sorted_nodes(&self, nodes: &[NodeID]) -> Option<EdgeID> {
+        if nodes.is_empty() {
+            return None;
+        }
+        self.edge_ids
+            .find(hash_nodes(nodes), |edge_id| {
+                if let Some(edge) = self.edges.get(edge_id) {
+                    edge.nodes.0 == nodes
+                } else {
+                    false
+                }
+            })
+            .cloned()
     }
 }
 
@@ -476,13 +571,10 @@ where
                 (node, new_node)
             })
             .collect();
-        let mut next_node_id = *new_nodes.keys().max().unwrap();
-        next_node_id += 1;
-        let mut next_edge_id = *new_edges.keys().max().unwrap();
-        next_edge_id += 1;
         HGraph {
-            next_node_id,
-            next_edge_id,
+            next_node_id: self.next_node_id,
+            next_edge_id: self.next_edge_id,
+            edge_ids: build_edge_ids(&new_edges),
             edges: new_edges,
             nodes: new_nodes,
         }
@@ -858,9 +950,32 @@ impl<NodeData, EdgeData> Display for HGraph<NodeData, EdgeData> {
 
 #[cfg(test)]
 mod tests {
-    use crate::HyperGraph;
+    use rand::{rngs::StdRng, Rng, SeedableRng};
+
+    use crate::{ConGraph, HyperGraph, NodeID};
 
     use super::HGraph;
+
+    /// `edge_ids` holds exactly one entry per edge, no two edges share a node
+    /// set, and every edge is found from its nodes in any order and with repeats.
+    fn assert_edge_ids_consistent<N, E>(hg: &HGraph<N, E>) {
+        assert_eq!(hg.edge_ids.len(), hg.edges.len());
+        let mut node_sets: Vec<&Vec<NodeID>> = hg.edges.values().map(|e| &e.nodes.0).collect();
+        node_sets.sort();
+        node_sets.dedup();
+        assert_eq!(
+            node_sets.len(),
+            hg.edges.len(),
+            "two edges share a node set"
+        );
+        for (id, edge) in hg.edges.iter() {
+            assert_eq!(hg.find_id(&edge.nodes.0), Some(*id));
+            let mut shuffled = edge.nodes.0.clone();
+            shuffled.reverse();
+            shuffled.push(shuffled[0]);
+            assert_eq!(hg.find_id(&shuffled), Some(*id));
+        }
+    }
 
     #[test]
     fn syntax() {
@@ -1046,5 +1161,115 @@ mod tests {
         let expected_4 = vec![vec![0, 1]];
         let test_4 = hg.boundary_down_of_nodes(vec![0, 1, 3]);
         assert_eq!(test_4, expected_4);
+    }
+    #[test]
+    fn find_id_accepts_any_order_and_repeats() {
+        let mut hg = HGraph::<(), ()>::new();
+        let n: Vec<_> = (0..6).map(|_| hg.add_node(())).collect();
+        let edge = hg.add_edge([n[1], n[3], n[5]], ());
+        assert_eq!(hg.find_id([n[1], n[3], n[5]]), Some(edge));
+        assert_eq!(hg.find_id([n[5], n[1], n[3]]), Some(edge));
+        assert_eq!(hg.find_id([n[3], n[3], n[1], n[5], n[5]]), Some(edge));
+        assert_eq!(hg.find_id([n[1], n[3]]), None);
+        assert_eq!(hg.find_id([n[1], n[3], n[5], n[0]]), None);
+        assert_eq!(hg.find_id(&[] as &[NodeID]), None);
+        assert_eq!(hg.find_id([100]), None);
+    }
+
+    /// Removing a node can shrink an edge onto one that already exists: the
+    /// shrunk edge and its data go, the existing edge stays.
+    #[test]
+    fn remove_node_drops_the_shrunk_duplicate() {
+        let mut hg = HGraph::<(), i32>::new();
+        let n: Vec<_> = (0..3).map(|_| hg.add_node(())).collect();
+        let existing = hg.add_edge([n[0], n[1]], 1);
+        let shrunk = hg.add_edge([n[0], n[1], n[2]], 2);
+        hg.remove_node(n[2]);
+        assert_eq!(hg.get_edge(&existing), Some(&1));
+        assert_eq!(hg.get_edge(&shrunk), None);
+        assert_eq!(hg.find_id([n[0], n[1]]), Some(existing));
+        assert_eq!(hg.num_edges(), 1);
+        assert_edge_ids_consistent(&hg);
+    }
+
+    /// Gluing can rewrite an edge onto one that already exists: the rewritten
+    /// edge goes and the existing one keeps its data.
+    #[test]
+    fn concatenate_nodes_keeps_the_existing_edge() {
+        let mut hg = HGraph::<(), i32>::new();
+        let n: Vec<_> = (0..4).map(|_| hg.add_node(())).collect();
+        let existing = hg.add_edge([n[2], n[3]], 10);
+        let rewritten = hg.add_edge([n[1], n[3]], 20);
+        hg.concatenate_nodes(&n[1], &n[2]);
+        assert_eq!(hg.get_edge(&existing), Some(&10));
+        assert_eq!(hg.get_edge(&rewritten), None);
+        assert_eq!(hg.find_id([n[3], n[2]]), Some(existing));
+        assert_edge_ids_consistent(&hg);
+    }
+
+    /// `edge_ids` is not serialized; loading rebuilds it, and the format is unchanged.
+    #[test]
+    fn serde_round_trip_rebuilds_edge_ids() {
+        let mut hg = HGraph::<u8, i32>::new();
+        let n: Vec<_> = (0..5).map(|i| hg.add_node(i)).collect();
+        let e1 = hg.add_edge([n[0], n[1]], 1);
+        let e2 = hg.add_edge([n[3], n[1], n[4]], 2);
+        let json = serde_json::to_string(&hg).unwrap();
+        assert!(!json.contains("edge_ids"));
+        let loaded: HGraph<u8, i32> = serde_json::from_str(&json).unwrap();
+        assert_eq!(loaded.find_id([n[1], n[0]]), Some(e1));
+        assert_eq!(loaded.find_id([n[4], n[3], n[1]]), Some(e2));
+        assert_edge_ids_consistent(&loaded);
+        let reserialized: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&loaded).unwrap()).unwrap();
+        assert_eq!(
+            reserialized,
+            serde_json::from_str::<serde_json::Value>(&json).unwrap()
+        );
+
+        let mut cg = ConGraph::new();
+        let m = cg.add_nodes(4);
+        let f = cg.add_edge(&[m[2], m[0], m[3]]);
+        let loaded: ConGraph = serde_json::from_str(&serde_json::to_string(&cg).unwrap()).unwrap();
+        assert_eq!(loaded.find_id(&[m[0], m[2], m[3]]), Some(f));
+    }
+
+    /// Random adds, edge removals, node removals and gluings keep `edge_ids`
+    /// in step with the edges.
+    #[test]
+    fn edge_ids_stay_consistent_under_random_operations() {
+        let mut rng = StdRng::seed_from_u64(7);
+        for _ in 0..200 {
+            let mut hg = HGraph::<(), ()>::new();
+            let mut nodes: Vec<NodeID> = (0..8).map(|_| hg.add_node(())).collect();
+            for _ in 0..40 {
+                match rng.gen_range(0..10) {
+                    0..=5 => {
+                        let k = rng.gen_range(1..=nodes.len().min(4));
+                        let edge: Vec<NodeID> = (0..k)
+                            .map(|_| nodes[rng.gen_range(0..nodes.len())])
+                            .collect();
+                        hg.add_edge(&edge, ());
+                    }
+                    6 => {
+                        let edges = hg.edges();
+                        if !edges.is_empty() {
+                            hg.remove_edge(edges[rng.gen_range(0..edges.len())]);
+                        }
+                    }
+                    7 if nodes.len() > 2 => {
+                        let node = nodes.swap_remove(rng.gen_range(0..nodes.len()));
+                        hg.remove_node(node);
+                    }
+                    8 | 9 if nodes.len() > 2 => {
+                        let from = nodes.swap_remove(rng.gen_range(0..nodes.len()));
+                        let onto = nodes[rng.gen_range(0..nodes.len())];
+                        hg.concatenate_nodes(&from, &onto);
+                    }
+                    _ => {}
+                }
+                assert_edge_ids_consistent(&hg);
+            }
+        }
     }
 }

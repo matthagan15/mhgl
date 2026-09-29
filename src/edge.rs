@@ -1,4 +1,5 @@
 use std::{
+    borrow::Borrow,
     collections::HashSet,
     fmt::{Debug, Display},
 };
@@ -12,6 +13,13 @@ use crate::NodeID;
 /// if you want to make a `Edge::Simplex` from a `Vec` you have to do something like
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct EdgeSet(pub Vec<NodeID>);
+
+/// Allows for an EdgeSet to be borrowed just like a slice. Used for hashing.
+impl Borrow<[NodeID]> for EdgeSet {
+    fn borrow(&self) -> &[NodeID] {
+        &self.0
+    }
+}
 
 #[allow(dead_code)]
 impl EdgeSet {
